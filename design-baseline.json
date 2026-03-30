@@ -1,0 +1,28 @@
+{
+  "date": "2026-03-29",
+  "url": "http://localhost:3000",
+  "designScore": "B-",
+  "aiSlopScore": "B",
+  "categoryGrades": {
+    "hierarchy": "B+",
+    "typography": "B+",
+    "spacing": "B",
+    "color": "B",
+    "interaction": "C",
+    "responsive": "B",
+    "motion": "A-",
+    "content": "A-",
+    "aiSlop": "B",
+    "performance": "A"
+  },
+  "findings": [
+    { "id": "FINDING-001", "title": "Auth page submit buttons invisible", "impact": "high", "category": "interaction" },
+    { "id": "FINDING-002", "title": "Bento grid col-span-2 not working", "impact": "high", "category": "spacing" },
+    { "id": "FINDING-003", "title": "Touch targets below 44px", "impact": "medium", "category": "interaction" },
+    { "id": "FINDING-004", "title": "Geist font leaking", "impact": "medium", "category": "typography" },
+    { "id": "FINDING-005", "title": "DESIGN.md stale Tailwind config", "impact": "medium", "category": "content" },
+    { "id": "FINDING-006", "title": "3-column steps AI slop pattern", "impact": "medium", "category": "aiSlop" },
+    { "id": "FINDING-007", "title": "Redundant CTA section", "impact": "polish", "category": "content" },
+    { "id": "FINDING-008", "title": "CountUp starts at 0%", "impact": "polish", "category": "motion" }
+  ]
+}
