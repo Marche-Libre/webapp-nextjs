@@ -10,6 +10,8 @@ export interface SearchSelectOption {
   group?: string;
   /** 0 = category/parent (bold, full-width), 1 = child (indented) */
   depth?: number;
+  /** Optional icon element (e.g. flag) rendered before the label */
+  icon?: React.ReactNode;
 }
 
 interface SearchSelectProps {
@@ -35,7 +37,9 @@ export function SearchSelect({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedLabel = options.find((o) => o.value === value)?.label || "";
+  const selectedOption = options.find((o) => o.value === value);
+  const selectedLabel = selectedOption?.label || "";
+  const selectedIcon = selectedOption?.icon;
 
   // Close on click outside
   useEffect(() => {
@@ -101,64 +105,62 @@ export function SearchSelect({
         </label>
       )}
       <div className="relative">
-        {/* Trigger */}
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
+        {/* Unified search trigger — acts as both trigger and search input */}
+        <div
           className={cn(
-            "w-full flex items-center justify-between rounded-lg border bg-base-100 px-4 py-2.5 text-sm text-left transition-colors cursor-pointer",
+            "w-full flex items-center gap-2 rounded-lg border bg-base-100 px-3 py-2.5 transition-colors cursor-text",
             open
               ? "border-accent"
-              : "border-base-content/[0.08] hover:border-base-content/15",
-            !selectedLabel && "text-base-content/30"
+              : "border-base-content/[0.08] hover:border-base-content/15"
           )}
+          onClick={() => { if (!open) setOpen(true); }}
         >
-          <span className="truncate">
-            {selectedLabel || placeholder}
-          </span>
-          <div className="flex items-center gap-1 shrink-0">
-            {selectedLabel && !open && (
-              <span
-                role="button"
-                onClick={(e) => { e.stopPropagation(); onChange("", ""); }}
-                className="p-0.5 rounded hover:bg-base-content/10 text-base-content/25 hover:text-base-content/50 cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </span>
-            )}
+          <Search className="h-4 w-4 text-base-content/30 shrink-0" />
+          {open ? (
+            <input
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent text-sm text-base-content placeholder:text-base-content/30 outline-none"
+            />
+          ) : (
+            <span className={cn("flex-1 text-sm truncate flex items-center gap-2", selectedLabel ? "text-base-content" : "text-base-content/30")}>
+              {selectedIcon}
+              {selectedLabel || placeholder}
+            </span>
+          )}
+          {selectedLabel && !open && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); onChange("", ""); }}
+              className="p-0.5 rounded hover:bg-base-content/10 text-base-content/25 hover:text-base-content/50 cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
+          {search && open && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="text-base-content/30 hover:text-base-content/60 cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {!selectedLabel && (
             <ChevronDown
               className={cn(
-                "h-4 w-4 text-base-content/30 transition-transform",
+                "h-4 w-4 text-base-content/30 transition-transform shrink-0",
                 open && "rotate-180"
               )}
             />
-          </div>
-        </button>
+          )}
+        </div>
 
-        {/* Dropdown */}
+        {/* Dropdown — no duplicate search bar */}
         {open && (
           <div className="absolute z-50 mt-1 w-full rounded-lg border border-base-content/[0.08] bg-base-100 shadow-xl overflow-hidden animate-[slide-up_0.15s_ease-out]">
-            {/* Search input */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-base-content/[0.06]">
-              <Search className="h-3.5 w-3.5 text-base-content/30 shrink-0" />
-              <input
-                ref={inputRef}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher…"
-                className="flex-1 bg-transparent text-sm text-base-content placeholder:text-base-content/30 outline-none"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  className="text-base-content/30 hover:text-base-content/60 cursor-pointer"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-
             {/* Options */}
             <div className="max-h-80 overflow-y-auto">
               {Object.keys(groups).length === 0 && (
@@ -211,7 +213,7 @@ export function SearchSelect({
                                 : "text-base-content font-medium hover:bg-base-content/[0.04]"
                             )}
                           >
-                            {item.label}
+                            {item.icon}{item.label}
                           </button>
                         ))}
                         {/* Child items (specialties) — indented, lighter */}
@@ -228,7 +230,7 @@ export function SearchSelect({
                             )}
                           >
                             <span className="w-1 h-1 rounded-full bg-base-content/20 shrink-0" />
-                            {item.label}
+                            {item.icon}{item.label}
                           </button>
                         ))}
                       </>
@@ -240,13 +242,13 @@ export function SearchSelect({
                           type="button"
                           onClick={() => selectItem(item)}
                           className={cn(
-                            "w-full px-4 py-2 text-sm text-left cursor-pointer transition-colors",
+                            "w-full flex items-center gap-2 px-4 py-2 text-sm text-left cursor-pointer transition-colors",
                             item.value === value
                               ? "text-accent bg-accent/[0.06] font-medium"
                               : "text-base-content hover:bg-base-content/[0.04]"
                           )}
                         >
-                          {item.label}
+                          {item.icon}{item.label}
                         </button>
                       ))
                     ))}

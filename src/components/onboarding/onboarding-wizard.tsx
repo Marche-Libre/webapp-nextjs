@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useConfetti } from "@/hooks/use-confetti";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { SearchSelect } from "@/components/ui/search-select";
 import { XLogo } from "@/components/ui/x-logo";
+import Flag from "react-flagpack";
 import {
   ArrowRight,
   ArrowLeft,
@@ -46,7 +48,7 @@ interface OnboardingWizardProps {
   sponsor: { x_handle: string; full_name: string; avatar_url: string | null } | null;
   members: MemberPreview[];
   presentationsCategoryId: string | null;
-  countries: { id: string; name: string; flag: string; is_francophone: boolean }[];
+  countries: { id: string; name: string; flag: string; code: string; is_francophone: boolean }[];
   cities: { id: string; name: string; country_id: string; region: string | null }[];
 }
 
@@ -57,8 +59,8 @@ const STEP_META: { icon: LucideIcon; label: string }[] = [
   { icon: User, label: "Identité" },
   { icon: Briefcase, label: "Métier" },
   { icon: MapPin, label: "Localisation" },
-  { icon: Check, label: "Récap" },
   { icon: FileText, label: "Bio" },
+  { icon: Check, label: "Récap" },
   { icon: Search, label: "Recherche" },
   { icon: MessageSquare, label: "Présentation" },
   { icon: UserPlus, label: "Inviter" },
@@ -76,6 +78,9 @@ export function OnboardingWizard({
 }: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
+
+  // Confetti on welcome step
+  useConfetti(step === 1);
   const [loading, setLoading] = useState(false);
 
   // Identity
@@ -109,8 +114,8 @@ export function OnboardingWizard({
   const location = city && country ? `${city}, ${country}` : city || country;
 
   // Looking for
-  const [lookingForSpecialty, setLookingForSpecialty] = useState("");
-  const [lookingForCity, setLookingForCity] = useState("");
+  const [lookingForTags, setLookingForTags] = useState<string[]>([]);
+  const [lookingForCities, setLookingForCities] = useState<string[]>([]);
 
   // Specialty labels — handles both category IDs (cat:xxx) and specialty IDs
   const specNameMap = new Map<string, string>();
@@ -188,10 +193,12 @@ export function OnboardingWizard({
     next();
   };
 
-  // Save looking_for (step 6)
+  // Save looking_for (step 7)
   const saveLookingFor = async () => {
     setLoading(true);
-    const lookingFor = [lookingForSpecialty, lookingForCity].filter(Boolean).join(" à ");
+    const tags = lookingForTags.join(", ");
+    const citiesStr = lookingForCities.map((c) => c.startsWith("__") ? c.replace("__", "") : c).join(", ");
+    const lookingFor = [tags, citiesStr].filter(Boolean).join(" · ");
     await supabase.from("profiles").update({ looking_for: lookingFor || null }).eq("id", profile.id);
     setLoading(false);
     next();
@@ -225,7 +232,12 @@ export function OnboardingWizard({
   // Finish
   const finish = async () => {
     setLoading(true);
-    await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", profile.id);
+    const { error } = await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", profile.id);
+    if (error) {
+      alert("Erreur lors de la finalisation. Veuillez réessayer.");
+      setLoading(false);
+      return;
+    }
     await supabase.from("notifications").insert({
       user_id: profile.id,
       type: "welcome",
@@ -233,16 +245,18 @@ export function OnboardingWizard({
       body: "Votre compte est activé. Explorez l'annuaire, rejoignez une discussion, ou invitez un professionnel.",
       link: "/forum",
     });
-    router.push("/forum");
+    // Hard redirect to bypass middleware cache
+    window.location.href = "/forum";
   };
 
   // Member matching
   const matchingMembers = members.filter((m) => {
-    if (!lookingForSpecialty && !lookingForCity) return true;
-    const memberSpecs = (m.specialty_ids ?? []).map((id) => specNameMap.get(id) || "").join(" ");
+    if (lookingForTags.length === 0 && lookingForCities.length === 0) return true;
+    const memberSpecs = (m.specialty_ids ?? []).map((id) => specNameMap.get(id) || "").join(" ").toLowerCase();
+    const tagMatch = lookingForTags.length === 0 || lookingForTags.some((t) => memberSpecs.includes(t.toLowerCase()));
+    const cityMatch = lookingForCities.length === 0 || lookingForCities.some((c) => m.location?.toLowerCase().includes(c.toLowerCase()));
     return (
-      (!lookingForSpecialty || memberSpecs.toLowerCase().includes(lookingForSpecialty.toLowerCase())) ||
-      (!lookingForCity || m.location?.toLowerCase().includes(lookingForCity.toLowerCase()))
+      tagMatch || cityMatch
     );
   }).slice(0, 5);
 
@@ -311,7 +325,7 @@ export function OnboardingWizard({
               </button>
             </div>
             <p className="text-base text-base-content/45 mt-2">
-              Facultatif — votre @{profile.x_handle} est toujours votre identité principale.
+              Facultatif — votre handle <XLogo className="w-3 h-3 inline-block align-baseline" /> <span className="text-base-content/70 font-medium">@{profile.x_handle}</span> reste votre identité principale.
             </p>
           </div>
 
@@ -346,7 +360,7 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={next}>
                 Passer <SkipForward className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={next}>
+              <Button onClick={next} disabled={!firstName.trim() && !lastName.trim()}>
                 Continuer <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -406,14 +420,9 @@ export function OnboardingWizard({
             <Button variant="ghost" onClick={prev}>
               <ArrowLeft className="h-4 w-4" /> Retour
             </Button>
-            <div className="flex gap-3">
-              <Button variant="ghost" onClick={next}>
-                Passer <SkipForward className="h-3.5 w-3.5" />
-              </Button>
-              <Button onClick={next} disabled={specialtyIds.length === 0}>
-                Continuer <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button onClick={next} disabled={specialtyIds.length === 0}>
+              Continuer <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       )}
@@ -449,24 +458,46 @@ export function OnboardingWizard({
               label="Pays"
               placeholder="Sélectionner votre pays…"
               value={country}
-              onChange={(value) => { setCountry(value); setCity(""); }}
-              options={countries.map((c) => ({
-                value: c.name,
-                label: `${c.flag} ${c.name}`,
-                group: c.is_francophone ? "Francophonie" : "Autres pays",
-              }))}
+              onChange={(value) => { setCountry(value === "__non_renseigne" ? "" : value); setCity(""); }}
+              options={[
+                { value: "__non_renseigne", label: "Non renseigné" },
+                ...countries.map((c) => ({
+                  value: c.name,
+                  label: c.name,
+                  icon: c.code ? <Flag code={c.code} size="s" className="shrink-0" /> : undefined,
+                  group: c.is_francophone ? "Francophonie" : "Autres pays",
+                })),
+              ]}
             />
             <SearchSelect
               label="Ville"
-              placeholder={country ? "Sélectionner votre ville…" : "Choisissez d'abord un pays"}
+              placeholder="Rechercher votre ville…"
               value={city}
-              onChange={(_, label) => setCity(label)}
+              onChange={(value, label) => {
+                setCity(label);
+                // Auto-set country from city if not already set
+                if (!country) {
+                  const selectedCity = cities.find((c) => c.name === label);
+                  if (selectedCity) {
+                    const co = countries.find((c) => c.id === selectedCity.country_id);
+                    if (co) setCountry(co.name);
+                  }
+                }
+              }}
               options={(() => {
-                const co = countries.find((c) => c.name === country);
-                if (!co) return [];
-                return cities
-                  .filter((c) => c.country_id === co.id)
-                  .map((c) => ({ value: c.name, label: c.name, group: c.region || undefined }));
+                if (country) {
+                  // Filter by selected country
+                  const co = countries.find((c) => c.name === country);
+                  if (!co) return [];
+                  return cities
+                    .filter((c) => c.country_id === co.id)
+                    .map((c) => ({ value: c.name, label: c.name, group: c.region || undefined }));
+                }
+                // No country selected — show ALL cities grouped by country
+                return cities.map((c) => {
+                  const co = countries.find((ct) => ct.id === c.country_id);
+                  return { value: c.name, label: c.name, group: co ? co.name : undefined };
+                });
               })()}
             />
           </div>
@@ -479,7 +510,7 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={() => { saveProfile(); }}>
                 Passer <SkipForward className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={saveProfile} disabled={loading}>
+              <Button onClick={saveProfile} disabled={loading || !country}>
                 {loading ? "Enregistrement…" : "Continuer"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -487,8 +518,8 @@ export function OnboardingWizard({
         </div>
       )}
 
-      {/* ========= STEP 4: RÉCAP ========= */}
-      {step === 5 && (
+      {/* ========= STEP 5: RÉCAP ========= */}
+      {step === 6 && (
         <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
           <div>
             <h2 className="text-2xl font-bold text-base-content tracking-tight">
@@ -550,7 +581,7 @@ export function OnboardingWizard({
       )}
 
       {/* ========= STEP 5: BIO ========= */}
-      {step === 6 && (
+      {step === 5 && (
         <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
           <div>
             <div className="flex items-center justify-between">
@@ -595,7 +626,7 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={next}>
                 Passer <SkipForward className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={saveBio} disabled={loading}>
+              <Button onClick={saveBio} disabled={loading || !bio.trim()}>
                 {loading ? "Enregistrement…" : "Continuer"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -616,20 +647,76 @@ export function OnboardingWizard({
           </div>
 
           <div className="space-y-5">
-            <SearchSelect
-              label="Spécialité recherchée"
-              placeholder="Rechercher un métier…"
-              value={lookingForSpecialty}
-              onChange={(_, label) => setLookingForSpecialty(label)}
-              options={allSpecialties.map((s) => ({ value: s.value, label: s.label, group: s.group }))}
-            />
-            <SearchSelect
-              label="Ville"
-              placeholder="Rechercher une ville…"
-              value={lookingForCity}
-              onChange={(_, label) => setLookingForCity(label)}
-              options={cities.map((c) => ({ value: c.name, label: c.name }))}
-            />
+            {/* What are you looking for — multi select with pills */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-base-content/70">Je cherche…</label>
+              {lookingForTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  {lookingForTags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-accent bg-accent/10 border border-accent/20">
+                      {tag}
+                      <button type="button" onClick={() => setLookingForTags((prev) => prev.filter((t) => t !== tag))} className="hover:text-accent/70 cursor-pointer">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <SearchSelect
+                placeholder="Ajouter un objectif ou un métier…"
+                value=""
+                onChange={(_, label) => {
+                  if (label && !lookingForTags.includes(label)) {
+                    setLookingForTags((prev) => [...prev, label]);
+                  }
+                }}
+                options={[
+                  { value: "clients", label: "Des clients / missions", group: "Mon objectif" },
+                  { value: "collaborateurs", label: "Des collaborateurs / associés", group: "Mon objectif" },
+                  { value: "réseau", label: "Élargir mon réseau professionnel", group: "Mon objectif" },
+                  { value: "prestataires", label: "Des prestataires / sous-traitants", group: "Mon objectif" },
+                  ...allSpecialties
+                    .filter((s) => !lookingForTags.includes(s.label))
+                    .map((s) => ({ value: s.value, label: s.label, group: s.group })),
+                ]}
+              />
+            </div>
+
+            {/* Where — multi select with pills */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-base-content/70">Où ?</label>
+              {lookingForCities.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-1">
+                  {lookingForCities.map((c) => (
+                    <span key={c} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-accent bg-accent/10 border border-accent/20">
+                      {c}
+                      <button type="button" onClick={() => setLookingForCities((prev) => prev.filter((x) => x !== c))} className="hover:text-accent/70 cursor-pointer">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <SearchSelect
+                placeholder="Ajouter une ville…"
+                value=""
+                onChange={(_, label) => {
+                  if (label && !lookingForCities.includes(label)) {
+                    setLookingForCities((prev) => [...prev, label]);
+                  }
+                }}
+                options={[
+                  { value: "__remote", label: "À distance / Partout" },
+                  { value: "__france", label: "Toute la France" },
+                  ...cities
+                    .filter((c) => !lookingForCities.includes(c.name))
+                    .map((c) => {
+                      const co = countries.find((ct) => ct.id === c.country_id);
+                      return { value: `${c.name}-${c.country_id}`, label: c.name, group: co?.name };
+                    }),
+                ]}
+              />
+            </div>
           </div>
 
           {/* Matching members */}
@@ -653,7 +740,7 @@ export function OnboardingWizard({
               </div>
             </div>
           )}
-          {(lookingForSpecialty || lookingForCity) && matchingMembers.length === 0 && (
+          {(lookingForTags.length > 0 || lookingForCities.length > 0) && matchingMembers.length === 0 && (
             <p className="text-base text-base-content/30 text-center py-6">
               Aucun membre trouvé. Le réseau grandit chaque jour !
             </p>
@@ -667,7 +754,7 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={next}>
                 Passer <SkipForward className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={saveLookingFor} disabled={loading}>
+              <Button onClick={saveLookingFor} disabled={loading || (lookingForTags.length === 0 && lookingForCities.length === 0)}>
                 {loading ? "…" : "Continuer"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -703,7 +790,7 @@ export function OnboardingWizard({
               <Button variant="ghost" onClick={next}>
                 Passer <SkipForward className="h-3.5 w-3.5" />
               </Button>
-              <Button onClick={publishIntro} disabled={loading}>
+              <Button onClick={publishIntro} disabled={loading || !introText.trim()}>
                 {loading ? "Publication…" : "Publier"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>

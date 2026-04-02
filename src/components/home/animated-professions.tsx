@@ -152,6 +152,7 @@ export function AnimatedProfessions() {
             </h2>
             <p className="mt-4 text-base-content/50 text-sm leading-relaxed max-w-lg mx-auto">
               Avocats, développeurs, architectes, médecins, consultants, designers…
+              <br />
               Quel que soit votre métier, vous trouverez des pairs vérifiés.
             </p>
           </div>
@@ -166,7 +167,7 @@ export function AnimatedProfessions() {
               className="flex gap-3 w-max animate-[marquee_90s_linear_infinite]"
               style={{
                 animationDirection: i % 2 === 0 ? "normal" : "reverse",
-                animationDuration: `${70 + i * 15}s`,
+                animationDuration: `${140 + i * 20}s`,
               }}
             >
               {/* Duplicate for seamless loop */}
@@ -183,24 +184,6 @@ export function AnimatedProfessions() {
         ))}
       </div>
 
-      {/* Category badges */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <FadeIn delay={0.1}>
-          <div className="flex flex-wrap justify-center gap-2">
-            {categories.map((cat) => (
-              <span
-                key={cat.label}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/8 text-accent text-xs font-semibold"
-              >
-                {cat.label}
-                <span className="text-accent/50 font-normal">
-                  {cat.professions.length}
-                </span>
-              </span>
-            ))}
-          </div>
-        </FadeIn>
-      </div>
     </section>
   );
 }

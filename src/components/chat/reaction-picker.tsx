@@ -3,11 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { SmilePlus } from "lucide-react";
 
-const EMOJIS = [
-  "👍", "❤️", "🔥", "😂", "👏", "💯", "👀", "🤔",
-  "🚀", "🎉", "✅", "❌", "👋", "🙏", "⭐", "✨",
-  "💡", "🧠", "👑", "💪",
-];
+// X-style limited emoji set
+const EMOJIS = ["👍", "❤️", "🔥", "😂", "🙏", "😢"];
 
 interface ReactionPickerProps {
   onSelect: (emoji: string) => void;
@@ -38,7 +35,7 @@ export function ReactionPicker({ onSelect }: ReactionPickerProps) {
         <SmilePlus className="h-[14px] w-[14px]" />
       </button>
       {open && (
-        <div className="absolute bottom-full right-0 mb-[4px] z-50 bg-bg-elevated border border-border-default rounded-lg shadow-modal p-[6px] grid grid-cols-5 gap-[2px] w-[180px]">
+        <div className="absolute top-full right-0 mt-[4px] z-50 bg-bg-elevated border border-border-default rounded-full shadow-modal px-[4px] py-[2px] flex gap-[2px]">
           {EMOJIS.map((emoji) => (
             <button
               key={emoji}
@@ -46,7 +43,7 @@ export function ReactionPicker({ onSelect }: ReactionPickerProps) {
                 onSelect(emoji);
                 setOpen(false);
               }}
-              className="w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-bg-surface cursor-pointer text-[16px] transition-colors"
+              className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-bg-surface cursor-pointer text-[16px] transition-colors"
             >
               {emoji}
             </button>

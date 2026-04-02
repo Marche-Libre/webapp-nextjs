@@ -30,7 +30,15 @@ interface ParrainagesTabsProps {
   filleuls: Filleul[];
   receivedRequests: ReceivedRequest[];
   xHandle: string;
+  isAdmin: boolean;
+  acceptReferrals: boolean;
+  userId: string;
+  pendingCount: number;
+  totalFilleuls: number;
 }
+
+const MAX_PENDING = 5;
+const MAX_TOTAL = 20;
 
 function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   const [loading, setLoading] = useState(false);
@@ -91,9 +99,20 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   );
 }
 
-export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, xHandle }: ParrainagesTabsProps) {
+export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, xHandle, isAdmin, acceptReferrals: initialAcceptReferrals, userId, pendingCount, totalFilleuls }: ParrainagesTabsProps) {
   const [activeTab, setActiveTab] = useState("sponsor");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [acceptReferrals, setAcceptReferrals] = useState(initialAcceptReferrals);
+
+  const isAtLimit = !isAdmin && (pendingCount >= MAX_PENDING || totalFilleuls >= MAX_TOTAL);
+  const linkActive = acceptReferrals && !isAtLimit;
+
+  const toggleReferrals = async () => {
+    const newVal = !acceptReferrals;
+    setAcceptReferrals(newVal);
+    const supabase = createClient();
+    await supabase.from("profiles").update({ accept_referrals: newVal }).eq("id", userId);
+  };
 
   const pendingInvitations = sentInvitations.filter((inv) => inv.status === "pending");
   const pendingRequests = receivedRequests.filter((r) => r.status === "pending");
@@ -113,29 +132,58 @@ export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, x
           <div className="space-y-[24px]">
             {/* Referral link */}
             <div className="rounded-xl border border-border-default bg-bg-elevated p-[16px] space-y-[10px]">
-              <div className="flex items-center gap-[8px]">
-                <Link className="h-[16px] w-[16px] text-primary-500" />
-                <h3 className="text-[13px] font-semibold text-text-primary">Votre lien de parrainage</h3>
-              </div>
-              <div className="flex items-center gap-[8px]">
-                <code className="flex-1 text-[12px] text-primary-500 bg-primary-50 rounded-lg px-[12px] py-[8px] truncate select-all">
-                  {typeof window !== "undefined" ? window.location.origin : ""}/rejoindre?ref={xHandle}
-                </code>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/rejoindre?ref=${xHandle}`);
-                    setLinkCopied(true);
-                    setTimeout(() => setLinkCopied(false), 2000);
-                  }}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-[8px]">
+                  <Link className="h-[16px] w-[16px] text-primary-500" />
+                  <h3 className="text-[13px] font-semibold text-text-primary">Votre lien de parrainage</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleReferrals}
+                  className="flex items-center gap-2 cursor-pointer"
                 >
-                  {linkCopied ? <><Check className="h-[14px] w-[14px]" /> Copié</> : <><Copy className="h-[14px] w-[14px]" /> Copier</>}
-                </Button>
+                  <span className={`text-xs font-medium ${acceptReferrals ? "text-primary-500" : "text-text-muted"}`}>
+                    {acceptReferrals ? "Actif" : "Désactivé"}
+                  </span>
+                  <div className={`relative w-8 h-[18px] rounded-full transition-colors ${acceptReferrals ? "bg-primary-500" : "bg-bg-surface"}`}>
+                    <div className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white transition-transform ${acceptReferrals ? "left-[16px]" : "left-[2px]"}`} />
+                  </div>
+                </button>
               </div>
-              <p className="text-[11px] text-text-muted">
-                Partagez ce lien par DM, SMS, email ou WhatsApp. La personne qui s&apos;inscrit via ce lien vous sera automatiquement rattachée.
-              </p>
+
+              {linkActive ? (
+                <>
+                  <div className="flex items-center gap-[8px]">
+                    <code className="flex-1 text-[12px] text-primary-500 bg-primary-50 rounded-lg px-[12px] py-[8px] truncate select-all">
+                      {typeof window !== "undefined" ? window.location.origin : ""}/rejoindre?ref={xHandle}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/rejoindre?ref=${xHandle}`);
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      }}
+                    >
+                      {linkCopied ? <><Check className="h-[14px] w-[14px]" /> Copié</> : <><Copy className="h-[14px] w-[14px]" /> Copier</>}
+                    </Button>
+                  </div>
+                  {!isAdmin && (
+                    <p className="text-[11px] text-text-muted">
+                      {pendingCount}/{MAX_PENDING} demandes en attente · {totalFilleuls}/{MAX_TOTAL} filleuls
+                    </p>
+                  )}
+                </>
+              ) : isAtLimit ? (
+                <p className="text-[12px] text-warning">
+                  Vous avez atteint la limite de parrainages ({pendingCount} en attente, {totalFilleuls} filleuls). Approuvez ou refusez les demandes en attente pour libérer des places.
+                </p>
+              ) : (
+                <p className="text-[12px] text-text-muted">
+                  Votre lien est désactivé. Activez-le pour permettre à de nouveaux professionnels de vous rejoindre.
+                </p>
+              )}
             </div>
 
             <div className="space-y-[16px]">

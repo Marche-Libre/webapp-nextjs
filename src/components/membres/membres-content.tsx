@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { MapPin, Users, MoreHorizontal, Flag, Ban, X, List, LayoutGrid, ChevronLeft, ChevronRight, ArrowDownAZ, ArrowUpZA, Clock } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
-import { FavoriteButton } from "@/components/favorites/favorite-button";
+import { Badge } from "@/components/ui/badge";
 import { HierarchicalFilterDropdown, FilterDropdown } from "@/components/ui/filter-dropdown";
 import type { CategoryWithSpecialties } from "@/components/ui/filter-dropdown";
 import { createClient } from "@/lib/supabase/client";
@@ -126,8 +126,9 @@ function LetterSeparator({ letter }: { letter: string }) {
 
 /* ─── Member card (list) ─── */
 
-function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUserId: string; specLabel: string | null }) {
+function MemberListItem({ m, currentUserId, specDisplay }: { m: Profile; currentUserId: string; specDisplay: { categoryName: string | null; specialtyNames: string[] } }) {
   const skills = m.skills ?? [];
+  const hasSpec = specDisplay.categoryName || specDisplay.specialtyNames.length > 0;
   return (
     <div className="group flex items-center gap-[14px] px-[14px] py-[12px] rounded-xl border border-transparent hover:border-border-default hover:bg-bg-surface transition-all duration-150">
       <Link href={`/membres/${m.id}`}>
@@ -135,12 +136,15 @@ function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUs
       </Link>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-[8px]">
-          <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">{m.x_handle}</Link>
+          <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">@{m.x_handle}</Link>
           {m.full_name && <span className="text-[12px] text-text-muted shrink-0 hidden sm:inline">{m.full_name}</span>}
         </div>
-        {(specLabel || m.location) && (
-          <div className="flex items-center gap-[10px] mt-[2px]">
-            {specLabel && <span className="text-[12px] font-medium text-primary-500">{specLabel}</span>}
+        {(hasSpec || m.location) && (
+          <div className="flex items-center gap-[6px] mt-[4px] flex-wrap">
+            {specDisplay.categoryName && <Badge variant="primary">{specDisplay.categoryName}</Badge>}
+            {specDisplay.specialtyNames.map((name) => (
+              <span key={name} className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">{name}</span>
+            ))}
             {m.location && <span className="flex items-center gap-[3px] text-[12px] text-text-muted"><MapPin className="h-[11px] w-[11px]" />{m.country_code && <span>{countryFlag(m.country_code)}</span>}{m.location}</span>}
           </div>
         )}
@@ -154,14 +158,6 @@ function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUs
         )}
       </div>
       <div className="flex items-center gap-[4px] shrink-0">
-        <FavoriteButton
-          item={{
-            id: `member:${m.id}`,
-            label: `@${m.x_handle}`,
-            href: `/membres/${m.id}`,
-            type: "member",
-          }}
-        />
         <Link href={`/membres/${m.id}`} className="px-[14px] py-[6px] rounded-lg bg-primary-500 text-bg-base text-[12px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer hidden sm:block">Voir profil</Link>
         <MemberMenu memberId={m.id} currentUserId={currentUserId} />
       </div>
@@ -171,8 +167,9 @@ function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUs
 
 /* ─── Member card (grid) ─── */
 
-function MemberGridCard({ m, currentUserId, specLabel }: { m: Profile; currentUserId: string; specLabel: string | null }) {
+function MemberGridCard({ m, currentUserId, specDisplay }: { m: Profile; currentUserId: string; specDisplay: { categoryName: string | null; specialtyNames: string[] } }) {
   const skills = m.skills ?? [];
+  const hasSpec = specDisplay.categoryName || specDisplay.specialtyNames.length > 0;
   return (
     <div className="group flex flex-col rounded-xl border border-border-subtle hover:border-border-default bg-bg-base hover:bg-bg-surface transition-all duration-150">
       <div className="p-[20px] pb-[14px]">
@@ -188,7 +185,10 @@ function MemberGridCard({ m, currentUserId, specLabel }: { m: Profile; currentUs
         </div>
       </div>
       <div className="px-[20px] flex flex-wrap gap-[6px]">
-        {specLabel && <span className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-semibold bg-primary-50 text-primary-500">{specLabel}</span>}
+        {specDisplay.categoryName && <Badge variant="primary">{specDisplay.categoryName}</Badge>}
+        {specDisplay.specialtyNames.map((name) => (
+          <span key={name} className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">{name}</span>
+        ))}
         {m.location && <span className="inline-flex items-center gap-[3px] rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-bg-surface-2 text-text-muted"><MapPin className="w-[11px] h-[11px]" />{m.country_code && <span>{countryFlag(m.country_code)}</span>}{m.location}</span>}
       </div>
       {skills.length > 0 && (
@@ -227,23 +227,19 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     return map;
   }, [categories]);
 
-  // Get display label for a member's specialties
-  const getSpecLabel = (m: Profile): string | null => {
+  // Get structured display for a member's specialties
+  const getSpecDisplay = (m: Profile): { categoryName: string | null; specialtyNames: string[] } => {
     const ids = m.specialty_ids ?? [];
-    if (ids.length > 0) {
-      const names: string[] = [];
-      let catName: string | null = null;
-      for (const id of ids) {
-        const info = specialtyMap.get(id);
-        if (info) {
-          catName = info.category;
-          names.push(info.specialty);
-        }
+    const names: string[] = [];
+    let catName: string | null = null;
+    for (const id of ids) {
+      const info = specialtyMap.get(id);
+      if (info) {
+        catName = info.category;
+        names.push(info.specialty);
       }
-      if (catName && names.length > 0) return `${catName} · ${names.join(", ")}`;
-      if (catName) return catName;
     }
-    return null;
+    return { categoryName: catName, specialtyNames: names };
   };
 
   // Build set of category IDs that have selected specialty IDs (for chip display)
@@ -258,20 +254,6 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     }
     return ids;
   }, [selectedSpecialtyIds, specialtyMap, categories]);
-
-  // Popular categories (top 8 by member count)
-  const popularCategories = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const cat of categories) {
-      const specIds = new Set(cat.specialties.map((s) => s.id));
-      const count = membres.filter((m) => m.specialty_category_id === cat.id || (m.specialty_ids ?? []).some((id) => specIds.has(id))).length;
-      if (count > 0) counts.set(cat.id, count);
-    }
-    return categories
-      .filter((c) => counts.has(c.id))
-      .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0))
-      .slice(0, 8);
-  }, [categories, membres]);
 
   const filtered = useMemo(() => {
     let result = membres;
@@ -322,13 +304,6 @@ export function MembresContent({ membres, categories, locations, currentUserId }
 
   const clearFilters = () => { setSelectedSpecialtyIds([]); setSelectedLocation(null); setPage(1); };
 
-  const selectCategory = (catId: string) => {
-    const cat = categories.find((c) => c.id === catId);
-    if (!cat) return;
-    setSelectedSpecialtyIds(cat.specialties.map((s) => s.id));
-    setPage(1);
-  };
-
   // Build filter chip labels
   const filterChipLabels = useMemo(() => {
     const labels: { id: string; label: string }[] = [];
@@ -344,7 +319,7 @@ export function MembresContent({ membres, categories, locations, currentUserId }
       return (
         <div className="space-y-[4px]">
           {members.map((m) => (
-            <MemberListItem key={m.id} m={m} currentUserId={currentUserId} specLabel={getSpecLabel(m)} />
+            <MemberListItem key={m.id} m={m} currentUserId={currentUserId} specDisplay={getSpecDisplay(m)} />
           ))}
         </div>
       );
@@ -352,7 +327,7 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     return (
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[12px]">
         {members.map((m) => (
-          <MemberGridCard key={m.id} m={m} currentUserId={currentUserId} specLabel={getSpecLabel(m)} />
+          <MemberGridCard key={m.id} m={m} currentUserId={currentUserId} specDisplay={getSpecDisplay(m)} />
         ))}
       </div>
     );
@@ -417,22 +392,6 @@ export function MembresContent({ membres, categories, locations, currentUserId }
           </button>
         </div>
       </div>
-
-      {/* Popular category chips (when no expertise filter active) */}
-      {selectedSpecialtyIds.length === 0 && popularCategories.length > 0 && (
-        <div className="flex items-center gap-[8px] flex-wrap">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Populaires</span>
-          {popularCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => selectCategory(cat.id)}
-              className="px-[12px] py-[4px] rounded-full text-[12px] font-medium bg-bg-surface border border-border-subtle text-text-secondary hover:border-primary-500 hover:text-primary-500 hover:bg-primary-50 cursor-pointer transition-colors"
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Active filter chips */}
       {(filterChipLabels.length > 0 || selectedLocation) && (

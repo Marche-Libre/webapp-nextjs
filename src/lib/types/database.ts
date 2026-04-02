@@ -38,6 +38,7 @@ export type Profile = {
   links: Record<string, string> | null;
   accept_sponsorship: boolean;
   accept_dms: boolean;
+  accept_referrals: boolean;
   sponsored_by: string | null;
   sponsor_approved: boolean;
   onboarding_completed: boolean;

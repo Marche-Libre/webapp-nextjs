@@ -10,7 +10,7 @@ export default async function MembresPage() {
 
   const [{ data: membres }, { data: categories }] = await Promise.all([
     supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("*")
       .eq("status", "approved")
       .order("created_at", { ascending: false }),

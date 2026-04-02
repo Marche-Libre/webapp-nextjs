@@ -16,7 +16,7 @@ export function PostEmbed({ postId }: PostEmbedProps) {
     const supabase = createClient();
     supabase
       .from("forum_posts")
-      .select("title, reply_count, author:profiles(x_handle)")
+      .select("title, reply_count, author:profiles!forum_posts_author_id_fkey(x_handle)")
       .eq("id", postId)
       .single()
       .then(({ data }) => {

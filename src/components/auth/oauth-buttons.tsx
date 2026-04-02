@@ -23,12 +23,12 @@ export function OAuthButtons() {
       type="button"
       onClick={handleOAuth}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all disabled:opacity-40 cursor-pointer"
+      className="w-full flex items-center justify-center gap-3 rounded-xl bg-[#000000] px-5 py-3.5 text-[15px] font-semibold text-[#ffffff] hover:bg-[#1a1a1a] transition-all disabled:opacity-40 cursor-pointer shadow-lg hover:shadow-xl"
     >
       {loading ? (
         <span className="loading loading-spinner loading-xs" />
       ) : (
-        <XLogo className="w-4 h-4" />
+        <XLogo className="w-[18px] h-[18px]" />
       )}
       Continuer avec X
     </button>

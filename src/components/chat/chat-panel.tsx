@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { X, Hash, ChevronDown, Maximize2 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useChatPanel } from "./chat-context";
+import { useChatStore, useChannelState } from "./chat-store";
 import { MessageArea } from "./message-area";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -16,22 +17,20 @@ interface ChatPanelProps {
 
 export function ChatPanel({ userId }: ChatPanelProps) {
   const { isOpen, activeSlug, openChat, closeChat } = useChatPanel();
+  const store = useChatStore();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{ x_handle: string; full_name: string; avatar_url: string | null }>({ x_handle: "", full_name: "", avatar_url: null });
+  const [loading, setLoading] = useState(false);
 
   // Load channels and user profile on first open
   useEffect(() => {
     if (!isOpen || channels.length > 0) return;
-
     const load = async () => {
       const supabase = createClient();
       const [channelsRes, profileRes] = await Promise.all([
-        supabase.from("channels").select("*").order("name", { ascending: true }),
+        supabase.from("channels").select("*").eq("is_private", false).order("name", { ascending: true }),
         supabase.from("profiles").select("x_handle, full_name, avatar_url").eq("id", userId).single(),
       ]);
       if (channelsRes.data) setChannels(channelsRes.data);
@@ -40,40 +39,15 @@ export function ChatPanel({ userId }: ChatPanelProps) {
     load();
   }, [isOpen, channels.length, userId]);
 
-  // Load messages when active slug changes
-  const loadMessages = useCallback(async (slug: string) => {
-    setLoading(true);
-    const supabase = createClient();
-
-    const { data: channel } = await supabase
-      .from("channels")
-      .select("*")
-      .eq("slug", slug)
-      .single();
-
-    if (!channel) {
-      setLoading(false);
-      return;
-    }
-
-    setActiveChannel(channel);
-
-    const { data: msgs } = await supabase
-      .from("messages")
-      .select("*, author:profiles(x_handle, full_name, avatar_url)")
-      .eq("channel_id", channel.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    setMessages((msgs || []).reverse());
-    setLoading(false);
-  }, []);
-
+  // Resolve channel and load messages when slug changes
   useEffect(() => {
-    if (isOpen && activeSlug) {
-      loadMessages(activeSlug);
-    }
-  }, [isOpen, activeSlug, loadMessages]);
+    if (!isOpen || !activeSlug || channels.length === 0) return;
+    const ch = channels.find((c) => c.slug === activeSlug);
+    if (!ch) return;
+    setActiveChannel(ch);
+    // Load channel in store (no-op if cached)
+    store.loadChannel(ch.id);
+  }, [isOpen, activeSlug, channels, store]);
 
   const handleSelectChannel = (channel: Channel) => {
     setDropdownOpen(false);
@@ -82,7 +56,6 @@ export function ChatPanel({ userId }: ChatPanelProps) {
 
   return (
     <>
-      {/* Backdrop (mobile) */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-text-primary/20 backdrop-blur-sm z-40 lg:hidden"
@@ -90,7 +63,6 @@ export function ChatPanel({ userId }: ChatPanelProps) {
         />
       )}
 
-      {/* Panel */}
       <div
         className={cn(
           "fixed top-0 right-0 h-full bg-bg-base border-l border-border-default z-40 flex flex-col transition-transform duration-300 ease-out",
@@ -149,23 +121,17 @@ export function ChatPanel({ userId }: ChatPanelProps) {
           </div>
         </div>
 
-        {/* Body */}
+        {/* Body — uses same store as full chat */}
         <div className="flex-1 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Spinner />
-            </div>
-          ) : activeChannel ? (
+          {activeChannel ? (
             <MessageArea
-              key={activeChannel.id}
               channelId={activeChannel.id}
               userId={userId}
               userProfile={userProfile}
-              initialMessages={messages}
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-sm text-text-muted">
-              Sélectionnez un channel
+            <div className="flex items-center justify-center h-full">
+              <Spinner />
             </div>
           )}
         </div>

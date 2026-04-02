@@ -13,6 +13,14 @@ export const metadata: Metadata = {
   title: "MarchéLibre | Le réseau des indépendants",
   description:
     "Trouvez des missions, publiez vos services et connectez-vous avec des professionnels libéraux vérifiés.",
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 // Inline script to prevent flash of wrong theme

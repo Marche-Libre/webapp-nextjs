@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronDown, EyeOff, Eye, Hash, MessageCircle, Plus, ThumbsU
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useActiveChannel } from "./chat-channel-context";
 import { Avatar } from "@/components/ui/avatar";
 import type { Channel, ChannelProposal, Profile } from "@/lib/types/database";
 import type { DmChannel } from "./chat-layout";
@@ -21,6 +22,7 @@ interface ChannelListProps {
 
 export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: initialHidden }: ChannelListProps) {
   const pathname = usePathname();
+  const { activeSlug: currentSlug, setActiveSlug } = useActiveChannel();
   const [proposals, setProposals] = useState<(ChannelProposal & { vote_count: number; has_voted: boolean })[]>([]);
   const [hiddenIds, setHiddenIds] = useState<string[]>(initialHidden);
   const [showArchived, setShowArchived] = useState(false);
@@ -102,29 +104,7 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
         .select("*", { count: "exact", head: true })
         .eq("proposal_id", proposalId);
 
-      if (count && count >= VOTE_THRESHOLD) {
-        const proposal = proposals.find((p) => p.id === proposalId);
-        if (proposal) {
-          const slug = proposal.name
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, "");
-
-          await supabase.from("channels").insert({
-            name: proposal.name,
-            slug,
-            description: proposal.description,
-            created_by: proposal.created_by,
-          });
-
-          await supabase
-            .from("channel_proposals")
-            .update({ status: "approved" })
-            .eq("id", proposalId);
-        }
-      }
+      // Channel creation is handled server-side via DB trigger when vote threshold is reached
     }
     fetchProposals();
   };
@@ -166,13 +146,14 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
               Messages
             </p>
             {dmChannels.map((dm) => {
-              const isActive = pathname === `/chat/dm-${dm.id}`;
+              const dmSlug = dm.slug || `dm-${dm.id}`;
+              const isActive = currentSlug === dmSlug;
               return (
-                <Link
+                <button
                   key={dm.id}
-                  href={`/chat/dm-${dm.id}`}
+                  onClick={() => setActiveSlug(dmSlug)}
                   className={cn(
-                    "flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium transition-all duration-150",
+                    "flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium transition-all duration-150 w-full text-left cursor-pointer",
                     isActive
                       ? "bg-primary-50 text-primary-700"
                       : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
@@ -185,7 +166,7 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
                     className="h-[20px] w-[20px] text-[8px] rounded-md shrink-0"
                   />
                   <span className="truncate">@{dm.other_user.x_handle}</span>
-                </Link>
+                </button>
               );
             })}
           </div>
@@ -193,13 +174,13 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
 
         {/* Visible channels */}
         {visibleChannels.map((channel) => {
-          const isActive = pathname === `/chat/${channel.slug}`;
+          const isActive = currentSlug === channel.slug;
           return (
             <div key={channel.id} className="group/ch flex items-center">
-              <Link
-                href={`/chat/${channel.slug}`}
+              <button
+                onClick={() => setActiveSlug(channel.slug)}
                 className={cn(
-                  "flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium transition-all duration-150 flex-1 min-w-0",
+                  "flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium transition-all duration-150 flex-1 min-w-0 text-left cursor-pointer",
                   isActive
                     ? "bg-primary-50 text-primary-700"
                     : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
@@ -207,7 +188,7 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
               >
                 <Hash className="h-[14px] w-[14px] shrink-0 opacity-60" />
                 <span className="truncate">{channel.name}</span>
-              </Link>
+              </button>
               <button
                 onClick={() => toggleHideChannel(channel.id)}
                 className="opacity-0 group-hover/ch:opacity-100 p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-all shrink-0"
@@ -309,13 +290,13 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
             </button>
             {showArchived && archivedChannels.map((channel) => (
               <div key={channel.id} className="flex items-center group/ch">
-                <Link
-                  href={`/chat/${channel.slug}`}
-                  className="flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium text-text-muted hover:bg-bg-surface hover:text-text-secondary transition-all flex-1 min-w-0"
+                <button
+                  onClick={() => setActiveSlug(channel.slug)}
+                  className="flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium text-text-muted hover:bg-bg-surface hover:text-text-secondary transition-all flex-1 min-w-0 text-left cursor-pointer"
                 >
                   <Hash className="h-[14px] w-[14px] shrink-0 opacity-40" />
                   <span className="truncate">{channel.name}</span>
-                </Link>
+                </button>
                 <button
                   onClick={() => toggleHideChannel(channel.id)}
                   className="opacity-0 group-hover/ch:opacity-100 p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-all shrink-0"

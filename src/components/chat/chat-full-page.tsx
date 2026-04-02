@@ -53,7 +53,7 @@ export function ChatFullPage({ activeChannel, userId, userProfile, initialMessag
       const supabase = createClient();
       const { data } = await supabase
         .from("messages")
-        .select("id, content, created_at, author:profiles(x_handle, full_name, avatar_url)")
+        .select("id, content, created_at, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
         .eq("channel_id", activeChannel.id)
         .ilike("content", `%${value.trim()}%`)
         .order("created_at", { ascending: false })
@@ -118,7 +118,6 @@ export function ChatFullPage({ activeChannel, userId, userProfile, initialMessag
             channelId={activeChannel.id}
             userId={userId}
             userProfile={userProfile}
-            initialMessages={initialMessages as any}
           />
         </div>
 

@@ -19,7 +19,7 @@ export function AnimatedCTA() {
                   Inscription gratuite. Validation sous 24h. Aucun engagement.
                 </p>
               </div>
-              <Link href="/inscription" className="btn btn-accent shrink-0 cursor-pointer">
+              <Link href="/inscription" className="btn bg-base-100 text-base-content border-none hover:bg-base-200 shrink-0 cursor-pointer">
                 Créer mon compte
                 <ArrowRight className="h-4 w-4" />
               </Link>

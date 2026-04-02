@@ -38,6 +38,7 @@ const makeProfile = (overrides: Partial<Profile> = {}): Profile => ({
   status: "approved",
   is_admin: false,
   links: null,
+  accept_referrals: true,
   accept_sponsorship: true,
   accept_dms: true,
   sponsored_by: null,

@@ -6,8 +6,10 @@ import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { SettingsShell } from "./settings-shell";
 import { ChatProvider, useChatPanel } from "@/components/chat/chat-context";
+import { ChatStoreProvider } from "@/components/chat/chat-store";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { ChatFab } from "@/components/chat/chat-fab";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
@@ -77,8 +79,12 @@ function MainArea({ profile, children }: { profile: Profile; children: React.Rea
 
 export function AppShell({ profile, children }: AppShellProps) {
   return (
-    <ChatProvider>
-      <MainArea profile={profile}>{children}</MainArea>
-    </ChatProvider>
+    <NotificationProvider userId={profile.id}>
+      <ChatStoreProvider userId={profile.id}>
+        <ChatProvider>
+          <MainArea profile={profile}>{children}</MainArea>
+        </ChatProvider>
+      </ChatStoreProvider>
+    </NotificationProvider>
   );
 }

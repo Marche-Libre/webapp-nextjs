@@ -9,7 +9,9 @@ import { Avatar } from "@/components/ui/avatar";
 interface MessageInputProps {
   channelId: string;
   userId: string;
-  onOptimisticMessage?: (content: string, imageUrl?: string) => void;
+  onOptimisticMessage?: (content: string, imageUrl?: string) => string;
+  onMessageConfirmed?: (optimisticId: string, realMessage: any) => void;
+  onMessageFailed?: (optimisticId: string) => void;
 }
 
 type MentionSuggestion = {
@@ -19,7 +21,7 @@ type MentionSuggestion = {
   avatar_url: string | null;
 };
 
-export function MessageInput({ channelId, userId, onOptimisticMessage }: MessageInputProps) {
+export function MessageInput({ channelId, userId, onOptimisticMessage, onMessageConfirmed, onMessageFailed }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -33,18 +35,30 @@ export function MessageInput({ channelId, userId, onOptimisticMessage }: Message
     const text = content.trim();
     if (!text && !imageUrl) return;
 
-    // Optimistic: show message immediately
-    onOptimisticMessage?.(text || (imageUrl ? "\ud83d\udcf7" : ""), imageUrl);
+    const msgContent = text || (imageUrl ? "📷" : "");
 
+    // Optimistic: show message immediately
+    const optimisticId = onOptimisticMessage?.(msgContent, imageUrl);
+    setContent("");
     setSending(true);
+
     const supabase = createClient();
 
-    await supabase.from("messages").insert({
-      channel_id: channelId,
-      author_id: userId,
-      content: text || (imageUrl ? "\ud83d\udcf7" : ""),
-      image_url: imageUrl || null,
-    });
+    const { error } = await supabase
+      .from("messages")
+      .insert({
+        channel_id: channelId,
+        author_id: userId,
+        content: msgContent,
+        image_url: imageUrl || null,
+      });
+
+    if (error) {
+      if (optimisticId) onMessageFailed?.(optimisticId);
+    } else {
+      // INSERT succeeded — clear the "sending" status on the optimistic message
+      if (optimisticId) onMessageConfirmed?.(optimisticId, null);
+    }
 
     // Fire-and-forget mention notifications
     if (text) {
@@ -56,7 +70,6 @@ export function MessageInput({ channelId, userId, onOptimisticMessage }: Message
       });
     }
 
-    setContent("");
     setSending(false);
   };
 
@@ -234,7 +247,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage }: Message
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="\u00c9crire un message\u2026"
+          placeholder="Écrire un message…"
           rows={1}
           className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none max-h-[120px]"
         />
@@ -247,7 +260,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage }: Message
         </button>
       </div>
       {uploading && (
-        <p className="text-[11px] text-text-muted mt-[4px]">Upload en cours\u2026</p>
+        <p className="text-[11px] text-text-muted mt-[4px]">Upload en cours…</p>
       )}
     </div>
   );

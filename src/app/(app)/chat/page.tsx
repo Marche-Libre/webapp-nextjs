@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+"use client";
 
+// Default chat page — ChatMain in layout defaults to "general"
 export default function ChatPage() {
-  redirect("/chat/general");
+  return null;
 }

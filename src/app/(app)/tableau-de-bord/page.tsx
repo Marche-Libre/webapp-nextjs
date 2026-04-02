@@ -15,7 +15,7 @@ export default async function TableauDeBordPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility")
     .eq("id", user.id)
     .single();
 
@@ -34,7 +34,7 @@ export default async function TableauDeBordPage() {
 
   const { data: recentPosts } = await supabase
     .from("forum_posts")
-    .select("id, title, created_at, reply_count, author:profiles(x_handle), category:forum_categories(name, slug, color)")
+    .select("id, title, created_at, reply_count, author:profiles!forum_posts_author_id_fkey(x_handle), category:forum_categories(name, slug, color)")
     .order("created_at", { ascending: false })
     .limit(5);
 

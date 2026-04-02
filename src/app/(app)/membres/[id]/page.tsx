@@ -17,7 +17,7 @@ export default async function MemberProfilePage({
   // Fetch member profile + specialty categories in parallel
   const [{ data: member }, { data: categoriesData }] = await Promise.all([
     supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("*")
       .eq("id", id)
       .eq("status", "approved")

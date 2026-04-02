@@ -44,6 +44,8 @@ export default function ParametresPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [acceptDms, setAcceptDms] = useState(true);
+  const [acceptSponsorship, setAcceptSponsorship] = useState(true);
+  const [acceptReferrals, setAcceptReferrals] = useState(true);
   const [loadingDms, setLoadingDms] = useState(true);
   const [visibility, setVisibility] = useState<ProfileVisibility>(DEFAULT_VISIBILITY);
   const [userId, setUserId] = useState<string | null>(null);
@@ -56,11 +58,13 @@ export default function ParametresPage() {
       setUserId(user.id);
       const { data } = await supabase
         .from("profiles")
-        .select("accept_dms, visibility")
+        .select("accept_dms, accept_sponsorship, accept_referrals, visibility")
         .eq("id", user.id)
         .single();
       if (data) {
         setAcceptDms(data.accept_dms ?? true);
+        setAcceptSponsorship(data.accept_sponsorship ?? true);
+        setAcceptReferrals(data.accept_referrals ?? true);
         if (data.visibility) {
           setVisibility({ ...DEFAULT_VISIBILITY, ...(data.visibility as Partial<ProfileVisibility>) });
         }
@@ -74,10 +78,21 @@ export default function ParametresPage() {
     setAcceptDms(checked);
     if (!userId) return;
     const supabase = createClient();
-    await supabase
-      .from("profiles")
-      .update({ accept_dms: checked })
-      .eq("id", userId);
+    await supabase.from("profiles").update({ accept_dms: checked }).eq("id", userId);
+  };
+
+  const handleToggleSponsorship = async (checked: boolean) => {
+    setAcceptSponsorship(checked);
+    if (!userId) return;
+    const supabase = createClient();
+    await supabase.from("profiles").update({ accept_sponsorship: checked }).eq("id", userId);
+  };
+
+  const handleToggleReferrals = async (checked: boolean) => {
+    setAcceptReferrals(checked);
+    if (!userId) return;
+    const supabase = createClient();
+    await supabase.from("profiles").update({ accept_referrals: checked }).eq("id", userId);
   };
 
   const handleToggleVisibility = async (key: keyof ProfileVisibility, checked: boolean) => {
@@ -159,14 +174,34 @@ export default function ParametresPage() {
         <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
           Confidentialité
         </h2>
-        <div className="rounded-xl border border-border-default p-[16px]">
-          <Toggle
-            checked={acceptDms}
-            onChange={handleToggleDms}
-            disabled={loadingDms}
-            label="Accepter les messages privés"
-            description="Permettre aux autres membres de vous envoyer des messages directs."
-          />
+        <div className="rounded-xl border border-border-default divide-y divide-border-subtle">
+          <div className="px-[16px] py-[14px]">
+            <Toggle
+              checked={acceptDms}
+              onChange={handleToggleDms}
+              disabled={loadingDms}
+              label="Messages privés"
+              description="Permettre aux autres membres de vous envoyer des messages directs."
+            />
+          </div>
+          <div className="px-[16px] py-[14px]">
+            <Toggle
+              checked={acceptSponsorship}
+              onChange={handleToggleSponsorship}
+              disabled={loadingDms}
+              label="Demandes de parrainage"
+              description="Permettre aux nouveaux utilisateurs de vous solliciter comme parrain."
+            />
+          </div>
+          <div className="px-[16px] py-[14px]">
+            <Toggle
+              checked={acceptReferrals}
+              onChange={handleToggleReferrals}
+              disabled={loadingDms}
+              label="Être référent"
+              description="Apparaître comme référent disponible pour les nouveaux inscrits via votre lien d'invitation."
+            />
+          </div>
         </div>
       </section>
 

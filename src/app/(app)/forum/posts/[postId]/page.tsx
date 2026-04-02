@@ -14,7 +14,7 @@ export default async function PostPage({
 
   const { data: post } = await supabase
     .from("forum_posts")
-    .select("*, author:profiles(x_handle, full_name, avatar_url), category:forum_categories(name, slug)")
+    .select("*, author:profiles!forum_posts_author_id_fkey(x_handle, full_name, avatar_url), category:forum_categories(name, slug)")
     .eq("id", postId)
     .single();
 
@@ -31,7 +31,7 @@ export default async function PostPage({
   // Fetch replies
   const { data: replies } = await supabase
     .from("forum_replies")
-    .select("*, author:profiles(x_handle, full_name, avatar_url)")
+    .select("*, author:profiles!forum_posts_author_id_fkey(x_handle, full_name, avatar_url)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 

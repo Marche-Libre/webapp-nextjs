@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { approveUser, rejectUser } from "@/app/(app)/admin/actions";
 
 interface ApproveRejectButtonsProps {
   userId: string;
@@ -22,9 +22,15 @@ export function ApproveRejectButtons({
 
   const handleAction = async (status: "approved" | "rejected") => {
     setLoading(true);
-    const supabase = createClient();
 
-    await supabase.from("profiles").update({ status }).eq("id", userId);
+    const result =
+      status === "approved"
+        ? await approveUser(userId)
+        : await rejectUser(userId);
+
+    if (!result.success) {
+      console.error(result.error);
+    }
 
     setLoading(false);
     router.refresh();

@@ -1,6 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
-import { formatDate } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
+import { Pencil, Trash2, Check, X, Flag } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
 import { PostEmbed } from "./post-embed";
 
@@ -36,42 +41,150 @@ interface MessageBubbleProps {
   };
   reactions?: { emoji: string; count: number; hasReacted: boolean }[];
   onReact?: (emoji: string) => void;
+  currentUserId?: string;
+  onMessageUpdated?: () => void;
 }
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 
-export function MessageBubble({ message, reactions, onReact }: MessageBubbleProps) {
+export function MessageBubble({ message, reactions, onReact, currentUserId, onMessageUpdated }: MessageBubbleProps) {
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+  const [deleted, setDeleted] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const isOwn = currentUserId === message.author_id;
+  const isSending = (message as any)._status === "sending";
+  const isFailed = (message as any)._status === "failed";
+  // Consider edited only if updated_at is more than 2 seconds after created_at
+  const isEdited = message.updated_at && message.created_at
+    && (new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 2000);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
+
+  const supabase = createClient();
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim() || editContent === message.content) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    await supabase
+      .from("messages")
+      .update({ content: editContent, updated_at: new Date().toISOString() })
+      .eq("id", message.id);
+    setSaving(false);
+    setEditing(false);
+    onMessageUpdated?.();
+  };
+
+  const handleDelete = async () => {
+    setSaving(true);
+    await supabase
+      .from("messages")
+      .update({ content: "", updated_at: new Date().toISOString() })
+      .eq("id", message.id);
+    setDeleted(true);
+    setSaving(false);
+    onMessageUpdated?.();
+  };
+
+  const handleReport = async () => {
+    const reason = prompt("Raison du signalement :");
+    if (!reason) return;
+    const supabase = createClient();
+    await supabase.from("user_reports").insert({
+      reporter_id: currentUserId,
+      reported_id: message.author_id,
+      message_id: message.id,
+      reason,
+    });
+    alert("Signalement envoyé. Un administrateur examinera ce message.");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSaveEdit();
+    }
+    if (e.key === "Escape") {
+      setEditing(false);
+      setEditContent(message.content);
+    }
+  };
+
+  // Deleted message
+  if (deleted || (!message.content && !message.image_url)) {
+    return (
+      <div className="flex items-start gap-[12px] px-[16px] py-[8px]">
+        <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-[8px]">
+            <span className="text-[13px] font-semibold text-text-primary">
+              @{message.author.x_handle}
+            </span>
+            <span className="text-[10px] text-text-muted">
+              {timeAgo(message.created_at)}
+            </span>
+          </div>
+          <p className="text-[13px] text-text-muted italic mt-[2px]">
+            Ce message a été supprimé
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-start gap-[12px] px-[16px] py-[8px] hover:bg-bg-surface/50 transition-colors group relative">
-      <Avatar
-        src={message.author.avatar_url}
-        name={message.author.x_handle}
-        size="md"
-      />
+      <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-[8px]">
           <span className="text-[13px] font-semibold text-text-primary">
             @{message.author.x_handle}
           </span>
           <span className="text-[10px] text-text-muted">
-            {formatDate(message.created_at)}
+            {timeAgo(message.created_at)}
           </span>
+          {isEdited && !editing && (
+            <span className="text-[10px] text-text-muted italic">(modifié)</span>
+          )}
         </div>
-        <div className="text-[13px] text-text-secondary mt-[2px] whitespace-pre-wrap break-words">
-          {renderContentWithMentions(message.content)}
-        </div>
-        {message.image_url && (
-          <img
-            src={message.image_url}
-            alt="Image"
-            className="mt-[8px] rounded-lg max-w-[400px] max-h-[300px] object-cover border border-border-default"
-          />
+
+        {/* Content or edit form */}
+        {editing ? (
+          <div className="mt-[4px] space-y-[6px]">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={2}
+              className="w-full bg-bg-elevated border border-border-default rounded-lg px-[12px] py-[8px] text-[13px] text-text-primary focus:border-primary-500 focus:outline-none resize-none"
+              autoFocus
+            />
+            <p className="text-[10px] text-text-muted mt-[2px]">Échap pour annuler · Entrée pour sauvegarder</p>
+          </div>
+        ) : (
+          <>
+            <div className={`text-[13px] mt-[2px] whitespace-pre-wrap break-words ${isSending ? "text-text-secondary opacity-50" : isFailed ? "text-error/70" : "text-text-secondary"}`}>
+              {renderContentWithMentions(message.content)}
+            </div>
+            {isFailed && (
+              <p className="text-[11px] text-error mt-[2px]">
+                Échec de l&apos;envoi — vérifiez votre connexion
+              </p>
+            )}
+            {message.image_url && (
+              <img
+                src={message.image_url}
+                alt="Image"
+                className="mt-[8px] rounded-lg max-w-[400px] max-h-[300px] object-cover border border-border-default"
+              />
+            )}
+            {forumMatch && <PostEmbed postId={forumMatch[1]} />}
+          </>
         )}
-        {forumMatch && (
-          <PostEmbed postId={forumMatch[1]} />
-        )}
+
         {/* Reactions */}
         {reactions && reactions.length > 0 && (
           <div className="flex gap-[4px] mt-[6px] flex-wrap">
@@ -92,12 +205,41 @@ export function MessageBubble({ message, reactions, onReact }: MessageBubbleProp
           </div>
         )}
       </div>
-      {/* Hover reaction button */}
-      {onReact && (
-        <div className="absolute top-[4px] right-[12px] opacity-0 group-hover:opacity-100 transition-opacity">
+
+      {/* Hover actions */}
+      <div className="absolute top-[4px] right-[12px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-[2px]">
+        {isOwn && !editing && (
+          <>
+            <button
+              onClick={() => setEditing(true)}
+              className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
+              title="Modifier"
+            >
+              <Pencil className="h-[13px] w-[13px]" />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={saving}
+              className="p-[4px] rounded hover:bg-error-bg text-text-muted hover:text-error cursor-pointer transition-colors disabled:opacity-50"
+              title="Supprimer"
+            >
+              <Trash2 className="h-[13px] w-[13px]" />
+            </button>
+          </>
+        )}
+        {!isOwn && currentUserId && (
+          <button
+            onClick={handleReport}
+            className="p-[4px] rounded hover:bg-error-bg text-text-muted hover:text-error cursor-pointer transition-colors"
+            title="Signaler"
+          >
+            <Flag className="h-[13px] w-[13px]" />
+          </button>
+        )}
+        {onReact && (
           <ReactionPicker onSelect={(emoji) => onReact(emoji)} />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -32,7 +32,7 @@ export default async function ForumPage() {
   // Get 5 most recent posts (excluding introductions) with author, category, and content preview
   let recentPostsQuery = supabase
     .from("forum_posts")
-    .select("id, title, content, reply_count, created_at, author:profiles(x_handle, full_name, avatar_url), category:forum_categories(name, color, slug)")
+    .select("id, title, content, reply_count, created_at, author:profiles!forum_posts_author_id_fkey(x_handle, full_name, avatar_url), category:forum_categories(name, color, slug)")
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -44,15 +44,6 @@ export default async function ForumPage() {
 
   return (
     <div className="space-y-[24px]">
-      <div className="flex items-center justify-end">
-        <Link href="/forum/posts/nouveau">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Nouveau post
-          </Button>
-        </Link>
-      </div>
-
       {/* Recent posts — preview cards */}
       {recentPosts && recentPosts.length > 0 && (
         <section>
@@ -111,9 +102,17 @@ export default async function ForumPage() {
 
       {/* Categories grid */}
       <section>
-        <h2 className="font-display text-[15px] font-semibold text-text-primary tracking-[-0.01em] mb-[12px]">
-          Catégories
-        </h2>
+        <div className="flex items-center justify-between mb-[12px]">
+          <h2 className="font-display text-[15px] font-semibold text-text-primary tracking-[-0.01em]">
+            Catégories
+          </h2>
+          <Link href="/forum/posts/nouveau">
+            <Button size="sm">
+              <Plus className="h-4 w-4" />
+              Nouveau post
+            </Button>
+          </Link>
+        </div>
         <div className="grid sm:grid-cols-2 gap-[12px]">
           {categories?.map((cat) => (
             <CategoryCard

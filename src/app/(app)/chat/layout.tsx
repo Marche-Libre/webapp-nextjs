@@ -15,7 +15,7 @@ export default async function ChatLayoutPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility")
     .eq("id", user.id)
     .single();
 
@@ -89,12 +89,27 @@ export default async function ChatLayoutPage({
     .eq("status", "approved")
     .order("x_handle", { ascending: true });
 
+  // Fetch initial messages for the default channel (server-side)
+  const defaultChannel = channels?.find((c: any) => c.slug === "general") || channels?.[0];
+  let initialMessages: any[] = [];
+  if (defaultChannel) {
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
+      .eq("channel_id", defaultChannel.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    initialMessages = ((msgs || []) as any[]).reverse();
+  }
+
   return (
     <ChatLayout
       channels={channels || []}
       dmChannels={dmChannels}
       members={members || []}
       profile={profile as Profile}
+      initialMessages={initialMessages}
+      initialChannelId={defaultChannel?.id || null}
     >
       {children}
     </ChatLayout>

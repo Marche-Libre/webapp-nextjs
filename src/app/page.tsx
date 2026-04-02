@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ToggleTheme } from "@/components/lightswind/toggle-theme";
 import { AnimatedHero } from "@/components/home/animated-hero";
 import { AnimatedFeatures } from "@/components/home/animated-features";
 import { AnimatedProfessions } from "@/components/home/animated-professions";
@@ -19,7 +20,8 @@ export default function HomePage() {
           </span>
         </Link>
         <div className="flex items-center gap-1.5">
-          <Link href="/connexion" className="btn btn-ghost btn-sm cursor-pointer">
+          <ToggleTheme animationType="circle-spread" className="text-base-content/50" />
+          <Link href="/connexion" className="btn btn-outline btn-sm border-base-300 text-base-content cursor-pointer">
             Connexion
           </Link>
           <Link href="/inscription" className="btn btn-accent btn-sm text-accent-content cursor-pointer">
@@ -39,8 +41,8 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="bg-neutral text-neutral-content">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
@@ -83,13 +85,10 @@ export default function HomePage() {
           </div>
 
           {/* Bottom bar */}
-          <div className="mt-12 pt-8 border-t border-neutral-content/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-neutral-content/35">
+          <div className="mt-8 pt-6 border-t border-neutral-content/10">
+            <p className="text-xs text-neutral-content/35 text-center">
               &copy; 2026 MarchéLibre &mdash; Tous droits réservés
             </p>
-            <a href="https://x.com/monjodav" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-neutral-content/35 hover:text-neutral-content/60 transition-colors">
-              Fait par <svg viewBox="0 0 24 24" className="w-3 h-3" fill="currentColor" aria-label="X"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg> @monjodav
-            </a>
           </div>
         </div>
       </footer>

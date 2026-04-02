@@ -12,7 +12,7 @@ export default async function ParrainagesPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility")
     .eq("id", user.id)
     .single();
 
@@ -46,6 +46,11 @@ export default async function ParrainagesPage() {
         filleuls={filleuls || []}
         receivedRequests={receivedRequests || []}
         xHandle={profile.x_handle}
+        isAdmin={profile.is_admin}
+        acceptReferrals={profile.accept_referrals ?? true}
+        userId={user.id}
+        pendingCount={receivedRequests?.filter((r) => r.status === "pending").length ?? 0}
+        totalFilleuls={filleuls?.filter((f) => f.status === "approved").length ?? 0}
       />
     </div>
   );

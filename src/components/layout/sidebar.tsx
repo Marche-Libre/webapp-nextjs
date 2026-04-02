@@ -294,11 +294,11 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
             <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
             <div className="min-w-0 flex-1 text-left">
               <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
-                @{profile.x_handle}
+                {profile.full_name || `@${profile.x_handle}`}
               </p>
-              {profile.full_name && (
+              {profile.full_name && profile.full_name.toLowerCase() !== profile.x_handle.toLowerCase() && (
                 <p className="text-[11px] leading-[14px] text-text-muted truncate">
-                  {profile.full_name}
+                  @{profile.x_handle}
                 </p>
               )}
             </div>

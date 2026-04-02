@@ -16,7 +16,7 @@ export default async function ProfilPage() {
   if (!user) redirect("/connexion");
 
   const [{ data: profile }, { data: categoriesData }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase.from("profiles").select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility").eq("id", user.id).single(),
     supabase.from("specialty_categories").select("*, specialties(*)").order("sort_order", { ascending: true }),
   ]);
 
@@ -54,17 +54,18 @@ export default async function ProfilPage() {
                     {profile.full_name}
                   </p>
                 )}
-                <div className="flex items-center gap-[12px] mt-[6px] flex-wrap">
+                <div className="flex items-center gap-[8px] mt-[8px] flex-wrap">
                   {specDisplay.categoryName && (
-                    <span className="text-[13px] font-medium text-primary-500">
-                      {specDisplay.categoryName}
-                    </span>
+                    <Badge variant="primary">{specDisplay.categoryName}</Badge>
                   )}
-                  {specDisplay.specialtyNames.length > 0 && (
-                    <span className="text-[12px] text-text-muted">
-                      {specDisplay.specialtyNames.join(", ")}
+                  {specDisplay.specialtyNames.map((name) => (
+                    <span
+                      key={name}
+                      className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20"
+                    >
+                      {name}
                     </span>
-                  )}
+                  ))}
                   {profile.location && (
                     <span className="text-[13px] text-text-muted flex items-center gap-[4px]">
                       <MapPin className="h-[13px] w-[13px]" />

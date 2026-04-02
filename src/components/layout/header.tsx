@@ -70,13 +70,13 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           .limit(5),
         supabase
           .from("forum_posts")
-          .select("id, title, author:profiles(x_handle), category:forum_categories(name)")
+          .select("id, title, author:profiles!forum_posts_author_id_fkey(x_handle), category:forum_categories(name)")
           .textSearch("title", q, { type: "plain", config: "french" })
           .order("created_at", { ascending: false })
           .limit(5),
         supabase
           .from("messages")
-          .select("id, content, channel_id, author:profiles(x_handle), channel:channels(name, slug)")
+          .select("id, content, channel_id, author:profiles!messages_author_id_fkey(x_handle), channel:channels(name, slug)")
           .textSearch("content", q, { type: "plain", config: "french" })
           .order("created_at", { ascending: false })
           .limit(5),

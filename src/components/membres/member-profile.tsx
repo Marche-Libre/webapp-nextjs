@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { formatDate } from "@/lib/utils";
 import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Mail, Globe, Briefcase, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -83,11 +82,17 @@ function ReportBlockMenu({ memberId, currentUserId }: { memberId: string; curren
   );
 }
 
-function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUserId: string }) {
+function SendDmButton({ memberId, currentUserId, acceptDms }: { memberId: string; currentUserId: string; acceptDms: boolean }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSendDm = async () => {
+    if (!acceptDms) {
+      setError("Ce membre n\u2019accepte pas les messages priv\u00e9s.");
+      return;
+    }
+    setError(null);
     setLoading(true);
     const supabase = createClient();
 
@@ -129,7 +134,7 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
     }
 
     const slug = `dm-${[currentUserId, memberId].sort().join("-").slice(0, 32)}`;
-    const { data: newChannel, error } = await supabase
+    const { data: newChannel, error: insertError } = await supabase
       .from("channels")
       .insert({
         name: `DM-${Date.now()}`,
@@ -140,7 +145,7 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
       .select("id")
       .single();
 
-    if (error || !newChannel) {
+    if (insertError || !newChannel) {
       setLoading(false);
       return;
     }
@@ -155,16 +160,21 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
   };
 
   return (
-    <Button
-      onClick={handleSendDm}
-      disabled={loading}
-      size="sm"
-      variant="outline"
-      className="shrink-0"
-    >
-      <Mail className="h-[14px] w-[14px]" />
-      {loading ? "..." : "Message"}
-    </Button>
+    <div className="flex flex-col items-end gap-[4px]">
+      <Button
+        onClick={handleSendDm}
+        disabled={loading}
+        size="sm"
+        variant="outline"
+        className="shrink-0"
+      >
+        <Mail className="h-[14px] w-[14px]" />
+        {loading ? "..." : "Message"}
+      </Button>
+      {error && (
+        <span className="text-[11px] text-error">{error}</span>
+      )}
+    </div>
   );
 }
 
@@ -263,17 +273,8 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isB
           {!isOwnProfile && (
             <div className="flex items-center gap-[6px] shrink-0">
               {canDm && (
-                <SendDmButton memberId={member.id} currentUserId={currentUserId} />
+                <SendDmButton memberId={member.id} currentUserId={currentUserId} acceptDms={!!member.accept_dms} />
               )}
-              <FavoriteButton
-                item={{
-                  id: `member:${member.id}`,
-                  label: member.full_name || `@${member.x_handle}`,
-                  href: `/membres/${member.id}`,
-                  type: "member",
-                }}
-                size="md"
-              />
               <ReportBlockMenu memberId={member.id} currentUserId={currentUserId} />
             </div>
           )}
