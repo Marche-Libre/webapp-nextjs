@@ -12,6 +12,8 @@ export default async function PostPage({
   const { postId } = await params;
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { data: post } = await supabase
     .from("forum_posts")
     .select("*, author:profiles!forum_posts_author_id_fkey(x_handle, full_name, avatar_url), category:forum_categories(name, slug)")
@@ -31,11 +33,16 @@ export default async function PostPage({
   // Fetch replies
   const { data: replies } = await supabase
     .from("forum_replies")
-    .select("*, author:profiles!forum_posts_author_id_fkey(x_handle, full_name, avatar_url)")
+    .select("*, author:profiles!forum_replies_author_id_fkey(x_handle, full_name, avatar_url)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
   const category = post.category as unknown as { name: string; slug: string };
+
+  // Check if current user is admin
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("is_admin").eq("id", user.id).single()
+    : { data: null };
 
   return (
     <div className="space-y-[16px]">
@@ -49,6 +56,9 @@ export default async function PostPage({
         post={{ ...post, tags, author: post.author as any } as any}
         replies={(replies || []) as any}
         postId={postId}
+        currentUserId={user?.id || null}
+        isAdmin={profile?.is_admin || false}
+        categorySlug={category?.slug || ""}
       />
     </div>
   );

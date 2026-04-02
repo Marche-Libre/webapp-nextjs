@@ -15,6 +15,7 @@ interface ReplyFormProps {
 export function ReplyForm({ postId }: ReplyFormProps) {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,16 +23,23 @@ export function ReplyForm({ postId }: ReplyFormProps) {
     if (!content.trim()) return;
 
     setLoading(true);
+    setError(null);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) return;
 
-    await supabase.from("forum_replies").insert({
+    const { error: insertError } = await supabase.from("forum_replies").insert({
       post_id: postId,
       author_id: user.id,
       content: content.trim(),
     });
+
+    if (insertError) {
+      setError("Erreur lors de l'envoi. Réessayez.");
+      setLoading(false);
+      return;
+    }
 
     // Fire-and-forget notifications
     notifyForumReply(supabase, { postId, replyAuthorId: user.id });
@@ -57,6 +65,9 @@ export function ReplyForm({ postId }: ReplyFormProps) {
         placeholder="Écrire une réponse…"
         rows={4}
       />
+      {error && (
+        <p className="text-[12px] text-error mt-[8px]">{error}</p>
+      )}
       <div className="flex justify-end mt-[12px]">
         <Button type="submit" disabled={loading || !content.trim()}>
           <Send className="h-3.5 w-3.5" />
