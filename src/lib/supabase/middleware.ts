@@ -47,28 +47,36 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If authenticated and on landing/auth pages, redirect to app
-  if (user && (pathname === "/" || pathname === "/connexion" || pathname === "/inscription")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/forum";
-    return NextResponse.redirect(url);
-  }
-
-  // If authenticated and not on /onboarding or public routes, check onboarding status
-  if (user && !isPublicRoute && pathname !== "/onboarding") {
+  // If authenticated, check profile status and redirect accordingly
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("status, onboarding_completed")
       .eq("id", user.id)
       .single();
 
-    if (
-      profile &&
-      profile.status === "approved" &&
-      profile.onboarding_completed !== true
-    ) {
+    const isApproved = profile?.status === "approved";
+    const isOnboarded = profile?.onboarding_completed === true;
+    const isPending = !isApproved;
+
+    // Pending users can only see /en-attente
+    if (isPending && pathname !== "/en-attente") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/en-attente";
+      return NextResponse.redirect(url);
+    }
+
+    // Approved but not onboarded → force onboarding
+    if (isApproved && !isOnboarded && pathname !== "/onboarding") {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+
+    // Fully onboarded users on landing/auth pages → redirect to app
+    if (isApproved && isOnboarded && (pathname === "/" || pathname === "/connexion" || pathname === "/inscription" || pathname === "/en-attente")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/forum";
       return NextResponse.redirect(url);
     }
   }
