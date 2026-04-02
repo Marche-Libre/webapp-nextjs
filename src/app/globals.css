@@ -1,86 +1,244 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+/* ══════════════════════════════════════════
+   DARK THEME (default) — DaisyUI components
+   ══════════════════════════════════════════ */
 @plugin "daisyui/theme" {
   name: "marchelibre";
   default: true;
-  color-scheme: light;
-
-  /* Navy primary — professional, high contrast */
-  --color-primary: oklch(22% 0.04 260);
-  --color-primary-content: oklch(100% 0 0);
-
-  /* Slate secondary */
-  --color-secondary: oklch(40% 0.02 260);
-  --color-secondary-content: oklch(100% 0 0);
-
-  /* Blue CTA — action color */
-  --color-accent: oklch(48% 0.18 240);
-  --color-accent-content: oklch(100% 0 0);
-
-  /* Neutral */
-  --color-neutral: oklch(18% 0.02 260);
-  --color-neutral-content: oklch(96% 0.005 260);
-
-  /* Base — light, clean */
-  --color-base-100: oklch(100% 0 0);
-  --color-base-200: oklch(97.5% 0.003 260);
-  --color-base-300: oklch(94.5% 0.005 260);
-  --color-base-content: oklch(13% 0.03 260);
-
-  /* Status */
-  --color-success: oklch(62% 0.19 155);
-  --color-success-content: oklch(100% 0 0);
-  --color-warning: oklch(78% 0.16 75);
-  --color-warning-content: oklch(25% 0.05 75);
-  --color-error: oklch(58% 0.22 25);
+  color-scheme: dark;
+  --color-primary: oklch(72% 0.12 85);
+  --color-primary-content: oklch(15% 0.02 270);
+  --color-secondary: oklch(55% 0.02 260);
+  --color-secondary-content: oklch(95% 0.005 260);
+  --color-accent: oklch(72% 0.12 85);
+  --color-accent-content: oklch(15% 0.02 270);
+  --color-neutral: oklch(25% 0.015 265);
+  --color-neutral-content: oklch(90% 0.005 260);
+  --color-base-100: oklch(18% 0.02 270);
+  --color-base-200: oklch(15% 0.02 270);
+  --color-base-300: oklch(22% 0.02 270);
+  --color-base-content: oklch(95% 0.005 265);
+  --color-success: oklch(65% 0.18 155);
+  --color-success-content: oklch(15% 0 0);
+  --color-warning: oklch(75% 0.15 75);
+  --color-warning-content: oklch(15% 0.05 75);
+  --color-error: oklch(60% 0.22 25);
   --color-error-content: oklch(100% 0 0);
   --color-info: oklch(60% 0.18 240);
   --color-info-content: oklch(100% 0 0);
-
-  /* Radius — slightly rounded, not bubbly */
   --radius-selector: 0.5rem;
   --radius-field: 0.625rem;
   --radius-box: 0.75rem;
 }
 
-/* Font */
-@theme inline {
-  --font-sans: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+/* ══════════════════════════════════════════
+   LIGHT THEME — DaisyUI components
+   ══════════════════════════════════════════ */
+@plugin "daisyui/theme" {
+  name: "marchelibre-light";
+  default: false;
+  color-scheme: light;
+  --color-primary: oklch(45% 0.2 270);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(45% 0.02 260);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(48% 0.18 240);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(20% 0.02 260);
+  --color-neutral-content: oklch(96% 0.005 260);
+  --color-base-100: oklch(99% 0.003 270);
+  --color-base-200: oklch(96.5% 0.004 270);
+  --color-base-300: oklch(93% 0.006 270);
+  --color-base-content: oklch(18% 0.02 270);
+  --color-success: oklch(55% 0.18 155);
+  --color-success-content: oklch(100% 0 0);
+  --color-warning: oklch(75% 0.15 75);
+  --color-warning-content: oklch(25% 0.05 75);
+  --color-error: oklch(55% 0.22 25);
+  --color-error-content: oklch(100% 0 0);
+  --color-info: oklch(55% 0.18 240);
+  --color-info-content: oklch(100% 0 0);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.625rem;
+  --radius-box: 0.75rem;
 }
 
-/* Bento card palette — bold, saturated, playful */
+/* ══════════════════════════════════════════
+   CUSTOM TOKEN CSS VARS — dark defaults on :root
+   ══════════════════════════════════════════ */
 :root {
+  --color-bg-base: oklch(18% 0.02 270);
+  --color-bg-elevated: oklch(15% 0.025 270);
+  --color-bg-surface: oklch(22% 0.02 265);
+  --color-bg-surface-hover: oklch(26% 0.02 265);
+  --color-bg-surface-2: oklch(20% 0.02 268);
+
+  --color-text-primary: oklch(95% 0.005 265);
+  --color-text-secondary: oklch(78% 0.01 260);
+  --color-text-muted: oklch(62% 0.015 260);
+
+  --color-border-default: oklch(33% 0.015 265);
+  --color-border-subtle: oklch(28% 0.015 265);
+  --color-border-strong: oklch(42% 0.015 260);
+
+  --color-primary-50: oklch(25% 0.03 85);
+  --color-primary-400: oklch(78% 0.13 85);
+  --color-primary-500: oklch(72% 0.12 85);
+  --color-primary-600: oklch(68% 0.12 85);
+  --color-primary-700: oklch(62% 0.11 85);
+
+  --color-success-bg: oklch(20% 0.04 155);
+  --color-warning-bg: oklch(22% 0.04 80);
+  --color-error-bg: oklch(20% 0.04 25);
+
+  --shadow-card: 0 1px 3px oklch(0% 0 0 / 0.3), 0 0 0 1px oklch(100% 0 0 / 0.03);
+  --shadow-card-hover: 0 4px 16px oklch(0% 0 0 / 0.4), 0 0 0 1px oklch(100% 0 0 / 0.05);
+  --shadow-modal: 0 16px 48px oklch(0% 0 0 / 0.5);
+  --shadow-focus: 0 0 0 3px oklch(72% 0.12 85 / 0.25);
+  --shadow-glow-sm: 0 0 12px oklch(72% 0.12 85 / 0.15);
+
   --bento-coral: oklch(65% 0.22 25);
   --bento-emerald: oklch(60% 0.19 160);
-  --bento-amber: oklch(80% 0.16 80);
-  --bento-indigo: oklch(50% 0.22 275);
+  --bento-amber: oklch(75% 0.14 80);
+  --bento-indigo: oklch(55% 0.18 275);
   --bento-sky: oklch(62% 0.17 240);
 }
 
+/* ══════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   ══════════════════════════════════════════ */
+[data-mode="light"] {
+  --color-bg-base: oklch(100% 0 0);
+  --color-bg-elevated: oklch(96.5% 0.004 270);
+  --color-bg-surface: oklch(93.5% 0.005 270);
+  --color-bg-surface-hover: oklch(90% 0.006 270);
+  --color-bg-surface-2: oklch(91% 0.006 270);
+
+  --color-text-primary: oklch(18% 0.02 270);
+  --color-text-secondary: oklch(35% 0.015 270);
+  --color-text-muted: oklch(48% 0.01 270);
+
+  --color-border-default: oklch(82% 0.006 270);
+  --color-border-subtle: oklch(88% 0.005 270);
+  --color-border-strong: oklch(78% 0.008 270);
+
+  --color-primary-50: oklch(94% 0.05 270);
+  --color-primary-400: oklch(58% 0.2 270);
+  --color-primary-500: oklch(45% 0.2 270);
+  --color-primary-600: oklch(40% 0.2 270);
+  --color-primary-700: oklch(35% 0.18 270);
+
+  --color-success-bg: oklch(96% 0.03 155);
+  --color-warning-bg: oklch(96% 0.03 80);
+  --color-error-bg: oklch(96% 0.03 25);
+
+  --shadow-card: 0 1px 3px oklch(0% 0 0 / 0.08), 0 0 0 1px oklch(0% 0 0 / 0.04);
+  --shadow-card-hover: 0 4px 16px oklch(0% 0 0 / 0.08), 0 0 0 1px oklch(0% 0 0 / 0.04);
+  --shadow-modal: 0 16px 48px oklch(0% 0 0 / 0.12);
+  --shadow-focus: 0 0 0 3px oklch(45% 0.2 270 / 0.2);
+  --shadow-glow-sm: 0 0 12px oklch(45% 0.2 270 / 0.15);
+}
+
+/* ══════════════════════════════════════════
+   TAILWIND THEME — point to CSS vars
+   ══════════════════════════════════════════ */
+@theme inline {
+  --font-sans: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-plus-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-surface-hover: var(--color-bg-surface-hover);
+  --color-bg-surface-2: var(--color-bg-surface-2);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  --color-border-default: var(--color-border-default);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-400: var(--color-primary-400);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+
+  --color-success-bg: var(--color-success-bg);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-error-bg: var(--color-error-bg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-modal: var(--shadow-modal);
+  --shadow-focus: var(--shadow-focus);
+  --shadow-glow-sm: var(--shadow-glow-sm);
+}
+
+/* ══════════════════════════════════════════
+   GLOBAL STYLES
+   ══════════════════════════════════════════ */
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
 }
 
-/* Yellow underline highlight — signature effect */
+/* Subtle grid pattern */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--color-border-default) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border-default) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.3;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 100%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
 .highlight {
-  background: linear-gradient(to top, oklch(90% 0.18 95) 32%, transparent 32%);
+  background: linear-gradient(to top, var(--color-primary-500) 32%, transparent 32%);
+  opacity: 0.25;
   padding: 0 2px;
   margin: 0 -2px;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(85% 0.01 260); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(75% 0.01 260); }
+::-webkit-scrollbar-thumb { background: var(--color-border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
 
-::selection {
-  background: oklch(88% 0.08 240);
+::selection { background: oklch(72% 0.12 85 / 0.25); }
+[data-mode="light"] ::selection { background: oklch(45% 0.2 270 / 0.2); }
+
+/* ══════════════════════════════════════════
+   THEME TRANSITION ANIMATION
+   ══════════════════════════════════════════ */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.5s ease, color 0.35s ease, border-color 0.4s ease, box-shadow 0.4s ease, fill 0.35s ease, stroke 0.35s ease !important;
 }
 
-/* Reduced motion */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

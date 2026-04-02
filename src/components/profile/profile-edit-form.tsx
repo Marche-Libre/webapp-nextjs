@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, X } from "lucide-react";
+import { Pencil, X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,12 +11,17 @@ import type { Profile } from "@/lib/types/database";
 
 interface ProfileEditFormProps {
   profile: Profile;
-  section: "personal" | "specialty" | "bio";
+  section: "personal" | "specialty" | "bio" | "links";
 }
 
 export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [linkEntries, setLinkEntries] = useState<[string, string][]>(() => {
+    const links = (profile.links as Record<string, string> | null) || {};
+    const entries = Object.entries(links);
+    return entries.length > 0 ? entries : [["", ""]];
+  });
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -26,7 +31,7 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
     const formData = new FormData(e.currentTarget);
     const supabase = createClient();
 
-    let updates: Record<string, string | null> = {};
+    let updates: Record<string, unknown> = {};
 
     if (section === "personal") {
       updates = {
@@ -42,6 +47,14 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
       updates = {
         bio: (formData.get("bio") as string) || null,
       };
+    } else if (section === "links") {
+      const linksObj: Record<string, string> = {};
+      for (const [label, url] of linkEntries) {
+        if (label.trim() && url.trim()) {
+          linksObj[label.trim()] = url.trim();
+        }
+      }
+      updates = { links: linksObj };
     }
 
     await supabase.from("profiles").update(updates).eq("id", profile.id);
@@ -68,6 +81,7 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
             {section === "personal" && "Informations personnelles"}
             {section === "specialty" && "Spécialité et localisation"}
             {section === "bio" && "Biographie"}
+            {section === "links" && "Liens"}
           </h3>
           <button
             onClick={() => setOpen(false)}
@@ -85,7 +99,6 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
                 name="full_name"
                 label="Nom complet"
                 defaultValue={profile.full_name}
-                required
               />
               <Input
                 id="phone"
@@ -125,6 +138,54 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
               placeholder="Présentez-vous en quelques mots : votre parcours, votre expertise..."
               rows={6}
             />
+          )}
+
+          {section === "links" && (
+            <div className="space-y-[8px]">
+              {linkEntries.map(([label, url], i) => (
+                <div key={i} className="flex gap-[8px] items-start">
+                  <Input
+                    id={`link_label_${i}`}
+                    placeholder="Label"
+                    value={label}
+                    onChange={(e) => {
+                      const next = [...linkEntries];
+                      next[i] = [e.target.value, next[i][1]];
+                      setLinkEntries(next as [string, string][]);
+                    }}
+                    className="w-[100px]"
+                  />
+                  <Input
+                    id={`link_url_${i}`}
+                    placeholder="https://…"
+                    value={url}
+                    onChange={(e) => {
+                      const next = [...linkEntries];
+                      next[i] = [next[i][0], e.target.value];
+                      setLinkEntries(next as [string, string][]);
+                    }}
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLinkEntries(linkEntries.filter((_, j) => j !== i));
+                    }}
+                    className="p-2 rounded-md hover:bg-error-bg text-text-muted hover:text-error cursor-pointer mt-[24px]"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setLinkEntries([...linkEntries, ["", ""]])}
+                className="flex items-center gap-[6px] text-[12px] text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+              >
+                <Plus className="h-3 w-3" />
+                Ajouter un lien
+              </button>
+            </div>
           )}
 
           <div className="flex justify-end gap-[8px] pt-[8px]">

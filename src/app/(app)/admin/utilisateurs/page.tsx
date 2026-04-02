@@ -8,17 +8,28 @@ import { formatDate } from "@/lib/utils";
 export default async function UtilisateursPage() {
   const supabase = await createClient();
 
-  const { data: pendingUsers } = await supabase
+  const { data: pendingUsersRaw } = await supabase
     .from("profiles")
-    .select("*")
+    .select("*, sponsor:profiles!sponsored_by(x_handle, full_name)")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
-  const { data: allUsers } = await supabase
+  const { data: allUsersRaw } = await supabase
     .from("profiles")
-    .select("*")
+    .select("*, sponsor:profiles!sponsored_by(x_handle, full_name)")
     .neq("status", "pending")
     .order("created_at", { ascending: false });
+
+  const pendingUsers = pendingUsersRaw?.map((u) => ({
+    ...u,
+    sponsor_handle: (u.sponsor as { x_handle: string; full_name: string } | null)?.x_handle ?? null,
+    sponsor_name: (u.sponsor as { x_handle: string; full_name: string } | null)?.full_name ?? null,
+  }));
+  const allUsers = allUsersRaw?.map((u) => ({
+    ...u,
+    sponsor_handle: (u.sponsor as { x_handle: string; full_name: string } | null)?.x_handle ?? null,
+    sponsor_name: (u.sponsor as { x_handle: string; full_name: string } | null)?.full_name ?? null,
+  }));
 
   return (
     <div className="space-y-[24px]">
@@ -58,21 +69,29 @@ export default async function UtilisateursPage() {
                 />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-text-primary">
-                    {user.full_name}
+                    @{user.x_handle}
                   </h3>
-                  <p className="text-sm text-text-muted">{user.email}</p>
-                  <div className="flex items-center gap-[12px] mt-[4px] text-sm">
-                    <a
-                      href={`https://x.com/${user.x_handle}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-600 hover:underline font-medium"
-                    >
-                      @{user.x_handle}
-                    </a>
+                  <p className="text-sm text-text-muted">{user.full_name || user.email}</p>
+                  <div className="flex items-center gap-[12px] mt-[4px] text-sm flex-wrap">
                     <span className="text-xs text-text-muted">
                       Inscrit le {formatDate(user.created_at)}
                     </span>
+                    {user.sponsor_handle ? (
+                      <span className="text-xs text-text-muted">
+                        Invité par{" "}
+                        <span className="font-medium text-text-secondary">
+                          @{user.sponsor_handle}
+                        </span>
+                        {user.sponsor_approved
+                          ? <span className="ml-1 text-success">&#10003; approuvé</span>
+                          : <span className="ml-1 text-warning">&#9203; en attente</span>
+                        }
+                      </span>
+                    ) : (
+                      <span className="text-xs text-text-muted">
+                        Aucun parrain
+                      </span>
+                    )}
                   </div>
                 </div>
                 <ApproveRejectButtons userId={user.id} />
@@ -101,10 +120,10 @@ export default async function UtilisateursPage() {
                     Utilisateur
                   </th>
                   <th className="pb-[12px] font-medium text-text-muted hidden sm:table-cell">
-                    X
+                    @handle
                   </th>
                   <th className="pb-[12px] font-medium text-text-muted hidden md:table-cell">
-                    Spécialité
+                    Invité par
                   </th>
                   <th className="pb-[12px] font-medium text-text-muted">Statut</th>
                   <th className="pb-[12px] font-medium text-text-muted">Actions</th>
@@ -122,7 +141,7 @@ export default async function UtilisateursPage() {
                         />
                         <div>
                           <p className="font-medium text-text-primary">
-                            {user.full_name}
+                            {user.full_name || "—"}
                           </p>
                           <p className="text-xs text-text-muted">
                             {user.email}
@@ -141,7 +160,7 @@ export default async function UtilisateursPage() {
                       </a>
                     </td>
                     <td className="py-[12px] hidden md:table-cell text-text-muted">
-                      {user.specialty || "-"}
+                      {user.sponsor_handle ? `@${user.sponsor_handle}` : "—"}
                     </td>
                     <td className="py-[12px]">
                       <Badge

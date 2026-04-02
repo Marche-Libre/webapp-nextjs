@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AnimatedHero } from "@/components/home/animated-hero";
 import { AnimatedFeatures } from "@/components/home/animated-features";
+import { AnimatedProfessions } from "@/components/home/animated-professions";
 import { AnimatedSteps } from "@/components/home/animated-steps";
 import { AnimatedCTA } from "@/components/home/animated-cta";
 import { FloatingHeader } from "@/components/home/floating-header";
@@ -12,7 +13,7 @@ export default function HomePage() {
       {/* Static top bar — visible at top of page */}
       <div className="flex items-center justify-between px-6 lg:px-10 py-4 bg-base-100">
         <Link href="/" className="flex items-center gap-2 cursor-pointer">
-          <img src="/images/drapeau.jpg" alt="MarchéLibre" className="w-8 h-8 object-contain" />
+          <img src="/images/logo.png" alt="MarchéLibre" className="w-8 h-8 object-contain" />
           <span className="font-bold text-[17px] text-base-content tracking-tight">
             MarchéLibre
           </span>
@@ -32,6 +33,7 @@ export default function HomePage() {
 
       <AnimatedHero />
       <AnimatedFeatures />
+      <AnimatedProfessions />
       <AnimatedSteps />
       <AnimatedCTA />
 
@@ -42,7 +44,7 @@ export default function HomePage() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/images/drapeau.jpg" alt="MarchéLibre" className="w-8 h-8 object-contain" />
+                <img src="/images/logo.png" alt="MarchéLibre" className="w-8 h-8 object-contain" />
                 <span className="font-bold text-[17px] tracking-tight">MarchéLibre</span>
               </div>
               <p className="text-sm text-neutral-content/50 leading-relaxed">

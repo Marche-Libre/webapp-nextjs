@@ -10,34 +10,104 @@ export type Profile = {
   phone: string | null;
   status: "pending" | "approved" | "rejected";
   is_admin: boolean;
+  links: Record<string, string> | null;
+  accept_sponsorship: boolean;
+  sponsored_by: string | null;
+  sponsor_approved: boolean;
   created_at: string;
   updated_at: string;
+  sponsor?: Profile;
 };
 
-export type Annonce = {
+export type Invitation = {
   id: string;
+  inviter_id: string;
+  invited_x_handle: string;
+  status: "pending" | "accepted" | "rejected";
+  accepted_by: string | null;
+  created_at: string;
+  updated_at: string;
+  inviter?: Profile;
+};
+
+export type Channel = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_by: string | null;
+  is_private: boolean;
+  created_at: string;
+};
+
+export type Message = {
+  id: string;
+  channel_id: string;
   author_id: string;
-  title: string;
-  description: string;
-  category: "service" | "recherche" | "collaboration" | "autre" | null;
-  location: string | null;
-  is_active: boolean;
+  content: string;
+  image_url: string | null;
   created_at: string;
   updated_at: string;
   author?: Profile;
 };
 
-export type OffreEmploi = {
+export type MessageReaction = {
+  message_id: string;
+  user_id: string;
+  emoji: string;
+};
+
+export type ForumCategory = {
   id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  order: number;
+};
+
+export type ForumPost = {
+  id: string;
+  category_id: string;
   author_id: string;
   title: string;
-  description: string;
-  company_name: string | null;
-  contract_type: "freelance" | "cdi" | "cdd" | "mission" | "stage" | null;
-  location: string | null;
-  salary_range: string | null;
-  is_active: boolean;
+  content: string;
+  is_pinned: boolean;
+  is_locked: boolean;
+  reply_count: number;
+  last_reply_at: string | null;
   created_at: string;
   updated_at: string;
   author?: Profile;
+  category?: ForumCategory;
+  tags?: ForumTag[];
+};
+
+export type ForumReply = {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  author?: Profile;
+};
+
+export type ForumTag = {
+  id: string;
+  name: string;
+  color: string | null;
+};
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  type: "chat_mention" | "forum_mention" | "forum_reply";
+  title: string;
+  body: string | null;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+  actor?: Profile;
 };

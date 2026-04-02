@@ -20,7 +20,7 @@ export default async function AdminLayout({
     .single();
 
   if (!profile?.is_admin) {
-    redirect("/tableau-de-bord");
+    redirect("/forum");
   }
 
   return <>{children}</>;

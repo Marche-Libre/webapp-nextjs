@@ -1,44 +1,37 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Megaphone, Briefcase, Users } from "lucide-react";
+import { MessagesSquare, Users, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function TableauDeBordPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/connexion");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("x_handle")
+    .eq("id", user.id)
+    .single();
 
   const [
-    { count: annoncesCount },
-    { count: offresCount },
+    { count: postsCount },
     { count: membresCount },
   ] = await Promise.all([
     supabase
-      .from("annonces")
-      .select("*", { count: "exact", head: true })
-      .eq("is_active", true),
-    supabase
-      .from("offres_emploi")
-      .select("*", { count: "exact", head: true })
-      .eq("is_active", true),
+      .from("forum_posts")
+      .select("*", { count: "exact", head: true }),
     supabase
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("status", "approved"),
   ]);
 
-  const { data: recentAnnonces } = await supabase
-    .from("annonces")
-    .select("id, title, category, created_at, author:profiles(full_name)")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: recentOffres } = await supabase
-    .from("offres_emploi")
-    .select(
-      "id, title, contract_type, location, created_at, author:profiles(full_name)"
-    )
-    .eq("is_active", true)
+  const { data: recentPosts } = await supabase
+    .from("forum_posts")
+    .select("id, title, created_at, reply_count, author:profiles(x_handle), category:forum_categories(name, slug, color)")
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -46,120 +39,76 @@ export default async function TableauDeBordPage() {
     <div className="space-y-[24px]">
       <div>
         <h1 className="font-display text-2xl font-bold text-text-primary tracking-[-0.02em]">
-          Tableau de bord
+          Bienvenue, @{profile?.x_handle}
         </h1>
         <p className="text-sm text-text-secondary mt-[4px]">
-          Bienvenue sur votre espace MarchéLibre
+          Votre espace MarchéLibre
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
         <StatCard
-          icon={<Megaphone className="h-5 w-5 text-primary-600" />}
-          label="Annonces actives"
-          value={annoncesCount ?? 0}
-        />
-        <StatCard
-          icon={<Briefcase className="h-5 w-5 text-primary-400" />}
-          label="Offres d'emploi"
-          value={offresCount ?? 0}
+          icon={<MessagesSquare className="h-5 w-5 text-primary-600" />}
+          label="Posts sur le forum"
+          value={postsCount ?? 0}
         />
         <StatCard
           icon={<Users className="h-5 w-5 text-primary-500" />}
           label="Membres vérifiés"
           value={membresCount ?? 0}
         />
+        <StatCard
+          icon={<MessageCircle className="h-5 w-5 text-primary-400" />}
+          label="Accéder au chat"
+          value={0}
+          href="/chat"
+        />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-[24px]">
-        {/* Recent annonces */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="font-display tracking-[-0.02em]">Dernières annonces</CardTitle>
-            <Link
-              href="/annonces"
-              className="text-[13px] text-primary-600 hover:underline font-medium"
-            >
-              Tout voir
-            </Link>
-          </CardHeader>
-          {recentAnnonces && recentAnnonces.length > 0 ? (
-            <div className="space-y-[4px]">
-              {recentAnnonces.map((a) => (
+      {/* Recent forum posts */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="font-display tracking-[-0.02em]">Derniers posts du forum</CardTitle>
+          <Link
+            href="/forum"
+            className="text-[13px] text-primary-600 hover:underline font-medium"
+          >
+            Tout voir
+          </Link>
+        </CardHeader>
+        {recentPosts && recentPosts.length > 0 ? (
+          <div className="space-y-[4px]">
+            {recentPosts.map((p) => {
+              const category = p.category as unknown as { name: string; slug: string; color: string } | null;
+              const author = p.author as unknown as { x_handle: string } | null;
+              return (
                 <Link
-                  key={a.id}
-                  href={`/annonces/${a.id}`}
+                  key={p.id}
+                  href={`/forum/posts/${p.id}`}
                   className="flex items-center justify-between p-[12px] rounded-lg hover:bg-bg-surface transition-colors duration-150"
                 >
                   <div>
                     <p className="text-sm font-medium text-text-primary">
-                      {a.title}
+                      {p.title}
                     </p>
                     <p className="text-xs text-text-muted">
-                      {
-                        (a.author as unknown as { full_name: string })
-                          ?.full_name
-                      }
+                      @{author?.x_handle} · {p.reply_count} réponse{p.reply_count !== 1 ? "s" : ""}
                     </p>
                   </div>
-                  {a.category && (
-                    <Badge variant="primary">{a.category}</Badge>
+                  {category && (
+                    <Badge variant="primary">{category.name}</Badge>
                   )}
                 </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-muted">
-              Aucune annonce publiée pour le moment.
-            </p>
-          )}
-        </Card>
-
-        {/* Recent offres */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="font-display tracking-[-0.02em]">Dernières offres</CardTitle>
-            <Link
-              href="/offres"
-              className="text-[13px] text-primary-600 hover:underline font-medium"
-            >
-              Tout voir
-            </Link>
-          </CardHeader>
-          {recentOffres && recentOffres.length > 0 ? (
-            <div className="space-y-[4px]">
-              {recentOffres.map((o) => (
-                <Link
-                  key={o.id}
-                  href={`/offres/${o.id}`}
-                  className="flex items-center justify-between p-[12px] rounded-lg hover:bg-bg-surface transition-colors duration-150"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">
-                      {o.title}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      {
-                        (o.author as unknown as { full_name: string })
-                          ?.full_name
-                      }{" "}
-                      {o.location && `· ${o.location}`}
-                    </p>
-                  </div>
-                  {o.contract_type && (
-                    <Badge variant="primary">{o.contract_type}</Badge>
-                  )}
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-muted">
-              Aucune offre publiée pour le moment.
-            </p>
-          )}
-        </Card>
-      </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-text-muted">
+            Aucun post sur le forum pour le moment.
+          </p>
+        )}
+      </Card>
     </div>
   );
 }
@@ -168,24 +117,35 @@ function StatCard({
   icon,
   label,
   value,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
+  href?: string;
 }) {
-  return (
+  const content = (
     <Card className="shadow-card">
       <div className="flex items-center gap-[16px]">
         <div className="h-12 w-12 rounded-lg bg-primary-50 border border-border-subtle flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div>
-          <p className="text-2xl font-bold text-text-primary tracking-[-0.02em]">
-            {value}
-          </p>
+          {href ? (
+            <p className="text-sm font-medium text-primary-600">Accéder →</p>
+          ) : (
+            <p className="text-2xl font-bold text-text-primary tracking-[-0.02em]">
+              {value}
+            </p>
+          )}
           <p className="text-[13px] text-text-secondary">{label}</p>
         </div>
       </div>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+  return content;
 }

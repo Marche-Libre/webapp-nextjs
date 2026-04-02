@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { MembresContent } from "@/components/membres/membres-content";
 
 export default async function MembresPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/connexion");
 
   const { data: membres } = await supabase
     .from("profiles")
@@ -32,6 +35,7 @@ export default async function MembresPage() {
       membres={membres ?? []}
       specialties={specialties}
       locations={locations}
+      currentUserId={user.id}
     />
   );
 }

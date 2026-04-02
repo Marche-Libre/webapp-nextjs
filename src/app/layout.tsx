@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { FavoritesProvider } from "@/components/favorites/favorites-context";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -13,14 +15,30 @@ export const metadata: Metadata = {
     "Trouvez des missions, publiez vos services et connectez-vous avec des professionnels libéraux vérifiés.",
 };
 
+// Inline script to prevent flash of wrong theme
+const themeScript = `
+(function(){
+  try {
+    var t = localStorage.getItem('ml-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t === 'light' ? 'marchelibre-light' : 'marchelibre');
+    document.documentElement.setAttribute('data-mode', t);
+  } catch(e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" data-theme="marchelibre" className={`${plusJakarta.variable} h-full`}>
-      <body className="h-full font-sans antialiased">{children}</body>
+    <html lang="fr" data-theme="marchelibre" data-mode="dark" className={`${plusJakarta.variable} h-full`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="h-full font-sans antialiased bg-bg-elevated text-text-primary">
+        <ThemeProvider><FavoritesProvider>{children}</FavoritesProvider></ThemeProvider>
+      </body>
     </html>
   );
 }

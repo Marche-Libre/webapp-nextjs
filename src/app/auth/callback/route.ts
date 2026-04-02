@@ -23,7 +23,7 @@ export async function GET(request: Request) {
           .single();
 
         if (profile?.status === "approved") {
-          return NextResponse.redirect(`${origin}/tableau-de-bord`);
+          return NextResponse.redirect(`${origin}/forum`);
         }
         // pending or just created
         return NextResponse.redirect(`${origin}/en-attente`);

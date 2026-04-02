@@ -9,7 +9,7 @@ export default function AuthLayout({
     <div className="min-h-dvh flex flex-col items-center justify-center bg-base-200 px-4 py-6">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2.5 mb-6">
-        <img src="/images/drapeau.jpg" alt="MarchéLibre" className="w-8 h-8 object-contain" />
+        <img src="/images/logo.png" alt="MarchéLibre" className="w-8 h-8 object-contain" />
         <span className="font-bold text-[17px] text-base-content tracking-tight">
           MarchéLibre
         </span>

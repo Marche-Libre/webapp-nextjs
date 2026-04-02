@@ -8,6 +8,11 @@ export function OAuthButtons() {
   const [loading, setLoading] = useState<"google" | "twitter" | null>(null);
 
   const handleOAuth = async (provider: "google" | "twitter") => {
+    if (provider === "twitter") {
+      // X OAuth not yet configured — redirect to waiting page
+      window.location.href = "/en-attente";
+      return;
+    }
     setLoading(provider);
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -20,16 +25,17 @@ export function OAuthButtons() {
 
   return (
     <div className="space-y-2.5">
+      {/* Google native-style button */}
       <button
         type="button"
         onClick={() => handleOAuth("google")}
         disabled={loading !== null}
-        className="w-full flex items-center justify-center gap-2.5 rounded-lg border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content hover:bg-base-200 transition-colors disabled:opacity-40 cursor-pointer"
+        className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-white border border-[#dadce0] px-4 py-2.5 text-sm font-medium text-[#3c4043] shadow-sm hover:bg-[#f7f8f8] hover:shadow transition-all disabled:opacity-40 cursor-pointer"
       >
         {loading === "google" ? (
           <span className="loading loading-spinner loading-xs" />
         ) : (
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
               fill="#4285F4"
@@ -51,11 +57,12 @@ export function OAuthButtons() {
         Continuer avec Google
       </button>
 
+      {/* X native-style button */}
       <button
         type="button"
         onClick={() => handleOAuth("twitter")}
         disabled={loading !== null}
-        className="w-full flex items-center justify-center gap-2.5 rounded-lg border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content hover:bg-base-200 transition-colors disabled:opacity-40 cursor-pointer"
+        className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-2.5 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all disabled:opacity-40 cursor-pointer"
       >
         {loading === "twitter" ? (
           <span className="loading loading-spinner loading-xs" />

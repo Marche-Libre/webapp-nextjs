@@ -1,46 +1,219 @@
 "use client";
 
-import { Menu, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Menu, PanelLeftOpen, Search, X, MessagesSquare, Users, User, FileText } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useChatPanel } from "@/components/chat/chat-context";
 import { Avatar } from "@/components/ui/avatar";
-import type { Profile } from "@/lib/types/database";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
-  profile: Profile;
+  sidebarCollapsed: boolean;
   onMenuClick: () => void;
+  onToggleSidebar: () => void;
 }
 
-export function Header({ profile, onMenuClick }: HeaderProps) {
+type SearchResult = {
+  type: "member" | "post";
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  avatarUrl?: string | null;
+};
+
+export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: HeaderProps) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { isOpen: chatOpen } = useChatPanel();
+
+  // Close on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const search = (value: string) => {
+    setQuery(value);
+    clearTimeout(debounceRef.current);
+
+    if (!value.trim()) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+
+    setOpen(true);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      const supabase = createClient();
+      const q = value.trim();
+
+      const [membersRes, postsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, x_handle, avatar_url, specialty")
+          .eq("status", "approved")
+          .or(`full_name.ilike.%${q}%,x_handle.ilike.%${q}%,specialty.ilike.%${q}%`)
+          .limit(5),
+        supabase
+          .from("forum_posts")
+          .select("id, title, author:profiles(x_handle), category:forum_categories(name)")
+          .or(`title.ilike.%${q}%`)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
+
+      const items: SearchResult[] = [];
+
+      membersRes.data?.forEach((m) => {
+        items.push({
+          type: "member",
+          id: m.id,
+          title: m.full_name || `@${m.x_handle}`,
+          subtitle: m.specialty || `@${m.x_handle}`,
+          href: `/membres`,
+          avatarUrl: m.avatar_url,
+        });
+      });
+
+      postsRes.data?.forEach((p) => {
+        const author = p.author as unknown as { x_handle: string } | null;
+        const cat = p.category as unknown as { name: string } | null;
+        items.push({
+          type: "post",
+          id: p.id,
+          title: p.title,
+          subtitle: `@${author?.x_handle || "?"} · ${cat?.name || "Forum"}`,
+          href: `/forum/posts/${p.id}`,
+        });
+      });
+
+      setResults(items);
+      setLoading(false);
+    }, 250);
+  };
+
   return (
-    <header className="sticky top-0 z-30 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle px-[16px] lg:px-[24px] h-[64px] flex items-center justify-between gap-[16px]">
-      <div className="flex items-center gap-[12px]">
+    <header className={cn(
+      "sticky top-0 z-30 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle px-[16px] lg:px-[24px] h-[64px] flex items-center gap-[12px] transition-[margin] duration-300",
+      chatOpen && "sm:mr-[400px]"
+    )}>
+      {/* Left: sidebar toggles */}
+      <div className="flex items-center gap-[4px] shrink-0">
+        {/* Mobile: open sidebar overlay */}
         <button
           onClick={onMenuClick}
           className="lg:hidden p-[8px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors duration-150"
         >
           <Menu className="h-[20px] w-[20px]" />
         </button>
-
-        <div className="hidden sm:flex items-center gap-[8px] bg-bg-elevated border border-border-subtle rounded-lg px-[12px] py-[8px] w-[256px] lg:w-[320px]">
-          <Search className="h-[16px] w-[16px] text-text-muted" />
-          <input
-            type="text"
-            placeholder="Rechercher un membre, une annonce..."
-            className="bg-transparent text-[13px] leading-[20px] text-text-primary placeholder:text-text-muted focus:outline-none w-full"
-          />
-        </div>
+        {/* Desktop: toggle sidebar collapsed */}
+        {sidebarCollapsed && (
+          <button
+            onClick={onToggleSidebar}
+            className="hidden lg:flex p-[8px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors duration-150"
+            title="Ouvrir la sidebar"
+          >
+            <PanelLeftOpen className="h-[20px] w-[20px]" />
+          </button>
+        )}
       </div>
 
-      <div className="flex items-center gap-[12px]">
-        <div className="hidden sm:block text-right">
-          <p className="text-[13px] leading-[20px] font-medium text-text-primary">
-            {profile.full_name}
-          </p>
-          <p className="text-[11px] leading-[16px] text-text-muted">
-            {profile.specialty || "Professionnel libéral"}
-          </p>
-        </div>
-        <Avatar src={profile.avatar_url} name={profile.full_name} size="md" />
+      {/* Global search — centered via flex spacers */}
+      <div className="flex-1" />
+      <div ref={containerRef} className="relative w-full max-w-[480px]">
+        <Search className="absolute left-[12px] top-1/2 -translate-y-1/2 h-[16px] w-[16px] text-text-muted pointer-events-none" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => search(e.target.value)}
+          onFocus={() => { if (query.trim()) setOpen(true); }}
+          placeholder="Rechercher un membre, un post…"
+          className="w-full bg-bg-elevated border border-border-subtle rounded-lg pl-[36px] pr-[36px] py-[8px] text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary-500 transition-colors"
+        />
+        {query && (
+          <button
+            onClick={() => { setQuery(""); setResults([]); setOpen(false); }}
+            className="absolute right-[10px] top-1/2 -translate-y-1/2 p-1 rounded hover:bg-bg-surface text-text-muted cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+
+        {/* Dropdown results */}
+        {open && (
+          <div className="absolute top-full left-0 right-0 mt-[4px] bg-bg-base border border-border-default rounded-lg shadow-modal overflow-hidden z-50">
+            {loading && (
+              <p className="px-[16px] py-[12px] text-[13px] text-text-muted">Recherche…</p>
+            )}
+            {!loading && results.length === 0 && query.trim() && (
+              <p className="px-[16px] py-[12px] text-[13px] text-text-muted">Aucun résultat pour « {query} »</p>
+            )}
+            {!loading && results.length > 0 && (
+              <div className="py-[4px] max-h-[360px] overflow-y-auto">
+                {/* Members section */}
+                {results.some((r) => r.type === "member") && (
+                  <>
+                    <p className="px-[12px] py-[6px] text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted">
+                      Membres
+                    </p>
+                    {results.filter((r) => r.type === "member").map((r) => (
+                      <Link
+                        key={r.id}
+                        href={r.href}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
+                      >
+                        <Avatar src={r.avatarUrl} name={r.title} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
+                          <p className="text-[11px] text-text-muted truncate">{r.subtitle}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </>
+                )}
+                {/* Posts section */}
+                {results.some((r) => r.type === "post") && (
+                  <>
+                    <p className="px-[12px] py-[6px] text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted mt-[4px]">
+                      Posts
+                    </p>
+                    {results.filter((r) => r.type === "post").map((r) => (
+                      <Link
+                        key={r.id}
+                        href={r.href}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
+                      >
+                        <div className="h-[32px] w-[32px] rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
+                          <FileText className="h-[16px] w-[16px] text-primary-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
+                          <p className="text-[11px] text-text-muted truncate">{r.subtitle}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+      <div className="flex-1" />
     </header>
   );
 }

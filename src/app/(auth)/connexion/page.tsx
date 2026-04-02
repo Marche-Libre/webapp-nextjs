@@ -32,12 +32,19 @@ export default function ConnexionPage() {
       return;
     }
 
-    router.push("/tableau-de-bord");
+    router.push("/forum");
     router.refresh();
   };
 
   return (
     <div className="bg-base-100 rounded-2xl p-8 shadow-lg border border-base-300 animate-[slide-up_0.25s_ease-out]">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-sm text-base-content/50 hover:text-base-content transition-colors mb-4"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Retour
+      </Link>
       <h1 className="text-xl font-bold text-base-content tracking-tight text-center">
         Content de vous revoir
       </h1>

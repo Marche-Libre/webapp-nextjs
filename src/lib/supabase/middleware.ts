@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
   // If authenticated and trying to access auth pages
   if (user && (pathname === "/connexion" || pathname === "/inscription")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/tableau-de-bord";
+    url.pathname = "/forum";
     return NextResponse.redirect(url);
   }
 

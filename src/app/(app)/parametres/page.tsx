@@ -1,167 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/components/theme/theme-provider";
+import { Sun, Moon, LogOut, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const tabs = [
-  { id: "compte", label: "Compte" },
-  { id: "securite", label: "Sécurité" },
-];
-
 export default function ParametresPage() {
-  const [activeTab, setActiveTab] = useState("compte");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
-  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    const formData = new FormData(e.currentTarget);
-    const newPassword = formData.get("new_password") as string;
-    const confirmPassword = formData.get("confirm_password") as string;
-
-    if (newPassword !== confirmPassword) {
-      setMessage("Les mots de passe ne correspondent pas.");
-      setLoading(false);
-      return;
-    }
-
+  const handleLogout = async () => {
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMessage("Mot de passe mis à jour avec succès.");
-      (e.target as HTMLFormElement).reset();
-    }
-
-    setLoading(false);
+    await supabase.auth.signOut();
+    router.push("/connexion");
   };
 
   const handleDeleteAccount = async () => {
-    if (
-      !confirm(
-        "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible."
-      )
-    ) {
-      return;
-    }
-
+    if (!confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.")) return;
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   };
 
   return (
-    <div className="max-w-3xl space-y-[24px]">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-text-primary tracking-[-0.02em]">
-          Paramètres
-        </h1>
-        <p className="text-sm text-text-secondary mt-[4px]">
-          Gérez votre compte et votre sécurité
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-[4px] bg-bg-base border border-border-default rounded-lg p-[4px] w-fit">
-        {tabs.map((tab) => (
+    <div className="space-y-[32px]">
+      {/* ─── Thème ─── */}
+      <section>
+        <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
+          Thème
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-[12px]">
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => setTheme("dark")}
             className={cn(
-              "px-[16px] py-[8px] text-[13px] font-medium rounded-md transition-all duration-150 cursor-pointer",
-              activeTab === tab.id
-                ? "bg-bg-elevated text-text-primary shadow-sm"
-                : "text-text-muted hover:text-text-secondary"
+              "flex items-center gap-[16px] p-[16px] rounded-xl border-2 transition-all duration-200 cursor-pointer text-left",
+              theme === "dark"
+                ? "border-primary-500 bg-primary-50"
+                : "border-border-default hover:border-border-strong"
             )}
           >
-            {tab.label}
+            <div className="h-[44px] w-[44px] rounded-xl bg-[#0d0d1a] flex items-center justify-center shrink-0 border border-[#1e293b]">
+              <Moon className="h-[20px] w-[20px] text-[#c9a84c]" />
+            </div>
+            <div>
+              <p className="text-[14px] font-semibold text-text-primary">Sombre</p>
+              <p className="text-[12px] text-text-muted">Fond bleu-noir, accent doré</p>
+            </div>
           </button>
-        ))}
-      </div>
+          <button
+            onClick={() => setTheme("light")}
+            className={cn(
+              "flex items-center gap-[16px] p-[16px] rounded-xl border-2 transition-all duration-200 cursor-pointer text-left",
+              theme === "light"
+                ? "border-primary-500 bg-primary-50"
+                : "border-border-default hover:border-border-strong"
+            )}
+          >
+            <div className="h-[44px] w-[44px] rounded-xl bg-[#f5f5f7] flex items-center justify-center shrink-0 border border-[#e0e0e4]">
+              <Sun className="h-[20px] w-[20px] text-[#6366f1]" />
+            </div>
+            <div>
+              <p className="text-[14px] font-semibold text-text-primary">Clair</p>
+              <p className="text-[12px] text-text-muted">Fond blanc, accent indigo</p>
+            </div>
+          </button>
+        </div>
+      </section>
 
-      {activeTab === "compte" && (
+      {/* ─── Compte ─── */}
+      <section>
+        <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
+          Compte
+        </h2>
         <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="font-display tracking-[-0.02em]">Informations du compte</CardTitle>
-          </CardHeader>
-          <p className="text-sm text-text-secondary">
+          <p className="text-[13px] text-text-secondary">
             Pour modifier vos informations professionnelles, rendez-vous sur{" "}
-            <a href="/profil" className="text-primary-600 hover:underline">
+            <a href="/profil" className="text-primary-500 hover:underline font-medium">
               votre profil
             </a>
             .
           </p>
-          <div className="mt-[24px] pt-[24px] border-t border-border-default">
-            <h4 className="text-sm font-semibold text-error mb-[8px]">
-              Zone sensible
-            </h4>
-            <p className="text-sm text-text-muted mb-[12px]">
-              La suppression du compte est définitive et irréversible.
-            </p>
-            <Button variant="danger" size="sm" onClick={handleDeleteAccount}>
-              Supprimer mon compte
-            </Button>
+        </Card>
+      </section>
+
+      {/* ─── Déconnexion ─── */}
+      <section>
+        <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
+          Session
+        </h2>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-[10px] w-full px-[16px] py-[14px] rounded-xl border border-border-default hover:border-border-strong text-text-secondary hover:text-text-primary transition-all cursor-pointer"
+        >
+          <LogOut className="h-[18px] w-[18px]" />
+          <div className="text-left">
+            <p className="text-[14px] font-medium">Se déconnecter</p>
+            <p className="text-[12px] text-text-muted">Fermer votre session active</p>
           </div>
-        </Card>
-      )}
+        </button>
+      </section>
 
-      {activeTab === "securite" && (
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="font-display tracking-[-0.02em]">Modifier le mot de passe</CardTitle>
-          </CardHeader>
-
-          {message && (
-            <div
-              className={cn(
-                "mb-[16px] p-[12px] rounded-lg text-sm border",
-                message.includes("succès")
-                  ? "bg-success-bg border-success/20 text-success"
-                  : "bg-error-bg border-error/20 text-error"
-              )}
-            >
-              {message}
-            </div>
-          )}
-
-          <form onSubmit={handlePasswordChange} className="space-y-[16px]">
-            <Input
-              id="new_password"
-              name="new_password"
-              type="password"
-              label="Nouveau mot de passe"
-              placeholder="6 caractères minimum"
-              minLength={6}
-              required
-            />
-            <Input
-              id="confirm_password"
-              name="confirm_password"
-              type="password"
-              label="Confirmer le mot de passe"
-              placeholder="Répétez le mot de passe"
-              minLength={6}
-              required
-            />
-            <Button type="submit" disabled={loading}>
-              {loading ? "Mise à jour…" : "Mettre à jour"}
-            </Button>
-          </form>
-        </Card>
-      )}
+      {/* ─── Zone danger ─── */}
+      <section>
+        <h2 className="text-[13px] font-semibold text-error uppercase tracking-[0.06em] mb-[12px]">
+          Zone sensible
+        </h2>
+        <div className="rounded-xl border border-error/20 bg-error-bg/30 p-[16px]">
+          <p className="text-[13px] text-text-secondary mb-[12px]">
+            La suppression du compte est définitive et irréversible. Toutes vos données seront effacées.
+          </p>
+          <button
+            onClick={handleDeleteAccount}
+            className="flex items-center gap-[8px] px-[14px] py-[8px] rounded-lg bg-error text-white text-[13px] font-medium hover:bg-error/90 transition-colors cursor-pointer"
+          >
+            <Trash2 className="h-[14px] w-[14px]" />
+            Supprimer mon compte
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

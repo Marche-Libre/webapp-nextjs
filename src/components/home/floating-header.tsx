@@ -25,7 +25,7 @@ export function FloatingHeader() {
       >
         <nav className="flex items-center gap-2 bg-base-100/80 backdrop-blur-xl border border-base-300 rounded-full px-2 py-1.5 shadow-lg">
           <Link href="/" className="flex items-center gap-2 pl-2 pr-3 cursor-pointer">
-            <img src="/images/drapeau.jpg" alt="MarchéLibre" className="w-7 h-7 object-contain" />
+            <img src="/images/logo.png" alt="MarchéLibre" className="w-7 h-7 object-contain" />
             <span className="font-bold text-[15px] text-base-content tracking-tight hidden sm:inline">
               MarchéLibre
             </span>
