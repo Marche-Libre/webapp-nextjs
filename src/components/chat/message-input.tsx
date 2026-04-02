@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, ImagePlus } from "lucide-react";
+import { Send, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentions } from "@/lib/notifications";
 import { Avatar } from "@/components/ui/avatar";
+import { Spinner } from "@/components/ui/spinner";
+
+const MAX_IMAGES = 3;
 
 interface MessageInputProps {
   channelId: string;
@@ -24,22 +27,30 @@ type MentionSuggestion = {
 export function MessageInput({ channelId, userId, onOptimisticMessage, onMessageConfirmed, onMessageFailed }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const sendMessage = async (imageUrl?: string) => {
+  const sendMessage = async () => {
     const text = content.trim();
-    if (!text && !imageUrl) return;
+    const images = pendingImages;
+    if (!text && images.length === 0) return;
 
-    const msgContent = text || (imageUrl ? "📷" : "");
+    const msgContent = text || (images.length > 0 ? "📷" : "");
+    // Store as JSON array if multiple, single URL if one, null if none
+    const imageUrl = images.length > 1
+      ? JSON.stringify(images)
+      : images.length === 1
+        ? images[0]
+        : null;
 
-    // Optimistic: show message immediately
-    const optimisticId = onOptimisticMessage?.(msgContent, imageUrl);
+    const optimisticId = onOptimisticMessage?.(msgContent, imageUrl || undefined);
     setContent("");
+    setPendingImages([]);
     setSending(true);
 
     const supabase = createClient();
@@ -50,17 +61,15 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
         channel_id: channelId,
         author_id: userId,
         content: msgContent,
-        image_url: imageUrl || null,
+        image_url: imageUrl,
       });
 
     if (error) {
       if (optimisticId) onMessageFailed?.(optimisticId);
     } else {
-      // INSERT succeeded — clear the "sending" status on the optimistic message
       if (optimisticId) onMessageConfirmed?.(optimisticId, null);
     }
 
-    // Fire-and-forget mention notifications
     if (text) {
       notifyMentions(supabase, {
         content: text,
@@ -73,7 +82,6 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     setSending(false);
   };
 
-  // Detect @mention query from cursor position
   const detectMentionQuery = useCallback((text: string, cursorPos: number) => {
     const before = text.slice(0, cursorPos);
     const match = before.match(/@([A-Za-z0-9_]*)$/);
@@ -86,7 +94,6 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     }
   }, []);
 
-  // Fetch suggestions when mentionQuery changes
   useEffect(() => {
     if (mentionQuery === null) {
       setSuggestions([]);
@@ -128,9 +135,8 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     setMentionQuery(null);
     setSuggestions([]);
 
-    // Restore focus
     requestAnimationFrame(() => {
-      const newPos = mentionStart + handle.length + 2; // @ + handle + space
+      const newPos = mentionStart + handle.length + 2;
       textarea.focus();
       textarea.setSelectionRange(newPos, newPos);
     });
@@ -143,7 +149,6 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Handle mention autocomplete navigation
     if (suggestions.length > 0 && mentionQuery !== null) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -174,31 +179,49 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    setUploading(true);
+    const remaining = MAX_IMAGES - pendingImages.length;
+    const toUpload = files.slice(0, remaining);
+    if (toUpload.length === 0) return;
+
+    setUploadingCount((c) => c + toUpload.length);
     const supabase = createClient();
 
-    const ext = file.name.split(".").pop();
-    const path = `${channelId}/${crypto.randomUUID()}.${ext}`;
+    const uploaded: string[] = [];
+    for (const file of toUpload) {
+      const ext = file.name.split(".").pop();
+      const path = `${channelId}/${crypto.randomUUID()}.${ext}`;
 
-    const { data, error } = await supabase.storage
-      .from("chat-images")
-      .upload(path, file);
-
-    if (!error && data) {
-      const { data: urlData } = supabase.storage
+      const { data, error } = await supabase.storage
         .from("chat-images")
-        .getPublicUrl(data.path);
+        .upload(path, file);
 
-      await sendMessage(urlData.publicUrl);
+      if (!error && data) {
+        const { data: urlData } = supabase.storage
+          .from("chat-images")
+          .getPublicUrl(data.path);
+        uploaded.push(urlData.publicUrl);
+      }
+      setUploadingCount((c) => c - 1);
     }
 
-    setUploading(false);
+    if (uploaded.length > 0) {
+      setPendingImages((prev) => [...prev, ...uploaded].slice(0, MAX_IMAGES));
+    }
+
     if (fileRef.current) fileRef.current.value = "";
+    textareaRef.current?.focus();
   };
+
+  const removeImage = (index: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const canSend = content.trim() || pendingImages.length > 0;
+  const canAddImage = pendingImages.length < MAX_IMAGES && uploadingCount === 0;
 
   return (
     <div className="px-[12px] py-[12px] relative">
@@ -227,11 +250,37 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
         </div>
       )}
 
+      {/* Pending images preview */}
+      {(pendingImages.length > 0 || uploadingCount > 0) && (
+        <div className="mb-[8px] flex items-start gap-[8px]">
+          {pendingImages.map((url, i) => (
+            <div key={url} className="relative">
+              <img
+                src={url}
+                alt={`Image ${i + 1}`}
+                className="h-[64px] w-[64px] rounded-lg object-cover border border-border-subtle"
+              />
+              <button
+                onClick={() => removeImage(i)}
+                className="absolute -top-[6px] -right-[6px] h-[20px] w-[20px] rounded-full bg-bg-elevated border border-border-default flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface cursor-pointer transition-colors shadow-sm"
+              >
+                <X className="h-[12px] w-[12px]" />
+              </button>
+            </div>
+          ))}
+          {Array.from({ length: uploadingCount }).map((_, i) => (
+            <div key={`uploading-${i}`} className="h-[64px] w-[64px] rounded-lg bg-bg-elevated border border-border-subtle flex items-center justify-center">
+              <Spinner size="sm" />
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center gap-[8px] bg-bg-base border border-border-subtle rounded-lg px-[12px] py-[8px]">
         <button
           onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer shrink-0 transition-colors"
+          disabled={!canAddImage}
+          className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ImagePlus className="h-[18px] w-[18px]" />
         </button>
@@ -239,8 +288,9 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
           ref={fileRef}
           type="file"
           accept="image/*"
+          multiple
           className="hidden"
-          onChange={handleImageUpload}
+          onChange={handleImageSelect}
         />
         <textarea
           ref={textareaRef}
@@ -253,15 +303,12 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
         />
         <button
           onClick={() => sendMessage()}
-          disabled={sending || (!content.trim())}
+          disabled={sending || !canSend}
           className="p-[4px] rounded hover:bg-bg-surface text-primary-500 hover:text-primary-600 cursor-pointer shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <Send className="h-[18px] w-[18px]" />
         </button>
       </div>
-      {uploading && (
-        <p className="text-[11px] text-text-muted mt-[4px]">Upload en cours…</p>
-      )}
     </div>
   );
 }

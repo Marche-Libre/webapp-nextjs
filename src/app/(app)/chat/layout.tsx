@@ -110,8 +110,6 @@ export default async function ChatLayoutPage({
       profile={profile as Profile}
       initialMessages={initialMessages}
       initialChannelId={defaultChannel?.id || null}
-    >
-      {children}
-    </ChatLayout>
+    />
   );
 }

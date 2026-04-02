@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 interface ChatChannelContextType {
   activeSlug: string;
@@ -13,18 +14,31 @@ const ChatChannelContext = createContext<ChatChannelContextType>({
 });
 
 export function ChatChannelProvider({ initialSlug, children }: { initialSlug: string; children: React.ReactNode }) {
-  const [activeSlug, setActiveSlugState] = useState(initialSlug);
+  const pathname = usePathname();
+
+  // Extract slug from URL: /chat/business → "business", /chat → initialSlug
+  const slugFromUrl = pathname.startsWith("/chat/")
+    ? pathname.split("/chat/")[1]?.split("/")[0] || initialSlug
+    : initialSlug;
+
+  const [activeSlug, setActiveSlugState] = useState(slugFromUrl);
+
+  // Sync if URL changes externally (e.g. browser navigation)
+  useEffect(() => {
+    if (slugFromUrl !== activeSlug) {
+      setActiveSlugState(slugFromUrl);
+    }
+  }, [slugFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setActiveSlug = useCallback((slug: string) => {
-    // Update URL without full navigation
     window.history.replaceState(null, "", `/chat/${slug}`);
     setActiveSlugState(slug);
   }, []);
 
   return (
-    <ChatChannelContext.Provider value={{ activeSlug, setActiveSlug }}>
+    <ChatChannelContext value={{ activeSlug, setActiveSlug }}>
       {children}
-    </ChatChannelContext.Provider>
+    </ChatChannelContext>
   );
 }
 

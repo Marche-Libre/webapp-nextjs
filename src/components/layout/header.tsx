@@ -3,10 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Menu, PanelLeftOpen, Search, X, MessageCircle, Users, User, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useChatPanel } from "@/components/chat/chat-context";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -30,7 +28,6 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const { isOpen: chatOpen } = useChatPanel();
 
   // Close on click outside
   useEffect(() => {
@@ -125,10 +122,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
   };
 
   return (
-    <header className={cn(
-      "sticky top-0 z-30 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle px-[16px] lg:px-[24px] h-[64px] flex items-center gap-[12px] transition-[margin] duration-300",
-      chatOpen && "sm:mr-[400px]"
-    )}>
+    <header className="sticky top-0 z-30 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle px-[16px] lg:px-[24px] h-[64px] flex items-center gap-[12px]">
       {/* Left: sidebar toggles */}
       <div className="flex items-center gap-[4px] shrink-0">
         {/* Mobile: open sidebar overlay */}

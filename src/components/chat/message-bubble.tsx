@@ -174,13 +174,27 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, onMe
                 Échec de l&apos;envoi — vérifiez votre connexion
               </p>
             )}
-            {message.image_url && (
-              <img
-                src={message.image_url}
-                alt="Image"
-                className="mt-[8px] rounded-lg max-w-[400px] max-h-[300px] object-cover border border-border-default"
-              />
-            )}
+            {message.image_url && (() => {
+              let urls: string[];
+              try {
+                const parsed = JSON.parse(message.image_url);
+                urls = Array.isArray(parsed) ? parsed : [message.image_url];
+              } catch {
+                urls = [message.image_url];
+              }
+              return (
+                <div className={urls.length > 1 ? "mt-[8px] flex gap-[6px] flex-wrap" : "mt-[8px]"}>
+                  {urls.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`Image ${i + 1}`}
+                      className="rounded-lg max-w-[400px] max-h-[300px] object-cover border border-border-default"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
             {forumMatch && <PostEmbed postId={forumMatch[1]} />}
           </>
         )}

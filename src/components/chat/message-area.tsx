@@ -71,7 +71,7 @@ export function MessageArea({ channelId, userId, userProfile }: MessageAreaProps
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-bg-base">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -88,7 +88,7 @@ export function MessageArea({ channelId, userId, userProfile }: MessageAreaProps
           </div>
         )}
 
-        <div className="py-[8px] flex flex-col justify-end min-h-full">
+        <div className="pt-[8px] pb-[8px] flex flex-col justify-end min-h-full">
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
