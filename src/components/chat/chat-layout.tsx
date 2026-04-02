@@ -15,8 +15,16 @@ import { Avatar } from "@/components/ui/avatar";
 const ChannelDrawerContext = createContext<{ open: () => void }>({ open: () => {} });
 export function useChannelDrawer() { return useContext(ChannelDrawerContext); }
 
+export interface DmChannel {
+  id: string;
+  slug: string;
+  created_at: string;
+  other_user: Pick<Profile, "id" | "x_handle" | "full_name" | "avatar_url">;
+}
+
 interface ChatLayoutProps {
   channels: Channel[];
+  dmChannels?: DmChannel[];
   members: Pick<Profile, "id" | "x_handle" | "full_name" | "avatar_url">[];
   profile: Profile;
   children: React.ReactNode;
@@ -91,14 +99,14 @@ function UserBar({ profile }: { profile: Profile }) {
           menuOpen && "bg-bg-surface"
         )}
       >
-        <Avatar src={profile.avatar_url} name={profile.full_name} size="sm" />
+        <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
         <div className="min-w-0 flex-1 text-left">
           <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
-            {profile.full_name || `@${profile.x_handle}`}
+            @{profile.x_handle}
           </p>
-          {profile.full_name && profile.x_handle && (
+          {profile.full_name && (
             <p className="text-[11px] leading-[14px] text-text-muted truncate">
-              @{profile.x_handle}
+              {profile.full_name}
             </p>
           )}
         </div>
@@ -111,7 +119,7 @@ function UserBar({ profile }: { profile: Profile }) {
   );
 }
 
-export function ChatLayout({ channels, members, profile, children }: ChatLayoutProps) {
+export function ChatLayout({ channels, dmChannels, members, profile, children }: ChatLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
@@ -132,7 +140,7 @@ export function ChatLayout({ channels, members, profile, children }: ChatLayoutP
                 </button>
               </div>
               <div className="flex-1" onClick={() => setDrawerOpen(false)}>
-                <ChannelList channels={channels} />
+                <ChannelList channels={channels} dmChannels={dmChannels} userId={profile.id} hiddenChannelIds={profile.hidden_channel_ids || []} />
               </div>
               <UserBar profile={profile} />
             </div>
@@ -141,7 +149,7 @@ export function ChatLayout({ channels, members, profile, children }: ChatLayoutP
 
         {/* Desktop channel list + user bar */}
         <div className="hidden md:flex w-[260px] border-r border-border-subtle bg-bg-base shrink-0 flex-col">
-          <ChannelList channels={channels} />
+          <ChannelList channels={channels} dmChannels={dmChannels} userId={profile.id} hiddenChannelIds={profile.hidden_channel_ids || []} />
           <UserBar profile={profile} />
         </div>
 

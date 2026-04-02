@@ -189,21 +189,6 @@ body {
   color: var(--color-text-primary);
 }
 
-/* Subtle grid pattern */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(var(--color-border-default) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-border-default) 1px, transparent 1px);
-  background-size: 48px 48px;
-  opacity: 0.3;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 20%, transparent 100%);
-}
-
 body > * {
   position: relative;
   z-index: 1;

@@ -22,21 +22,23 @@ export function ChatPanel({ userId }: ChatPanelProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ x_handle: string; full_name: string; avatar_url: string | null }>({ x_handle: "", full_name: "", avatar_url: null });
 
-  // Load channels on first open
+  // Load channels and user profile on first open
   useEffect(() => {
     if (!isOpen || channels.length > 0) return;
 
     const load = async () => {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("channels")
-        .select("*")
-        .order("name", { ascending: true });
-      if (data) setChannels(data);
+      const [channelsRes, profileRes] = await Promise.all([
+        supabase.from("channels").select("*").order("name", { ascending: true }),
+        supabase.from("profiles").select("x_handle, full_name, avatar_url").eq("id", userId).single(),
+      ]);
+      if (channelsRes.data) setChannels(channelsRes.data);
+      if (profileRes.data) setUserProfile(profileRes.data);
     };
     load();
-  }, [isOpen, channels.length]);
+  }, [isOpen, channels.length, userId]);
 
   // Load messages when active slug changes
   const loadMessages = useCallback(async (slug: string) => {
@@ -158,6 +160,7 @@ export function ChatPanel({ userId }: ChatPanelProps) {
               key={activeChannel.id}
               channelId={activeChannel.id}
               userId={userId}
+              userProfile={userProfile}
               initialMessages={messages}
             />
           ) : (

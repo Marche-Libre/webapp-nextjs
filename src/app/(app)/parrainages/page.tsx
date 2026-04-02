@@ -32,11 +32,19 @@ export default async function ParrainagesPage() {
     .eq("sponsored_by", user.id)
     .order("created_at", { ascending: false });
 
+  // Get sponsorship requests where this user is the sponsor
+  const { data: receivedRequests } = await supabase
+    .from("sponsorship_requests")
+    .select("*, requester:profiles!requester_id(x_handle, full_name, avatar_url)")
+    .eq("sponsor_id", user.id)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="space-y-[24px]">
       <ParrainagesTabs
         sentInvitations={sentInvitations || []}
         filleuls={filleuls || []}
+        receivedRequests={receivedRequests || []}
       />
     </div>
   );

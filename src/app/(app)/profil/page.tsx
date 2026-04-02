@@ -29,7 +29,7 @@ export default async function ProfilPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-[16px]">
           <Avatar
             src={profile.avatar_url}
-            name={profile.full_name}
+            name={profile.x_handle}
             size="xl"
           />
           <div className="flex-1">

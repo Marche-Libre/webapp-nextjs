@@ -26,7 +26,7 @@ export function PostDetail({ post, replies, postId }: PostDetailProps) {
         <div className="flex items-start gap-[16px]">
           <Avatar
             src={post.author.avatar_url}
-            name={post.author.full_name}
+            name={post.author.x_handle}
             size="lg"
           />
           <div className="flex-1 min-w-0">
@@ -79,7 +79,7 @@ export function PostDetail({ post, replies, postId }: PostDetailProps) {
               <div className="flex items-start gap-[12px]">
                 <Avatar
                   src={reply.author.avatar_url}
-                  name={reply.author.full_name}
+                  name={reply.author.x_handle}
                   size="md"
                 />
                 <div className="flex-1 min-w-0">

@@ -3,6 +3,8 @@ export type Profile = {
   email: string;
   full_name: string;
   specialty: string | null;
+  specialty_id: string | null;
+  specialty_category_id: string | null;
   location: string | null;
   bio: string | null;
   x_handle: string;
@@ -12,11 +14,25 @@ export type Profile = {
   is_admin: boolean;
   links: Record<string, string> | null;
   accept_sponsorship: boolean;
+  accept_dms: boolean;
   sponsored_by: string | null;
   sponsor_approved: boolean;
+  hidden_channel_ids: string[];
   created_at: string;
   updated_at: string;
   sponsor?: Profile;
+};
+
+export type SpecialtyCategory = {
+  id: string;
+  name: string;
+  sort_order: number;
+};
+
+export type Specialty = {
+  id: string;
+  category_id: string;
+  name: string;
 };
 
 export type Invitation = {
@@ -40,6 +56,12 @@ export type Channel = {
   created_at: string;
 };
 
+export type ChannelMember = {
+  channel_id: string;
+  user_id: string;
+  joined_at: string;
+};
+
 export type Message = {
   id: string;
   channel_id: string;
@@ -55,6 +77,23 @@ export type MessageReaction = {
   message_id: string;
   user_id: string;
   emoji: string;
+};
+
+export type ChannelProposal = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  status: "open" | "approved" | "rejected";
+  created_at: string;
+  vote_count?: number;
+  has_voted?: boolean;
+};
+
+export type ChannelVote = {
+  proposal_id: string;
+  user_id: string;
+  created_at: string;
 };
 
 export type ForumCategory = {
@@ -100,10 +139,23 @@ export type ForumTag = {
   color: string | null;
 };
 
+export type SponsorshipRequest = {
+  id: string;
+  requester_id: string;
+  sponsor_handle: string;
+  sponsor_id: string | null;
+  status: "pending" | "approved" | "rejected";
+  attempt_number: number;
+  created_at: string;
+  updated_at: string;
+  requester?: Profile;
+  sponsor?: Profile;
+};
+
 export type Notification = {
   id: string;
   user_id: string;
-  type: "chat_mention" | "forum_mention" | "forum_reply";
+  type: "chat_mention" | "forum_mention" | "forum_reply" | "sponsor_request";
   title: string;
   body: string | null;
   link: string | null;

@@ -2,16 +2,18 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { MapPin, Users, MoreHorizontal, Flag, Ban, X, List, LayoutGrid, ChevronLeft, ChevronRight, ArrowDownAZ, ArrowUpZA, Clock } from "lucide-react";
+import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { FavoriteButton } from "@/components/favorites/favorite-button";
-import { MultiFilterDropdown, FilterDropdown } from "@/components/ui/filter-dropdown";
+import { HierarchicalFilterDropdown, FilterDropdown } from "@/components/ui/filter-dropdown";
+import type { CategoryWithSpecialties } from "@/components/ui/filter-dropdown";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
 interface MembresContentProps {
   membres: Profile[];
-  specialties: string[];
+  categories: CategoryWithSpecialties[];
   locations: string[];
   currentUserId: string;
 }
@@ -110,43 +112,244 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
   );
 }
 
+/* ─── Alphabetical separator ─── */
+
+function LetterSeparator({ letter }: { letter: string }) {
+  return (
+    <div className="flex items-center gap-[12px] pt-[16px] pb-[8px] sticky top-0 z-10 bg-bg-base/80 backdrop-blur-sm">
+      <span className="text-[18px] font-bold text-primary-500">{letter}</span>
+      <div className="flex-1 h-px bg-border-subtle" />
+    </div>
+  );
+}
+
+/* ─── Member card (list) ─── */
+
+function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUserId: string; specLabel: string | null }) {
+  return (
+    <div className="group flex items-center gap-[14px] px-[14px] py-[12px] rounded-xl border border-transparent hover:border-border-default hover:bg-bg-surface transition-all duration-150">
+      <Link href={`/membres/${m.id}`}>
+        <Avatar src={m.avatar_url} name={m.x_handle} size="md" />
+      </Link>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-[8px]">
+          <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">@{m.x_handle}</Link>
+          {m.full_name && <span className="text-[12px] text-text-muted shrink-0 hidden sm:inline">{m.full_name}</span>}
+        </div>
+        {(specLabel || m.location) && (
+          <div className="flex items-center gap-[10px] mt-[2px]">
+            {specLabel && <span className="text-[12px] font-medium text-primary-500">{specLabel}</span>}
+            {m.location && <span className="flex items-center gap-[3px] text-[12px] text-text-muted"><MapPin className="h-[11px] w-[11px]" />{m.location}</span>}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-[4px] shrink-0">
+        <FavoriteButton
+          item={{
+            id: `member:${m.id}`,
+            label: `@${m.x_handle}`,
+            href: `/membres/${m.id}`,
+            type: "member",
+          }}
+        />
+        <Link href={`/membres/${m.id}`} className="px-[14px] py-[6px] rounded-lg bg-primary-500 text-bg-base text-[12px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer hidden sm:block">Voir profil</Link>
+        <MemberMenu memberId={m.id} currentUserId={currentUserId} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Member card (grid) ─── */
+
+function MemberGridCard({ m, currentUserId, specLabel }: { m: Profile; currentUserId: string; specLabel: string | null }) {
+  return (
+    <div className="group flex flex-col rounded-xl border border-border-subtle hover:border-border-default bg-bg-base hover:bg-bg-surface transition-all duration-150">
+      <div className="p-[20px] pb-[14px]">
+        <div className="flex items-start gap-[12px]">
+          <Link href={`/membres/${m.id}`}>
+            <Avatar src={m.avatar_url} name={m.x_handle} size="lg" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <Link href={`/membres/${m.id}`} className="text-[15px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors block">@{m.x_handle}</Link>
+            {m.full_name && <p className="text-[12px] text-text-muted mt-[2px]">{m.full_name}</p>}
+          </div>
+          <MemberMenu memberId={m.id} currentUserId={currentUserId} />
+        </div>
+      </div>
+      <div className="px-[20px] flex flex-wrap gap-[6px]">
+        {specLabel && <span className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-semibold bg-primary-50 text-primary-500">{specLabel}</span>}
+        {m.location && <span className="inline-flex items-center gap-[3px] rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-bg-surface-2 text-text-muted"><MapPin className="w-[11px] h-[11px]" />{m.location}</span>}
+      </div>
+      {m.bio && <p className="px-[20px] mt-[12px] text-[13px] text-text-secondary line-clamp-2 leading-relaxed">{m.bio}</p>}
+      <div className="mt-auto p-[16px]">
+        <Link href={`/membres/${m.id}`} className="flex items-center justify-center w-full py-[8px] rounded-lg bg-primary-500 text-bg-base text-[13px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer">Voir profil</Link>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main ─── */
 
-export function MembresContent({ membres, specialties, locations, currentUserId }: MembresContentProps) {
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
+export function MembresContent({ membres, categories, locations, currentUserId }: MembresContentProps) {
+  const [selectedSpecialtyIds, setSelectedSpecialtyIds] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"recent" | "az" | "za">("recent");
   const [view, setView] = useState<"list" | "grid">("list");
   const [page, setPage] = useState(1);
 
+  // Build lookup maps
+  const specialtyMap = useMemo(() => {
+    const map = new Map<string, { category: string; specialty: string }>();
+    for (const cat of categories) {
+      for (const spec of cat.specialties) {
+        map.set(spec.id, { category: cat.name, specialty: spec.name });
+      }
+    }
+    return map;
+  }, [categories]);
+
+  // Get display label for a member's specialty
+  const getSpecLabel = (m: Profile): string | null => {
+    if (m.specialty_id) {
+      const info = specialtyMap.get(m.specialty_id);
+      if (info) return `${info.category} · ${info.specialty}`;
+    }
+    return m.specialty || null;
+  };
+
+  // Build set of category IDs that have selected specialty IDs (for chip display)
+  const selectedCategoryIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const specId of selectedSpecialtyIds) {
+      const info = specialtyMap.get(specId);
+      if (info) {
+        const cat = categories.find((c) => c.name === info.category);
+        if (cat) ids.add(cat.id);
+      }
+    }
+    return ids;
+  }, [selectedSpecialtyIds, specialtyMap, categories]);
+
+  // Popular categories (top 8 by member count)
+  const popularCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const cat of categories) {
+      const specIds = new Set(cat.specialties.map((s) => s.id));
+      const count = membres.filter((m) => m.specialty_category_id === cat.id || (m.specialty_id && specIds.has(m.specialty_id))).length;
+      if (count > 0) counts.set(cat.id, count);
+    }
+    return categories
+      .filter((c) => counts.has(c.id))
+      .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0))
+      .slice(0, 8);
+  }, [categories, membres]);
+
   const filtered = useMemo(() => {
     let result = membres;
-    if (selectedSpecialties.length > 0) result = result.filter((m) => m.specialty && selectedSpecialties.includes(m.specialty));
+    if (selectedSpecialtyIds.length > 0) {
+      const idSet = new Set(selectedSpecialtyIds);
+      // Also get category IDs from the selected specialties to match by category
+      const catIdsFromSelection = new Set<string>();
+      for (const specId of selectedSpecialtyIds) {
+        const info = specialtyMap.get(specId);
+        if (info) {
+          const cat = categories.find((c) => c.name === info.category);
+          if (cat) catIdsFromSelection.add(cat.id);
+        }
+      }
+      result = result.filter((m) => {
+        // Match by new specialty_id
+        if (m.specialty_id && idSet.has(m.specialty_id)) return true;
+        // Fallback: match legacy specialty string against category/specialty names
+        if (m.specialty) {
+          for (const specId of selectedSpecialtyIds) {
+            const info = specialtyMap.get(specId);
+            if (info && (m.specialty === info.category || m.specialty === info.specialty || m.specialty.toLowerCase().includes(info.specialty.toLowerCase()))) {
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+    }
     if (selectedLocation) result = result.filter((m) => m.location === selectedLocation);
-    if (sortBy === "az") result = [...result].sort((a, b) => a.full_name.localeCompare(b.full_name, "fr"));
-    else if (sortBy === "za") result = [...result].sort((a, b) => b.full_name.localeCompare(a.full_name, "fr"));
+    if (sortBy === "az") result = [...result].sort((a, b) => (a.x_handle ?? "").localeCompare(b.x_handle ?? "", "fr"));
+    else if (sortBy === "za") result = [...result].sort((a, b) => (b.x_handle ?? "").localeCompare(a.x_handle ?? "", "fr"));
     return result;
-  }, [membres, selectedSpecialties, selectedLocation, sortBy]);
+  }, [membres, selectedSpecialtyIds, selectedLocation, sortBy, specialtyMap, categories]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage = Math.min(page, totalPages);
   if (safePage !== page) setPage(safePage);
   const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
-  const hasFilters = selectedSpecialties.length > 0 || selectedLocation;
+  const hasFilters = selectedSpecialtyIds.length > 0 || selectedLocation;
+  const showAlphaGroups = sortBy === "az" || sortBy === "za";
 
-  const clearFilters = () => { setSelectedSpecialties([]); setSelectedLocation(null); setPage(1); };
+  // Group paginated members by first letter
+  const grouped = useMemo(() => {
+    if (!showAlphaGroups) return null;
+    const groups: { letter: string; members: Profile[] }[] = [];
+    for (const m of paginated) {
+      const letter = (m.x_handle?.[0] ?? "?").toUpperCase();
+      const last = groups[groups.length - 1];
+      if (last && last.letter === letter) {
+        last.members.push(m);
+      } else {
+        groups.push({ letter, members: [m] });
+      }
+    }
+    return groups;
+  }, [paginated, showAlphaGroups]);
+
+  const clearFilters = () => { setSelectedSpecialtyIds([]); setSelectedLocation(null); setPage(1); };
+
+  const selectCategory = (catId: string) => {
+    const cat = categories.find((c) => c.id === catId);
+    if (!cat) return;
+    setSelectedSpecialtyIds(cat.specialties.map((s) => s.id));
+    setPage(1);
+  };
+
+  // Build filter chip labels
+  const filterChipLabels = useMemo(() => {
+    const labels: { id: string; label: string }[] = [];
+    for (const specId of selectedSpecialtyIds) {
+      const info = specialtyMap.get(specId);
+      if (info) labels.push({ id: specId, label: `${info.category} › ${info.specialty}` });
+    }
+    return labels;
+  }, [selectedSpecialtyIds, specialtyMap]);
+
+  const renderMembers = (members: Profile[]) => {
+    if (view === "list") {
+      return (
+        <div className="space-y-[4px]">
+          {members.map((m) => (
+            <MemberListItem key={m.id} m={m} currentUserId={currentUserId} specLabel={getSpecLabel(m)} />
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[12px]">
+        {members.map((m) => (
+          <MemberGridCard key={m.id} m={m} currentUserId={currentUserId} specLabel={getSpecLabel(m)} />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-[16px]">
       {/* Toolbar — single row */}
       <div className="flex items-center gap-[8px] flex-wrap">
         {/* Filters */}
-        {specialties.length > 0 && (
-          <MultiFilterDropdown
+        {categories.length > 0 && (
+          <HierarchicalFilterDropdown
             label="Expertise"
-            selected={selectedSpecialties}
-            options={specialties}
-            onChange={(v) => { setSelectedSpecialties(v); setPage(1); }}
+            categories={categories}
+            selectedSpecialtyIds={selectedSpecialtyIds}
+            onChange={(v) => { setSelectedSpecialtyIds(v); setPage(1); }}
           />
         )}
         {locations.length > 0 && (
@@ -196,13 +399,29 @@ export function MembresContent({ membres, specialties, locations, currentUserId 
         </div>
       </div>
 
+      {/* Popular category chips (when no expertise filter active) */}
+      {selectedSpecialtyIds.length === 0 && popularCategories.length > 0 && (
+        <div className="flex items-center gap-[8px] flex-wrap">
+          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Populaires</span>
+          {popularCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => selectCategory(cat.id)}
+              className="px-[12px] py-[4px] rounded-full text-[12px] font-medium bg-bg-surface border border-border-subtle text-text-secondary hover:border-primary-500 hover:text-primary-500 hover:bg-primary-50 cursor-pointer transition-colors"
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Active filter chips */}
-      {(selectedSpecialties.length > 0 || selectedLocation) && (
+      {(filterChipLabels.length > 0 || selectedLocation) && (
         <div className="flex items-center gap-[6px] flex-wrap">
-          {selectedSpecialties.map((s) => (
-            <span key={s} className="inline-flex items-center gap-[5px] rounded-full px-[10px] py-[3px] text-[12px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">
-              {s}
-              <button onClick={() => { setSelectedSpecialties((prev) => prev.filter((x) => x !== s)); setPage(1); }} className="hover:text-primary-700 cursor-pointer"><X className="h-[11px] w-[11px]" /></button>
+          {filterChipLabels.map(({ id, label }) => (
+            <span key={id} className="inline-flex items-center gap-[5px] rounded-full px-[10px] py-[3px] text-[12px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">
+              {label}
+              <button onClick={() => { setSelectedSpecialtyIds((prev) => prev.filter((x) => x !== id)); setPage(1); }} className="hover:text-primary-700 cursor-pointer"><X className="h-[11px] w-[11px]" /></button>
             </span>
           ))}
           {selectedLocation && (
@@ -218,63 +437,17 @@ export function MembresContent({ membres, specialties, locations, currentUserId 
       {/* Content */}
       {paginated.length > 0 ? (
         <>
-          {view === "list" ? (
-            <div className="space-y-[4px]">
-              {paginated.map((m) => (
-                <div key={m.id} className="group flex items-center gap-[14px] px-[14px] py-[12px] rounded-xl border border-transparent hover:border-border-default hover:bg-bg-surface transition-all duration-150">
-                  <Avatar src={m.avatar_url} name={m.full_name} size="md" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-[8px]">
-                      <h3 className="text-[14px] font-semibold text-text-primary truncate">{m.full_name}</h3>
-                      <span className="text-[12px] text-text-muted shrink-0 hidden sm:inline">@{m.x_handle}</span>
-                    </div>
-                    {(m.specialty || m.location) && (
-                      <div className="flex items-center gap-[10px] mt-[2px]">
-                        {m.specialty && <span className="text-[12px] font-medium text-primary-500">{m.specialty}</span>}
-                        {m.location && <span className="flex items-center gap-[3px] text-[12px] text-text-muted"><MapPin className="h-[11px] w-[11px]" />{m.location}</span>}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-[4px] shrink-0">
-                    <FavoriteButton
-                      item={{
-                        id: `member:${m.id}`,
-                        label: m.full_name || `@${m.x_handle}`,
-                        href: `/membres`,
-                        type: "member",
-                      }}
-                    />
-                    <a href={`https://x.com/${m.x_handle?.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="px-[14px] py-[6px] rounded-lg bg-primary-500 text-bg-base text-[12px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer hidden sm:block">Contacter</a>
-                    <MemberMenu memberId={m.id} currentUserId={currentUserId} />
-                  </div>
+          {showAlphaGroups && grouped ? (
+            <div>
+              {grouped.map((g) => (
+                <div key={g.letter}>
+                  <LetterSeparator letter={g.letter} />
+                  {renderMembers(g.members)}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[12px]">
-              {paginated.map((m) => (
-                <div key={m.id} className="group flex flex-col rounded-xl border border-border-subtle hover:border-border-default bg-bg-base hover:bg-bg-surface transition-all duration-150">
-                  <div className="p-[20px] pb-[14px]">
-                    <div className="flex items-start gap-[12px]">
-                      <Avatar src={m.avatar_url} name={m.full_name} size="lg" />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-[15px] font-semibold text-text-primary truncate">{m.full_name}</h3>
-                        <p className="text-[12px] text-text-muted mt-[2px]">@{m.x_handle}</p>
-                      </div>
-                      <MemberMenu memberId={m.id} currentUserId={currentUserId} />
-                    </div>
-                  </div>
-                  <div className="px-[20px] flex flex-wrap gap-[6px]">
-                    {m.specialty && <span className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-semibold bg-primary-50 text-primary-500">{m.specialty}</span>}
-                    {m.location && <span className="inline-flex items-center gap-[3px] rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-bg-surface-2 text-text-muted"><MapPin className="w-[11px] h-[11px]" />{m.location}</span>}
-                  </div>
-                  {m.bio && <p className="px-[20px] mt-[12px] text-[13px] text-text-secondary line-clamp-2 leading-relaxed">{m.bio}</p>}
-                  <div className="mt-auto p-[16px]">
-                    <a href={`https://x.com/${m.x_handle?.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full py-[8px] rounded-lg bg-primary-500 text-bg-base text-[13px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer">Contacter</a>
-                  </div>
-                </div>
-              ))}
-            </div>
+            renderMembers(paginated)
           )}
           <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
         </>

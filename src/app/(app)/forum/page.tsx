@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
 import { CategoryCard } from "@/components/forum/category-card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -6,13 +7,23 @@ import { Plus, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
+const getForumCategories = unstable_cache(
+  async () => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("forum_categories")
+      .select("*")
+      .order("order", { ascending: true });
+    return data ?? [];
+  },
+  ["forum-categories"],
+  { revalidate: 300, tags: ["forum-categories"] }
+);
+
 export default async function ForumPage() {
   const supabase = await createClient();
 
-  const { data: categories } = await supabase
-    .from("forum_categories")
-    .select("*")
-    .order("order", { ascending: true });
+  const categories = await getForumCategories();
 
   // Get post counts per category
   const { data: posts } = await supabase
@@ -60,7 +71,7 @@ export default async function ForumPage() {
                 >
                   <Avatar
                     src={author?.avatar_url}
-                    name={author?.full_name || "?"}
+                    name={author?.x_handle || "?"}
                     size="md"
                     className="shrink-0 mt-[2px]"
                   />

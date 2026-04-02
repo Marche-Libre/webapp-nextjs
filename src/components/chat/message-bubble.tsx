@@ -1,7 +1,34 @@
 import { Avatar } from "@/components/ui/avatar";
 import { formatDate } from "@/lib/utils";
+import { ReactionPicker } from "./reaction-picker";
 import type { Message } from "@/lib/types/database";
 import { PostEmbed } from "./post-embed";
+
+const MENTION_REGEX = /@([A-Za-z0-9_]+)/g;
+
+function renderContentWithMentions(content: string) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  const regex = new RegExp(MENTION_REGEX);
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <span key={match.index} className="text-primary-500 font-medium">
+        {match[0]}
+      </span>
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : content;
+}
 
 interface MessageBubbleProps {
   message: Message & {
@@ -17,10 +44,10 @@ export function MessageBubble({ message, reactions, onReact }: MessageBubbleProp
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
 
   return (
-    <div className="flex items-start gap-[12px] px-[16px] py-[8px] hover:bg-bg-surface/50 transition-colors group">
+    <div className="flex items-start gap-[12px] px-[16px] py-[8px] hover:bg-bg-surface/50 transition-colors group relative">
       <Avatar
         src={message.author.avatar_url}
-        name={message.author.full_name}
+        name={message.author.x_handle}
         size="md"
       />
       <div className="flex-1 min-w-0">
@@ -33,7 +60,7 @@ export function MessageBubble({ message, reactions, onReact }: MessageBubbleProp
           </span>
         </div>
         <div className="text-[13px] text-text-secondary mt-[2px] whitespace-pre-wrap break-words">
-          {message.content}
+          {renderContentWithMentions(message.content)}
         </div>
         {message.image_url && (
           <img
@@ -65,6 +92,12 @@ export function MessageBubble({ message, reactions, onReact }: MessageBubbleProp
           </div>
         )}
       </div>
+      {/* Hover reaction button */}
+      {onReact && (
+        <div className="absolute top-[4px] right-[12px] opacity-0 group-hover:opacity-100 transition-opacity">
+          <ReactionPicker onSelect={(emoji) => onReact(emoji)} />
+        </div>
+      )}
     </div>
   );
 }

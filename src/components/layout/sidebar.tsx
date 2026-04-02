@@ -76,8 +76,10 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
   }, [userMenuOpen]);
 
   useEffect(() => {
+    const supabase = createClient();
+
+    // Initial load
     const load = async () => {
-      const supabase = createClient();
       const { count } = await supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
@@ -86,6 +88,34 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
       if (count !== null) setUnreadCount(count);
     };
     load();
+
+    // Realtime subscription for new/updated notifications
+    const channel = supabase
+      .channel("notifications-unread")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { is_read: boolean };
+            if (!row.is_read) setUnreadCount((c) => c + 1);
+          } else if (payload.eventType === "UPDATE") {
+            const row = payload.new as { is_read: boolean };
+            const old = payload.old as { is_read: boolean };
+            if (!old.is_read && row.is_read) setUnreadCount((c) => Math.max(0, c - 1));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profile.id]);
 
   const renderLink = (item: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }) => {
@@ -261,14 +291,14 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
               userMenuOpen && "bg-bg-surface"
             )}
           >
-            <Avatar src={profile.avatar_url} name={profile.full_name} size="sm" />
+            <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
             <div className="min-w-0 flex-1 text-left">
               <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
-                {profile.full_name || `@${profile.x_handle}`}
+                @{profile.x_handle}
               </p>
-              {profile.full_name && profile.x_handle && (
+              {profile.full_name && (
                 <p className="text-[11px] leading-[14px] text-text-muted truncate">
-                  @{profile.x_handle}
+                  {profile.full_name}
                 </p>
               )}
             </div>

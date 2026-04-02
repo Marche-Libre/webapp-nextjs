@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/theme/theme-provider";
@@ -11,6 +12,35 @@ import { cn } from "@/lib/utils";
 export default function ParametresPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [acceptDms, setAcceptDms] = useState(true);
+  const [loadingDms, setLoadingDms] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("accept_dms")
+        .eq("id", user.id)
+        .single();
+      if (data) setAcceptDms(data.accept_dms ?? true);
+      setLoadingDms(false);
+    };
+    load();
+  }, []);
+
+  const handleToggleDms = async (checked: boolean) => {
+    setAcceptDms(checked);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({ accept_dms: checked })
+      .eq("id", user.id);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -67,6 +97,22 @@ export default function ParametresPage() {
               <p className="text-[12px] text-text-muted">Fond blanc, accent indigo</p>
             </div>
           </button>
+        </div>
+      </section>
+
+      {/* ─── Confidentialité ─── */}
+      <section>
+        <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
+          Confidentialité
+        </h2>
+        <div className="rounded-xl border border-border-default p-[16px]">
+          <Toggle
+            checked={acceptDms}
+            onChange={handleToggleDms}
+            disabled={loadingDms}
+            label="Accepter les messages privés"
+            description="Permettre aux autres membres de vous envoyer des messages directs."
+          />
         </div>
       </section>
 

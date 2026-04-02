@@ -18,6 +18,7 @@ const notifIcon = (type: string) => {
   if (type === "chat_mention") return "💬";
   if (type === "forum_mention") return "📢";
   if (type === "forum_reply") return "↩️";
+  if (type === "sponsor_request") return "🤝";
   return "🔔";
 };
 
@@ -25,6 +26,7 @@ const notifLabel = (type: string) => {
   if (type === "chat_mention") return "Mention chat";
   if (type === "forum_mention") return "Mention forum";
   if (type === "forum_reply") return "Réponse forum";
+  if (type === "sponsor_request") return "Demande de parrainage";
   return "Notification";
 };
 

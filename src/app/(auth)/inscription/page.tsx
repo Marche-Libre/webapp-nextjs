@@ -6,19 +6,15 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function InscriptionPage() {
   const handleSignUp = () => {
-    // X OAuth not yet configured — redirect to waiting page for now
-    window.location.href = "/en-attente";
-
-    // When X OAuth is ready, uncomment:
-    // const supabase = createClient();
-    // supabase.auth.signInWithOAuth({
-    //   provider: "twitter",
-    //   options: { redirectTo: `${window.location.origin}/auth/callback` },
-    // });
+    const supabase = createClient();
+    supabase.auth.signInWithOAuth({
+      provider: "x",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   };
 
   return (
-    <div className="bg-base-100 rounded-2xl p-6 shadow-lg border border-base-300 animate-[slide-up_0.25s_ease-out]">
+    <div className="max-w-[400px] mx-auto bg-base-100 rounded-2xl p-6 shadow-lg border border-base-300 animate-[slide-up_0.25s_ease-out]">
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-sm text-base-content/50 hover:text-base-content transition-colors mb-4"

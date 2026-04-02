@@ -15,7 +15,7 @@ export default function AuthLayout({
         </span>
       </Link>
 
-      <div className="w-full max-w-[400px]">{children}</div>
+      <div className="w-full max-w-[600px]">{children}</div>
 
       <p className="mt-6 text-xs text-base-content/30">
         © 2026 MarchéLibre

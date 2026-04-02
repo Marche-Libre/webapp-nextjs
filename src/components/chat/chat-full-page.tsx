@@ -19,7 +19,9 @@ type FullMessage = {
 interface ChatFullPageProps {
   activeChannel: Channel;
   userId: string;
+  userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
   initialMessages: FullMessage[];
+  dmRecipient?: { x_handle: string; full_name: string; avatar_url: string | null } | null;
 }
 
 type SearchResult = {
@@ -29,7 +31,7 @@ type SearchResult = {
   author: { x_handle: string; full_name: string; avatar_url: string | null };
 };
 
-export function ChatFullPage({ activeChannel, userId, initialMessages }: ChatFullPageProps) {
+export function ChatFullPage({ activeChannel, userId, userProfile, initialMessages, dmRecipient }: ChatFullPageProps) {
   const { open: openChannelDrawer } = useChannelDrawer();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,12 +75,27 @@ export function ChatFullPage({ activeChannel, userId, initialMessages }: ChatFul
           >
             <Menu className="h-[18px] w-[18px]" />
           </button>
-          <Hash className="h-[16px] w-[16px] text-text-muted shrink-0" />
-          <h1 className="text-[15px] font-semibold text-text-primary truncate">{activeChannel.name}</h1>
-          {activeChannel.description && (
+          {dmRecipient ? (
             <>
-              <span className="text-text-muted hidden sm:inline shrink-0">·</span>
-              <p className="text-[12px] text-text-muted hidden sm:block truncate">{activeChannel.description}</p>
+              <Avatar src={dmRecipient.avatar_url} name={dmRecipient.x_handle} size="sm" className="h-[24px] w-[24px] text-[9px] rounded-md shrink-0" />
+              <h1 className="text-[15px] font-semibold text-text-primary truncate">@{dmRecipient.x_handle}</h1>
+              {dmRecipient.full_name && (
+                <>
+                  <span className="text-text-muted hidden sm:inline shrink-0">·</span>
+                  <p className="text-[12px] text-text-muted hidden sm:block truncate">{dmRecipient.full_name}</p>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Hash className="h-[16px] w-[16px] text-text-muted shrink-0" />
+              <h1 className="text-[15px] font-semibold text-text-primary truncate">{activeChannel.name}</h1>
+              {activeChannel.description && (
+                <>
+                  <span className="text-text-muted hidden sm:inline shrink-0">·</span>
+                  <p className="text-[12px] text-text-muted hidden sm:block truncate">{activeChannel.description}</p>
+                </>
+              )}
             </>
           )}
         </div>
@@ -100,6 +117,7 @@ export function ChatFullPage({ activeChannel, userId, initialMessages }: ChatFul
             key={activeChannel.id}
             channelId={activeChannel.id}
             userId={userId}
+            userProfile={userProfile}
             initialMessages={initialMessages as any}
           />
         </div>
@@ -133,7 +151,7 @@ export function ChatFullPage({ activeChannel, userId, initialMessages }: ChatFul
               {!searching && searchResults.map((msg) => (
                 <div key={msg.id} className="px-[12px] py-[10px] border-b border-border-subtle hover:bg-bg-surface transition-colors">
                   <div className="flex items-center gap-[8px] mb-[4px]">
-                    <Avatar src={msg.author.avatar_url} name={msg.author.full_name} size="sm" />
+                    <Avatar src={msg.author.avatar_url} name={msg.author.x_handle} size="sm" />
                     <span className="text-[12px] font-medium text-text-primary">@{msg.author.x_handle}</span>
                     <span className="text-[11px] text-text-muted">
                       {new Date(msg.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}

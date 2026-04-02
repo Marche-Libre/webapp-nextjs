@@ -64,7 +64,7 @@ export default async function UtilisateursPage() {
               >
                 <Avatar
                   src={user.avatar_url}
-                  name={user.full_name}
+                  name={user.x_handle}
                   size="lg"
                 />
                 <div className="flex-1 min-w-0">
@@ -136,12 +136,12 @@ export default async function UtilisateursPage() {
                       <div className="flex items-center gap-[12px]">
                         <Avatar
                           src={user.avatar_url}
-                          name={user.full_name}
+                          name={user.x_handle}
                           size="sm"
                         />
                         <div>
                           <p className="font-medium text-text-primary">
-                            {user.full_name || "—"}
+                            @{user.x_handle}
                           </p>
                           <p className="text-xs text-text-muted">
                             {user.email}

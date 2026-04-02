@@ -17,11 +17,8 @@ const sizes = {
 
 export function Avatar({ src, name, size = "md", className }: AvatarProps) {
   const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+    ? name.replace(/^@/, "")[0]?.toUpperCase() || ""
+    : "";
 
   if (src) {
     return (

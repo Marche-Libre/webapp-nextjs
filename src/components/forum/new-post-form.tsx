@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { notifyMentions } from "@/lib/notifications";
 import type { ForumCategory, ForumTag } from "@/lib/types/database";
 
 interface NewPostFormProps {
@@ -78,6 +79,14 @@ export function NewPostForm({ categories, tags, defaultCategorySlug }: NewPostFo
         selectedTags.map((t) => ({ post_id: post.id, tag_id: t.id }))
       );
     }
+
+    // Fire-and-forget mention notifications
+    notifyMentions(supabase, {
+      content,
+      authorId: user.id,
+      type: "forum_mention",
+      link: `/forum/posts/${post.id}`,
+    });
 
     router.push(`/forum/posts/${post.id}`);
   };

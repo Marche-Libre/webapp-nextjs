@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { notifyForumReply, notifyMentions } from "@/lib/notifications";
 
 interface ReplyFormProps {
   postId: string;
@@ -30,6 +31,15 @@ export function ReplyForm({ postId }: ReplyFormProps) {
       post_id: postId,
       author_id: user.id,
       content: content.trim(),
+    });
+
+    // Fire-and-forget notifications
+    notifyForumReply(supabase, { postId, replyAuthorId: user.id });
+    notifyMentions(supabase, {
+      content: content.trim(),
+      authorId: user.id,
+      type: "forum_mention",
+      link: `/forum/posts/${postId}`,
     });
 
     setContent("");

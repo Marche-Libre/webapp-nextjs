@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Pencil, X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import type { Profile } from "@/lib/types/database";
+import type { Profile, SpecialtyCategory, Specialty } from "@/lib/types/database";
 
 interface ProfileEditFormProps {
   profile: Profile;
@@ -22,7 +22,30 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
     const entries = Object.entries(links);
     return entries.length > 0 ? entries : [["", ""]];
   });
+
+  // Specialty state
+  const [categories, setCategories] = useState<(SpecialtyCategory & { specialties: Specialty[] })[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(profile.specialty_category_id || null);
+  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string | null>(profile.specialty_id || null);
+
   const router = useRouter();
+
+  // Fetch categories when specialty section opens
+  useEffect(() => {
+    if (open && section === "specialty" && categories.length === 0) {
+      const supabase = createClient();
+      supabase
+        .from("specialty_categories")
+        .select("*, specialties(*)")
+        .order("sort_order", { ascending: true })
+        .then(({ data }) => {
+          if (data) setCategories(data as (SpecialtyCategory & { specialties: Specialty[] })[]);
+        });
+    }
+  }, [open, section, categories.length]);
+
+  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  const subSpecialties = selectedCategory?.specialties ?? [];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,8 +62,21 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
         phone: (formData.get("phone") as string) || null,
       };
     } else if (section === "specialty") {
+      // Build a display string from selected category + specialty
+      let specialtyDisplay: string | null = null;
+      if (selectedCategoryId && selectedSpecialtyId) {
+        const cat = categories.find((c) => c.id === selectedCategoryId);
+        const spec = cat?.specialties.find((s) => s.id === selectedSpecialtyId);
+        if (cat && spec) specialtyDisplay = `${cat.name} · ${spec.name}`;
+      } else if (selectedCategoryId) {
+        const cat = categories.find((c) => c.id === selectedCategoryId);
+        if (cat) specialtyDisplay = cat.name;
+      }
+
       updates = {
-        specialty: (formData.get("specialty") as string) || null,
+        specialty_category_id: selectedCategoryId || null,
+        specialty_id: selectedSpecialtyId || null,
+        specialty: specialtyDisplay || (formData.get("specialty") as string) || null,
         location: (formData.get("location") as string) || null,
       };
     } else if (section === "bio") {
@@ -112,13 +148,59 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
 
           {section === "specialty" && (
             <>
-              <Input
-                id="specialty"
-                name="specialty"
-                label="Spécialité"
-                defaultValue={profile.specialty || ""}
-                placeholder="ex : Développeur Web, Avocat, Architecte"
-              />
+              {/* Category select */}
+              <div className="space-y-[6px]">
+                <label htmlFor="category_select" className="block text-[13px] font-medium text-text-secondary">
+                  Catégorie
+                </label>
+                <select
+                  id="category_select"
+                  value={selectedCategoryId || ""}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    setSelectedCategoryId(val);
+                    setSelectedSpecialtyId(null);
+                  }}
+                  className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
+                >
+                  <option value="">Sélectionner une catégorie…</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sub-specialty select */}
+              {selectedCategoryId && subSpecialties.length > 0 && (
+                <div className="space-y-[6px]">
+                  <label htmlFor="specialty_select" className="block text-[13px] font-medium text-text-secondary">
+                    Sous-spécialité
+                  </label>
+                  <select
+                    id="specialty_select"
+                    value={selectedSpecialtyId || ""}
+                    onChange={(e) => setSelectedSpecialtyId(e.target.value || null)}
+                    className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
+                  >
+                    <option value="">Sélectionner une sous-spécialité…</option>
+                    {subSpecialties.map((spec) => (
+                      <option key={spec.id} value={spec.id}>{spec.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Fallback free-text (hidden if category selected) */}
+              {!selectedCategoryId && (
+                <Input
+                  id="specialty"
+                  name="specialty"
+                  label="Ou saisir librement"
+                  defaultValue={profile.specialty || ""}
+                  placeholder="ex : Développeur Web, Avocat, Architecte"
+                />
+              )}
+
               <Input
                 id="location"
                 name="location"

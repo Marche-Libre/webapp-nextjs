@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Menu, PanelLeftOpen, Search, X, MessagesSquare, Users, User, FileText } from "lucide-react";
+import { Menu, PanelLeftOpen, Search, X, MessageCircle, Users, User, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useChatPanel } from "@/components/chat/chat-context";
 import { Avatar } from "@/components/ui/avatar";
@@ -15,7 +15,7 @@ interface HeaderProps {
 }
 
 type SearchResult = {
-  type: "member" | "post";
+  type: "member" | "post" | "message";
   id: string;
   title: string;
   subtitle: string;
@@ -59,7 +59,9 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
       const supabase = createClient();
       const q = value.trim();
 
-      const [membersRes, postsRes] = await Promise.all([
+      // Members: ILIKE on handles/names (not suited for ts_vector)
+      // Posts & Messages: full-text search with plainto_tsquery (French config)
+      const [membersRes, postsRes, messagesRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, full_name, x_handle, avatar_url, specialty")
@@ -69,7 +71,13 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
         supabase
           .from("forum_posts")
           .select("id, title, author:profiles(x_handle), category:forum_categories(name)")
-          .or(`title.ilike.%${q}%`)
+          .textSearch("title", q, { type: "plain", config: "french" })
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("messages")
+          .select("id, content, channel_id, author:profiles(x_handle), channel:channels(name, slug)")
+          .textSearch("content", q, { type: "plain", config: "french" })
           .order("created_at", { ascending: false })
           .limit(5),
       ]);
@@ -80,8 +88,8 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
         items.push({
           type: "member",
           id: m.id,
-          title: m.full_name || `@${m.x_handle}`,
-          subtitle: m.specialty || `@${m.x_handle}`,
+          title: `@${m.x_handle}`,
+          subtitle: m.specialty || m.full_name || "",
           href: `/membres`,
           avatarUrl: m.avatar_url,
         });
@@ -96,6 +104,18 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           title: p.title,
           subtitle: `@${author?.x_handle || "?"} · ${cat?.name || "Forum"}`,
           href: `/forum/posts/${p.id}`,
+        });
+      });
+
+      messagesRes.data?.forEach((m) => {
+        const author = m.author as unknown as { x_handle: string } | null;
+        const channel = m.channel as unknown as { name: string; slug: string } | null;
+        items.push({
+          type: "message",
+          id: m.id,
+          title: m.content.length > 80 ? m.content.slice(0, 80) + "…" : m.content,
+          subtitle: `@${author?.x_handle || "?"} · #${channel?.name || "chat"}`,
+          href: `/chat?channel=${m.channel_id}`,
         });
       });
 
@@ -139,7 +159,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           value={query}
           onChange={(e) => search(e.target.value)}
           onFocus={() => { if (query.trim()) setOpen(true); }}
-          placeholder="Rechercher un membre, un post…"
+          placeholder="Rechercher…"
           className="w-full bg-bg-elevated border border-border-subtle rounded-lg pl-[36px] pr-[36px] py-[8px] text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary-500 transition-colors"
         />
         {query && (
@@ -199,6 +219,30 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
                       >
                         <div className="h-[32px] w-[32px] rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
                           <FileText className="h-[16px] w-[16px] text-primary-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
+                          <p className="text-[11px] text-text-muted truncate">{r.subtitle}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </>
+                )}
+                {/* Messages section */}
+                {results.some((r) => r.type === "message") && (
+                  <>
+                    <p className="px-[12px] py-[6px] text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted mt-[4px]">
+                      Messages
+                    </p>
+                    {results.filter((r) => r.type === "message").map((r) => (
+                      <Link
+                        key={r.id}
+                        href={r.href}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
+                      >
+                        <div className="h-[32px] w-[32px] rounded-lg bg-bg-elevated flex items-center justify-center shrink-0">
+                          <MessageCircle className="h-[16px] w-[16px] text-text-muted" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
