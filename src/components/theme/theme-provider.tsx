@@ -22,16 +22,22 @@ function applyTheme(t: Theme) {
   html.setAttribute("data-mode", t);
 }
 
+function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  // Read from the data-mode attribute set by the inline script in layout.tsx
+  const mode = document.documentElement.getAttribute("data-mode");
+  if (mode === "light" || mode === "dark") return mode;
+  const stored = localStorage.getItem("ml-theme") as Theme | null;
+  return stored === "light" ? "light" : "dark";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
-    const stored = localStorage.getItem("ml-theme") as Theme | null;
-    if (stored === "light" || stored === "dark") {
-      setThemeState(stored);
-      applyTheme(stored);
-    }
-  }, []);
+    // Ensure DOM is in sync (handles SSR mismatch)
+    applyTheme(theme);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setTheme = (next: Theme) => {
     const html = document.documentElement;

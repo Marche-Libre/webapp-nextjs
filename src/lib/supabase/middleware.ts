@@ -47,8 +47,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If authenticated and trying to access auth pages
-  if (user && (pathname === "/connexion" || pathname === "/inscription")) {
+  // If authenticated and on landing/auth pages, redirect to app
+  if (user && (pathname === "/" || pathname === "/connexion" || pathname === "/inscription")) {
     const url = request.nextUrl.clone();
     url.pathname = "/forum";
     return NextResponse.redirect(url);

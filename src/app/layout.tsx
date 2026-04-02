@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" data-theme="marchelibre" data-mode="dark" className={`${plusJakarta.variable} h-full`} suppressHydrationWarning>
+    <html lang="fr" className={`${plusJakarta.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
