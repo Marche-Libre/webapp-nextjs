@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ChevronDown, EyeOff, Eye, Hash, MessageCircle, Plus, ThumbsUp, Vote } from "lucide-react";
+import { ArrowLeft, ChevronDown, EyeOff, Eye, Hash, Info, MessageCircle, Plus, ThumbsUp, Vote } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +30,7 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
   const [proposalName, setProposalName] = useState("");
   const [proposalDesc, setProposalDesc] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [openDescId, setOpenDescId] = useState<string | null>(null);
 
   const visibleChannels = channels.filter((c) => !hiddenIds.includes(c.id));
   const archivedChannels = channels.filter((c) => hiddenIds.includes(c.id));
@@ -207,14 +208,20 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
               Propositions
             </p>
             {proposals.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px]"
-              >
-                <Vote className="h-[14px] w-[14px] shrink-0 text-text-muted opacity-60" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-text-secondary font-medium truncate block">{p.name}</span>
-                </div>
+              <div key={p.id}>
+                <div className="flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px]">
+                  <Vote className="h-[14px] w-[14px] shrink-0 text-text-muted opacity-60" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-text-secondary font-medium truncate block">{p.name}</span>
+                  </div>
+                  {p.description && (
+                    <button
+                      onClick={() => setOpenDescId(openDescId === p.id ? null : p.id)}
+                      className="p-[2px] rounded text-text-muted hover:text-text-secondary cursor-pointer transition-colors shrink-0"
+                    >
+                      <Info className="h-[12px] w-[12px]" />
+                    </button>
+                  )}
                 <button
                   onClick={() => handleVote(p.id, p.has_voted)}
                   className={cn(
@@ -227,6 +234,12 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
                   <ThumbsUp className="h-[10px] w-[10px]" />
                   <span className="font-medium">{p.vote_count}/{VOTE_THRESHOLD}</span>
                 </button>
+                </div>
+                {openDescId === p.id && p.description && (
+                  <div className="mx-[12px] mt-[2px] mb-[6px] px-[10px] py-[8px] bg-bg-elevated rounded-md border border-border-subtle">
+                    <p className="text-[11px] text-text-secondary leading-[16px] break-words">{p.description}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
