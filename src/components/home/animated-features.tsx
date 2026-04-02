@@ -68,11 +68,11 @@ export function AnimatedFeatures() {
 
             {/* Annuaire */}
             <FadeIn delay={0.14}>
-              <div className="rounded-2xl bg-[var(--bento-amber)] text-base-content shadow-lg h-full cursor-pointer hover:shadow-xl hover:scale-[1.01] transition-all duration-200">
+              <div className="rounded-2xl bg-[var(--bento-amber)] text-white shadow-lg h-full cursor-pointer hover:shadow-xl hover:scale-[1.01] transition-all duration-200">
                 <div className="p-7">
-                  <Search className="w-6 h-6 text-base-content/70" />
+                  <Search className="w-6 h-6 text-white/80" />
                   <h3 className="text-lg font-bold tracking-tight mt-3">Annuaire de profils</h3>
-                  <p className="text-sm text-base-content/65 leading-relaxed mt-2">
+                  <p className="text-sm text-white/70 leading-relaxed mt-2">
                     Trouvez le bon profil en 30 secondes. Filtrez par spécialité et localisation.
                   </p>
                 </div>
