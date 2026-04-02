@@ -117,7 +117,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 
 function LetterSeparator({ letter }: { letter: string }) {
   return (
-    <div className="flex items-center gap-[12px] pt-[16px] pb-[8px] sticky top-0 z-10 bg-bg-base/80 backdrop-blur-sm">
+    <div className="flex items-center gap-[12px] pt-[16px] pb-[8px]">
       <span className="text-[18px] font-bold text-primary-500">{letter}</span>
       <div className="flex-1 h-px bg-border-subtle" />
     </div>
@@ -135,7 +135,7 @@ function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUs
       </Link>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-[8px]">
-          <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">@{m.x_handle}</Link>
+          <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">{m.x_handle}</Link>
           {m.full_name && <span className="text-[12px] text-text-muted shrink-0 hidden sm:inline">{m.full_name}</span>}
         </div>
         {(specLabel || m.location) && (

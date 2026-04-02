@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface SearchSelectOption {
   value: string;
   label: string;
   group?: string;
+  /** 0 = category/parent (bold, full-width), 1 = child (indented) */
+  depth?: number;
 }
 
 interface SearchSelectProps {
@@ -29,6 +31,7 @@ export function SearchSelect({
 }: SearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,12 +54,21 @@ export function SearchSelect({
     if (open) inputRef.current?.focus();
   }, [open]);
 
-  const filtered = search
-    ? options.filter((o) =>
-        o.label.toLowerCase().includes(search.toLowerCase()) ||
-        o.group?.toLowerCase().includes(search.toLowerCase())
-      )
+  const isSearching = search.length > 0;
+
+  // Normalize: remove accents + lowercase for accent-insensitive search
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const filtered = isSearching
+    ? options.filter((o) => {
+        const q = normalize(search);
+        return normalize(o.label).includes(q) || (o.group && normalize(o.group).includes(q));
+      })
     : options;
+
+  // Check if options use depth (tree mode)
+  const hasDepth = options.some((o) => o.depth !== undefined);
 
   // Group by category
   const groups: Record<string, SearchSelectOption[]> = {};
@@ -65,6 +77,21 @@ export function SearchSelect({
     if (!groups[g]) groups[g] = [];
     groups[g].push(o);
   });
+
+  const toggleGroup = (group: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(group)) next.delete(group);
+      else next.add(group);
+      return next;
+    });
+  };
+
+  const selectItem = (item: SearchSelectOption) => {
+    onChange(item.value, item.label);
+    setOpen(false);
+    setSearch("");
+  };
 
   return (
     <div className={cn("space-y-2", className)} ref={ref}>
@@ -89,12 +116,23 @@ export function SearchSelect({
           <span className="truncate">
             {selectedLabel || placeholder}
           </span>
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 shrink-0 text-base-content/30 transition-transform",
-              open && "rotate-180"
+          <div className="flex items-center gap-1 shrink-0">
+            {selectedLabel && !open && (
+              <span
+                role="button"
+                onClick={(e) => { e.stopPropagation(); onChange("", ""); }}
+                className="p-0.5 rounded hover:bg-base-content/10 text-base-content/25 hover:text-base-content/50 cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </span>
             )}
-          />
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-base-content/30 transition-transform",
+                open && "rotate-180"
+              )}
+            />
+          </div>
         </button>
 
         {/* Dropdown */}
@@ -107,7 +145,7 @@ export function SearchSelect({
                 ref={inputRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={placeholder}
+                placeholder="Rechercher…"
                 className="flex-1 bg-transparent text-sm text-base-content placeholder:text-base-content/30 outline-none"
               />
               {search && (
@@ -122,55 +160,103 @@ export function SearchSelect({
             </div>
 
             {/* Options */}
-            <div className="max-h-60 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto">
               {Object.keys(groups).length === 0 && (
                 <p className="px-4 py-3 text-sm text-base-content/30">Aucun résultat</p>
               )}
-              {Object.entries(groups).map(([group, items]) => (
-                <div key={group}>
-                  {group && (
-                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-base-content/30 bg-base-content/[0.02]">
-                      {group}
-                    </div>
-                  )}
-                  {items.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => {
-                        onChange(item.value, item.label);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                      className={cn(
-                        "w-full px-4 py-2 text-sm text-left cursor-pointer transition-colors",
-                        item.value === value
-                          ? "text-accent bg-accent/[0.06] font-medium"
-                          : "text-base-content hover:bg-base-content/[0.04]"
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              ))}
+              {Object.entries(groups).map(([group, items], groupIdx) => {
+                // In tree mode with no search: show sectors as collapsible headers
+                // In search mode or flat mode: show all items
+                const isExpanded = isSearching || expandedGroups.has(group) || !hasDepth;
+                const parentItems = items.filter((i) => !i.depth || i.depth === 0);
+                const childItems = items.filter((i) => i.depth === 1);
+
+                return (
+                  <div key={group}>
+                    {group && (
+                      <button
+                        type="button"
+                        onClick={() => hasDepth && !isSearching ? toggleGroup(group) : undefined}
+                        className={cn(
+                          "sticky top-0 z-10 w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-base-content/60 bg-base-200 border-b border-base-content/[0.06]",
+                          groupIdx > 0 && "border-t",
+                          hasDepth && !isSearching && "cursor-pointer hover:bg-base-200/80"
+                        )}
+                      >
+                        <span>
+                          {group}
+                          <span className="ml-1.5 text-base-content/25 font-normal">{items.length}</span>
+                        </span>
+                        {hasDepth && !isSearching && (
+                          <ChevronRight className={cn(
+                            "h-3.5 w-3.5 text-base-content/25 transition-transform",
+                            isExpanded && "rotate-90"
+                          )} />
+                        )}
+                      </button>
+                    )}
+
+                    {isExpanded && (hasDepth ? (
+                      <>
+                        {/* Parent items (categories) — bold, selectable */}
+                        {parentItems.map((item) => (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => selectItem(item)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left cursor-pointer transition-colors",
+                              item.value === value
+                                ? "text-accent bg-accent/[0.06] font-semibold"
+                                : "text-base-content font-medium hover:bg-base-content/[0.04]"
+                            )}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                        {/* Child items (specialties) — indented, lighter */}
+                        {childItems.map((item) => (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => selectItem(item)}
+                            className={cn(
+                              "w-full flex items-center gap-2 pl-8 pr-4 py-1.5 text-sm text-left cursor-pointer transition-colors",
+                              item.value === value
+                                ? "text-accent bg-accent/[0.06]"
+                                : "text-base-content/60 hover:bg-base-content/[0.04] hover:text-base-content"
+                            )}
+                          >
+                            <span className="w-1 h-1 rounded-full bg-base-content/20 shrink-0" />
+                            {item.label}
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      /* Flat mode — no depth distinction */
+                      items.map((item) => (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => selectItem(item)}
+                          className={cn(
+                            "w-full px-4 py-2 text-sm text-left cursor-pointer transition-colors",
+                            item.value === value
+                              ? "text-accent bg-accent/[0.06] font-medium"
+                              : "text-base-content hover:bg-base-content/[0.04]"
+                          )}
+                        >
+                          {item.label}
+                        </button>
+                      ))
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Clear button when value selected */}
-        {selectedLabel && !open && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange("", "");
-            }}
-            className="absolute right-9 top-1/2 -translate-y-1/2 text-base-content/25 hover:text-base-content/50 cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
       </div>
     </div>
   );

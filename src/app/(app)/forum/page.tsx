@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Plus, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { formatDate } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 
 export default async function ForumPage() {
   const supabase = await createClient();
@@ -95,7 +95,7 @@ export default async function ForumPage() {
                     </p>
                     <div className="flex items-center gap-[10px] text-[11px] text-text-muted">
                       <span className="font-medium">@{author?.x_handle}</span>
-                      <span>{formatDate(post.created_at)}</span>
+                      <span>{timeAgo(post.created_at)}</span>
                       <span className="flex items-center gap-[3px]">
                         <MessageSquare className="h-3 w-3" />
                         {post.reply_count}

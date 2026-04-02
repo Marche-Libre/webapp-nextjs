@@ -71,8 +71,8 @@ export default async function OnboardingPage() {
     .order("name", { ascending: true });
 
   return (
-    <div className="min-h-dvh bg-base-200 flex items-start justify-center px-4 py-12 sm:py-16">
-      <div className="w-full max-w-3xl">
+    <div className="min-h-dvh bg-base-200 flex items-center justify-center px-4 py-6">
+      <div className="w-full max-w-4xl">
         <OnboardingWizard
           profile={profile}
           specialtyCategories={specialtyCategories ?? []}

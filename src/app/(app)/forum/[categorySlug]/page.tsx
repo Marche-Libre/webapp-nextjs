@@ -26,7 +26,7 @@ export default async function CategoryPage({
 
   const { data: posts } = await supabase
     .from("forum_posts")
-    .select("id, title, reply_count, created_at, is_pinned, is_locked, author:profiles(x_handle)")
+    .select("id, title, reply_count, created_at, is_pinned, is_locked, author:profiles(x_handle, avatar_url)")
     .eq("category_id", category.id)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false });
@@ -85,6 +85,7 @@ export default async function CategoryPage({
               id={post.id}
               title={post.title}
               authorHandle={(post.author as any)?.x_handle || "?"}
+              authorAvatarUrl={(post.author as any)?.avatar_url}
               replyCount={post.reply_count}
               createdAt={post.created_at}
               isPinned={post.is_pinned}

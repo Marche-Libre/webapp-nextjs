@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessagesSquare, Users, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { ProfileCompletionRing } from "@/components/onboarding/profile-completion-ring";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import type { Profile } from "@/lib/types/database";
 
 export default async function TableauDeBordPage() {
@@ -140,7 +141,7 @@ function StatCard({
             <p className="text-sm font-medium text-primary-600">Accéder →</p>
           ) : (
             <p className="text-2xl font-bold text-text-primary tracking-[-0.02em]">
-              {value}
+              <AnimatedNumber value={value} />
             </p>
           )}
           <p className="text-[13px] text-text-secondary">{label}</p>

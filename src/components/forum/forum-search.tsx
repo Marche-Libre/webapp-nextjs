@@ -24,7 +24,7 @@ export function ForumSearch() {
 
     const { data } = await supabase
       .from("forum_posts")
-      .select("id, title, reply_count, created_at, is_pinned, author:profiles(x_handle)")
+      .select("id, title, reply_count, created_at, is_pinned, author:profiles(x_handle, avatar_url)")
       .textSearch("title", value, { type: "websearch", config: "french" })
       .order("created_at", { ascending: false })
       .limit(10);
@@ -54,6 +54,7 @@ export function ForumSearch() {
               id={post.id}
               title={post.title}
               authorHandle={(post.author as any)?.x_handle || "?"}
+              authorAvatarUrl={(post.author as any)?.avatar_url}
               replyCount={post.reply_count}
               createdAt={post.created_at}
               isPinned={post.is_pinned}

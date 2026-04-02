@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InviteForm } from "@/components/sponsorship/invite-form";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { UserPlus, Users, Inbox, Check, X } from "lucide-react";
+import { UserPlus, Users, Inbox, Check, X, Copy, Link } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { Invitation, SponsorshipRequest } from "@/lib/types/database";
@@ -29,6 +29,7 @@ interface ParrainagesTabsProps {
   sentInvitations: Invitation[];
   filleuls: Filleul[];
   receivedRequests: ReceivedRequest[];
+  xHandle: string;
 }
 
 function RequestActionButtons({ request }: { request: ReceivedRequest }) {
@@ -90,8 +91,9 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   );
 }
 
-export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests }: ParrainagesTabsProps) {
+export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, xHandle }: ParrainagesTabsProps) {
   const [activeTab, setActiveTab] = useState("sponsor");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const pendingInvitations = sentInvitations.filter((inv) => inv.status === "pending");
   const pendingRequests = receivedRequests.filter((r) => r.status === "pending");
@@ -109,6 +111,33 @@ export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests }:
       <div className="p-[24px]">
         {activeTab === "sponsor" && (
           <div className="space-y-[24px]">
+            {/* Referral link */}
+            <div className="rounded-xl border border-border-default bg-bg-elevated p-[16px] space-y-[10px]">
+              <div className="flex items-center gap-[8px]">
+                <Link className="h-[16px] w-[16px] text-primary-500" />
+                <h3 className="text-[13px] font-semibold text-text-primary">Votre lien de parrainage</h3>
+              </div>
+              <div className="flex items-center gap-[8px]">
+                <code className="flex-1 text-[12px] text-primary-500 bg-primary-50 rounded-lg px-[12px] py-[8px] truncate select-all">
+                  {typeof window !== "undefined" ? window.location.origin : ""}/rejoindre?ref={xHandle}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/rejoindre?ref=${xHandle}`);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                >
+                  {linkCopied ? <><Check className="h-[14px] w-[14px]" /> Copié</> : <><Copy className="h-[14px] w-[14px]" /> Copier</>}
+                </Button>
+              </div>
+              <p className="text-[11px] text-text-muted">
+                Partagez ce lien par DM, SMS, email ou WhatsApp. La personne qui s&apos;inscrit via ce lien vous sera automatiquement rattachée.
+              </p>
+            </div>
+
             <div className="space-y-[16px]">
               <div className="flex items-start gap-[16px]">
                 <div className="h-[48px] w-[48px] rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
@@ -116,7 +145,7 @@ export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests }:
                 </div>
                 <div className="flex-1">
                   <h2 className="font-display text-[15px] font-semibold text-text-primary tracking-[-0.01em]">
-                    Parrainer un nouveau membre
+                    Ou invitez directement
                   </h2>
                   <p className="text-[13px] text-text-secondary mt-[2px]">
                     Saisissez l&apos;identifiant X du professionnel que vous souhaitez parrainer.

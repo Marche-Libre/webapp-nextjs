@@ -21,7 +21,13 @@ export default async function MembresPage() {
   ]);
 
   // Apply visibility: mask fields for other members
-  const visibleMembres = (membres ?? []).map((m) => applyVisibility(m, m.id === user.id));
+  // Only show members who have at least one specialty selected (profile "filled")
+  const visibleMembres = (membres ?? [])
+    .filter((m) => {
+      const ids = m.specialty_ids ?? m.specialty_id ? [m.specialty_id] : [];
+      return ids.length > 0 || m.id === user.id;
+    })
+    .map((m) => applyVisibility(m, m.id === user.id));
 
   // Extract unique locations for filters
   const locations = [

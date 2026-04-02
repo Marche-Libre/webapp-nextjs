@@ -224,15 +224,18 @@ export function HierarchicalFilterDropdown({ label, categories, selectedSpecialt
     }
   }, [open]);
 
-  const q = query.trim().toLowerCase();
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  // Filter categories and specialties by search query
+  const q = normalize(query.trim());
+
+  // Filter categories and specialties by search query (accent-insensitive)
   const filteredCategories = categories
     .map((cat) => {
       if (!q) return cat;
-      const catMatch = cat.name.toLowerCase().includes(q);
-      const matchingSubs = cat.specialties.filter((s) => s.name.toLowerCase().includes(q));
-      if (catMatch) return cat; // show all subs if category matches
+      const catMatch = normalize(cat.name).includes(q);
+      const matchingSubs = cat.specialties.filter((s) => normalize(s.name).includes(q));
+      if (catMatch) return cat;
       if (matchingSubs.length > 0) return { ...cat, specialties: matchingSubs };
       return null;
     })

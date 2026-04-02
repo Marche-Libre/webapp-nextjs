@@ -45,6 +45,7 @@ export default async function ParrainagesPage() {
         sentInvitations={sentInvitations || []}
         filleuls={filleuls || []}
         receivedRequests={receivedRequests || []}
+        xHandle={profile.x_handle}
       />
     </div>
   );

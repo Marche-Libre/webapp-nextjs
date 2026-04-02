@@ -1,13 +1,15 @@
 import Link from "next/link";
+import { Avatar } from "@/components/ui/avatar";
 import { TagBadge } from "@/components/ui/tag-badge";
 import { MessageSquare, Pin } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import type { ForumTag } from "@/lib/types/database";
 
 interface PostListItemProps {
   id: string;
   title: string;
   authorHandle: string;
+  authorAvatarUrl?: string | null;
   replyCount: number;
   createdAt: string;
   isPinned?: boolean;
@@ -19,6 +21,7 @@ export function PostListItem({
   id,
   title,
   authorHandle,
+  authorAvatarUrl,
   replyCount,
   createdAt,
   isPinned,
@@ -27,8 +30,9 @@ export function PostListItem({
   return (
     <Link
       href={`/forum/posts/${id}`}
-      className="flex items-center gap-[16px] p-[16px] rounded-lg border border-border-default bg-bg-base hover:border-border-strong transition-all duration-150"
+      className="flex items-center gap-[12px] p-[16px] rounded-lg border border-border-default bg-bg-base hover:border-border-strong transition-all duration-150"
     >
+      <Avatar src={authorAvatarUrl} name={authorHandle} size="sm" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-[8px] flex-wrap">
           {isPinned && (
@@ -38,12 +42,12 @@ export function PostListItem({
             {title}
           </h3>
         </div>
-        <div className="flex items-center gap-[8px] mt-[6px] flex-wrap">
-          <span className="text-[12px] text-text-muted">
+        <div className="flex items-center gap-[8px] mt-[4px] flex-wrap">
+          <span className="text-[12px] font-medium text-text-secondary">
             @{authorHandle}
           </span>
           <span className="text-[11px] text-text-muted">
-            {formatDate(createdAt)}
+            {timeAgo(createdAt)}
           </span>
           {tags && tags.map((tag) => (
             <TagBadge key={tag.id} name={tag.name} color={tag.color} />
