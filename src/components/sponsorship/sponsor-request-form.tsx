@@ -20,6 +20,7 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
 
   const latestRequest = existingRequests[0] ?? null;
@@ -28,7 +29,7 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
   const hasApproved = existingRequests.some((r) => r.status === "approved");
   const allRejected = totalAttempts > 0 && existingRequests.every((r) => r.status === "rejected");
   const maxedOut = totalAttempts >= 2 && !hasPending && !hasApproved;
-  const canSubmit = !hasPending && !hasApproved && totalAttempts < 2;
+  const canSubmit = !hasPending && !hasApproved && !submitted && totalAttempts < 2;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,7 +57,9 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
       .maybeSingle();
 
     if (!sponsor) {
-      setError("Aucun membre actif trouvé avec cet identifiant.");
+      setSuccess("Si ce membre est inscrit sur MarchéLibre, il recevra votre demande de parrainage.");
+      setSubmitted(true);
+      (e.target as HTMLFormElement).reset();
       setLoading(false);
       return;
     }
@@ -85,7 +88,8 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
       return;
     }
 
-    setSuccess("Demande envoyée à @" + handle);
+    setSuccess("Demande envoyée ! Si ce membre est actif, il recevra votre demande.");
+    setSubmitted(true);
     (e.target as HTMLFormElement).reset();
     setLoading(false);
     router.refresh();

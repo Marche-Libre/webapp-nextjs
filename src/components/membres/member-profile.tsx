@@ -5,12 +5,13 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { formatDate } from "@/lib/utils";
-import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Mail } from "lucide-react";
+import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Mail, Globe, Briefcase, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { Profile } from "@/lib/types/database";
+import { countryFlag, getSpecialtyDisplay } from "@/lib/profile-utils";
+import type { Profile, SpecialtyCategory, Specialty } from "@/lib/types/database";
 
 interface ForumPostPreview {
   id: string;
@@ -26,6 +27,7 @@ interface MemberProfileProps {
   recentPosts: ForumPostPreview[];
   currentUserId: string;
   isBlocked: boolean;
+  categories: (SpecialtyCategory & { specialties: Specialty[] })[];
 }
 
 function ReportBlockMenu({ memberId, currentUserId }: { memberId: string; currentUserId: string }) {
@@ -89,7 +91,6 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
     setLoading(true);
     const supabase = createClient();
 
-    // Check if a DM channel already exists between these two users
     const { data: myChannels } = await supabase
       .from("channel_members")
       .select("channel_id")
@@ -100,7 +101,6 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
     if (myChannels && myChannels.length > 0) {
       const channelIds = myChannels.map((c) => c.channel_id);
 
-      // Find a private channel that also has the other user
       const { data: sharedMemberships } = await supabase
         .from("channel_members")
         .select("channel_id")
@@ -108,7 +108,6 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
         .in("channel_id", channelIds);
 
       if (sharedMemberships && sharedMemberships.length > 0) {
-        // Verify at least one is a private channel
         const sharedIds = sharedMemberships.map((c) => c.channel_id);
         const { data: privateChannel } = await supabase
           .from("channels")
@@ -129,7 +128,6 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
       return;
     }
 
-    // Create a new private DM channel
     const slug = `dm-${[currentUserId, memberId].sort().join("-").slice(0, 32)}`;
     const { data: newChannel, error } = await supabase
       .from("channels")
@@ -147,7 +145,6 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
       return;
     }
 
-    // Add both users as channel members
     await supabase.from("channel_members").insert([
       { channel_id: newChannel.id, user_id: currentUserId },
       { channel_id: newChannel.id, user_id: memberId },
@@ -171,18 +168,25 @@ function SendDmButton({ memberId, currentUserId }: { memberId: string; currentUs
   );
 }
 
-export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isBlocked }: MemberProfileProps) {
+export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isBlocked, categories }: MemberProfileProps) {
   const isOwnProfile = member.id === currentUserId;
   const links = member.links as Record<string, string> | null;
   const hasLinks = links && Object.keys(links).length > 0;
   const canDm = !isOwnProfile && !isBlocked && member.accept_dms;
+  const skills = member.skills ?? [];
+  const specDisplay = getSpecialtyDisplay(member, categories);
 
   return (
     <div className="max-w-[640px] mx-auto space-y-[24px]">
       {/* Header card */}
       <div className="bg-bg-base rounded-xl shadow-card p-[24px]">
         <div className="flex items-start gap-[16px]">
-          <Avatar src={member.avatar_url} name={member.x_handle} size="xl" />
+          <Avatar
+            src={member.avatar_url}
+            name={member.x_handle}
+            size="xl"
+            availability={member.availability_status}
+          />
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-[20px] font-bold text-text-primary tracking-[-0.02em]">
               @{member.x_handle}
@@ -191,16 +195,68 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isB
               <p className="text-[14px] text-text-secondary mt-[2px]">{member.full_name}</p>
             )}
             <div className="flex items-center gap-[8px] mt-[8px] flex-wrap">
-              {member.specialty && (
-                <Badge variant="primary">{member.specialty}</Badge>
+              {specDisplay.categoryName && (
+                <Badge variant="primary">{specDisplay.categoryName}</Badge>
               )}
+              {specDisplay.specialtyNames.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20"
+                >
+                  {name}
+                </span>
+              ))}
               {member.location && (
                 <span className="flex items-center gap-[4px] text-[12px] text-text-muted">
                   <MapPin className="h-[12px] w-[12px]" />
+                  {member.country_code && <span>{countryFlag(member.country_code)}</span>}
                   {member.location}
                 </span>
               )}
             </div>
+
+            {/* Extra info */}
+            <div className="flex items-center gap-[12px] mt-[6px] flex-wrap">
+              {member.years_experience != null && (
+                <span className="text-[12px] text-text-muted flex items-center gap-[4px]">
+                  <Briefcase className="h-[12px] w-[12px]" />
+                  {member.years_experience} ans d&apos;expérience
+                </span>
+              )}
+              {member.daily_rate && (
+                <span className="text-[12px] text-text-muted flex items-center gap-[4px]">
+                  <Clock className="h-[12px] w-[12px]" />
+                  {member.daily_rate}
+                </span>
+              )}
+            </div>
+
+            {/* Skills */}
+            {skills.length > 0 && (
+              <div className="flex flex-wrap gap-[6px] mt-[8px]">
+                {skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Website */}
+            {member.website && (
+              <a
+                href={member.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-[6px] mt-[8px] px-[12px] py-[6px] rounded-lg border border-border-default hover:border-border-strong text-[12px] font-medium text-primary-500 hover:bg-bg-surface transition-all"
+              >
+                <Globe className="h-[12px] w-[12px]" />
+                Visiter le site
+              </a>
+            )}
           </div>
 
           {/* Action buttons */}

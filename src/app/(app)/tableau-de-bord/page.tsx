@@ -4,6 +4,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessagesSquare, Users, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { ProfileCompletionRing } from "@/components/onboarding/profile-completion-ring";
+import type { Profile } from "@/lib/types/database";
 
 export default async function TableauDeBordPage() {
   const supabase = await createClient();
@@ -12,7 +14,7 @@ export default async function TableauDeBordPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("x_handle")
+    .select("*")
     .eq("id", user.id)
     .single();
 
@@ -45,6 +47,9 @@ export default async function TableauDeBordPage() {
           Votre espace MarchéLibre
         </p>
       </div>
+
+      {/* Profile completion */}
+      {profile && <ProfileCompletionRing profile={profile as Profile} />}
 
       {/* Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">

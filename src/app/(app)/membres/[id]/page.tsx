@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { MemberProfile } from "@/components/membres/member-profile";
+import { applyVisibility } from "@/lib/profile-utils";
 
 export default async function MemberProfilePage({
   params,
@@ -13,23 +14,32 @@ export default async function MemberProfilePage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
 
-  // Fetch the member profile (must be approved)
-  const { data: member } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .eq("status", "approved")
-    .single();
+  // Fetch member profile + specialty categories in parallel
+  const [{ data: member }, { data: categoriesData }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", id)
+      .eq("status", "approved")
+      .single(),
+    supabase
+      .from("specialty_categories")
+      .select("*, specialties(*)")
+      .order("sort_order", { ascending: true }),
+  ]);
 
   if (!member) notFound();
 
+  // Apply visibility
+  const visibleMember = applyVisibility(member, member.id === user.id);
+
   // Fetch sponsor info if sponsored_by is set
   let sponsor: { x_handle: string } | null = null;
-  if (member.sponsored_by) {
+  if (visibleMember.sponsored_by) {
     const { data } = await supabase
       .from("profiles")
       .select("x_handle")
-      .eq("id", member.sponsored_by)
+      .eq("id", visibleMember.sponsored_by)
       .single();
     sponsor = data;
   }
@@ -52,11 +62,12 @@ export default async function MemberProfilePage({
 
   return (
     <MemberProfile
-      member={member}
+      member={visibleMember}
       sponsor={sponsor}
       recentPosts={(recentPosts || []) as any}
       currentUserId={user.id}
       isBlocked={!!blockRecord}
+      categories={categoriesData ?? []}
     />
   );
 }

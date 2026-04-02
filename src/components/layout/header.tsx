@@ -64,9 +64,9 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
       const [membersRes, postsRes, messagesRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, x_handle, avatar_url, specialty")
+          .select("id, full_name, x_handle, avatar_url")
           .eq("status", "approved")
-          .or(`full_name.ilike.%${q}%,x_handle.ilike.%${q}%,specialty.ilike.%${q}%`)
+          .or(`full_name.ilike.%${q}%,x_handle.ilike.%${q}%`)
           .limit(5),
         supabase
           .from("forum_posts")
@@ -89,7 +89,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           type: "member",
           id: m.id,
           title: `@${m.x_handle}`,
-          subtitle: m.specialty || m.full_name || "",
+          subtitle: m.full_name || "",
           href: `/membres`,
           avatarUrl: m.avatar_url,
         });

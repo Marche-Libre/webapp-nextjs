@@ -1,0 +1,89 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
+
+export default async function OnboardingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/connexion");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) redirect("/connexion");
+  if (profile.status !== "approved") redirect("/en-attente");
+  if (profile.onboarding_completed) redirect("/forum");
+
+  // Fetch specialties grouped by category
+  const { data: specialtyCategories } = await supabase
+    .from("specialty_categories")
+    .select("*, specialties(*)")
+    .order("sort_order", { ascending: true });
+
+  // Count approved members for badge
+  const { count: memberCount } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "approved");
+
+  // Fetch sponsor info if applicable
+  const sponsor = profile.sponsored_by
+    ? (
+        await supabase
+          .from("profiles")
+          .select("x_handle, full_name, avatar_url")
+          .eq("id", profile.sponsored_by)
+          .single()
+      ).data
+    : null;
+
+  // Fetch a few members for discovery (will be filtered client-side based on user's search)
+  const { data: members } = await supabase
+    .from("profiles")
+    .select("id, x_handle, full_name, avatar_url, specialty_ids, specialty_category_id, location, bio")
+    .eq("status", "approved")
+    .neq("id", user.id)
+    .limit(50);
+
+  // Get presentations category ID
+  const { data: presentationsCat } = await supabase
+    .from("forum_categories")
+    .select("id")
+    .eq("slug", "presentations")
+    .single();
+
+  // Fetch countries and cities from DB
+  const { data: countries } = await supabase
+    .from("countries")
+    .select("id, name, flag, is_francophone")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  const { data: cities } = await supabase
+    .from("cities")
+    .select("id, name, country_id, region")
+    .order("name", { ascending: true });
+
+  return (
+    <div className="min-h-dvh bg-base-200 flex items-start justify-center px-4 py-12 sm:py-16">
+      <div className="w-full max-w-3xl">
+        <OnboardingWizard
+          profile={profile}
+          specialtyCategories={specialtyCategories ?? []}
+          memberCount={memberCount ?? 0}
+          sponsor={sponsor}
+          members={members ?? []}
+          presentationsCategoryId={presentationsCat?.id ?? null}
+          countries={countries ?? []}
+          cities={cities ?? []}
+        />
+      </div>
+    </div>
+  );
+}

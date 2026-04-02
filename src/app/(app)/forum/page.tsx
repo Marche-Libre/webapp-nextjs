@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { unstable_cache } from "next/cache";
 import { CategoryCard } from "@/components/forum/category-card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -7,23 +6,13 @@ import { Plus, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
-const getForumCategories = unstable_cache(
-  async () => {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("forum_categories")
-      .select("*")
-      .order("order", { ascending: true });
-    return data ?? [];
-  },
-  ["forum-categories"],
-  { revalidate: 300, tags: ["forum-categories"] }
-);
-
 export default async function ForumPage() {
   const supabase = await createClient();
 
-  const categories = await getForumCategories();
+  const { data: categories } = await supabase
+    .from("forum_categories")
+    .select("*")
+    .order("order", { ascending: true });
 
   // Get post counts per category
   const { data: posts } = await supabase
@@ -35,12 +24,23 @@ export default async function ForumPage() {
     countMap[p.category_id] = (countMap[p.category_id] || 0) + 1;
   });
 
-  // Get 5 most recent posts with author, category, and content preview
-  const { data: recentPosts } = await supabase
+  // Get intro category IDs to filter from main feed
+  const introCatIds = (categories ?? [])
+    .filter((c) => c.is_introduction)
+    .map((c) => c.id);
+
+  // Get 5 most recent posts (excluding introductions) with author, category, and content preview
+  let recentPostsQuery = supabase
     .from("forum_posts")
     .select("id, title, content, reply_count, created_at, author:profiles(x_handle, full_name, avatar_url), category:forum_categories(name, color, slug)")
     .order("created_at", { ascending: false })
     .limit(5);
+
+  if (introCatIds.length > 0) {
+    recentPostsQuery = recentPostsQuery.not("category_id", "in", `(${introCatIds.join(",")})`);
+  }
+
+  const { data: recentPosts } = await recentPostsQuery;
 
   return (
     <div className="space-y-[24px]">

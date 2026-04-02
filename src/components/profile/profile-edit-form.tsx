@@ -26,7 +26,7 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
   // Specialty state
   const [categories, setCategories] = useState<(SpecialtyCategory & { specialties: Specialty[] })[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(profile.specialty_category_id || null);
-  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string | null>(profile.specialty_id || null);
+  const [selectedSpecialtyIds, setSelectedSpecialtyIds] = useState<string[]>(profile.specialty_ids ?? []);
 
   const router = useRouter();
 
@@ -62,21 +62,9 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
         phone: (formData.get("phone") as string) || null,
       };
     } else if (section === "specialty") {
-      // Build a display string from selected category + specialty
-      let specialtyDisplay: string | null = null;
-      if (selectedCategoryId && selectedSpecialtyId) {
-        const cat = categories.find((c) => c.id === selectedCategoryId);
-        const spec = cat?.specialties.find((s) => s.id === selectedSpecialtyId);
-        if (cat && spec) specialtyDisplay = `${cat.name} · ${spec.name}`;
-      } else if (selectedCategoryId) {
-        const cat = categories.find((c) => c.id === selectedCategoryId);
-        if (cat) specialtyDisplay = cat.name;
-      }
-
       updates = {
         specialty_category_id: selectedCategoryId || null,
-        specialty_id: selectedSpecialtyId || null,
-        specialty: specialtyDisplay || (formData.get("specialty") as string) || null,
+        specialty_ids: selectedSpecialtyIds,
         location: (formData.get("location") as string) || null,
       };
     } else if (section === "bio") {
@@ -159,7 +147,7 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
                   onChange={(e) => {
                     const val = e.target.value || null;
                     setSelectedCategoryId(val);
-                    setSelectedSpecialtyId(null);
+                    setSelectedSpecialtyIds([]);
                   }}
                   className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
                 >
@@ -170,35 +158,56 @@ export function ProfileEditForm({ profile, section }: ProfileEditFormProps) {
                 </select>
               </div>
 
-              {/* Sub-specialty select */}
+              {/* Sub-specialties multi-select */}
               {selectedCategoryId && subSpecialties.length > 0 && (
                 <div className="space-y-[6px]">
-                  <label htmlFor="specialty_select" className="block text-[13px] font-medium text-text-secondary">
-                    Sous-spécialité
+                  <label className="block text-[13px] font-medium text-text-secondary">
+                    Sous-spécialités <span className="text-text-muted font-normal">({selectedSpecialtyIds.length}/3)</span>
                   </label>
-                  <select
-                    id="specialty_select"
-                    value={selectedSpecialtyId || ""}
-                    onChange={(e) => setSelectedSpecialtyId(e.target.value || null)}
-                    className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
-                  >
-                    <option value="">Sélectionner une sous-spécialité…</option>
-                    {subSpecialties.map((spec) => (
-                      <option key={spec.id} value={spec.id}>{spec.name}</option>
-                    ))}
-                  </select>
+                  {selectedSpecialtyIds.length > 0 && (
+                    <div className="flex flex-wrap gap-[6px] mb-[6px]">
+                      {selectedSpecialtyIds.map((id) => {
+                        const spec = subSpecialties.find((s) => s.id === id);
+                        if (!spec) return null;
+                        return (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-[4px] rounded-md px-[8px] py-[3px] text-[12px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20"
+                          >
+                            {spec.name}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSpecialtyIds((prev) => prev.filter((x) => x !== id))}
+                              className="hover:text-primary-700 cursor-pointer"
+                            >
+                              <X className="h-[10px] w-[10px]" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {selectedSpecialtyIds.length < 3 && (
+                    <select
+                      id="specialty_select"
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value && !selectedSpecialtyIds.includes(e.target.value)) {
+                          setSelectedSpecialtyIds((prev) => [...prev, e.target.value]);
+                        }
+                        e.target.value = "";
+                      }}
+                      className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
+                    >
+                      <option value="">Sélectionner…</option>
+                      {subSpecialties
+                        .filter((s) => !selectedSpecialtyIds.includes(s.id))
+                        .map((spec) => (
+                          <option key={spec.id} value={spec.id}>{spec.name}</option>
+                        ))}
+                    </select>
+                  )}
                 </div>
-              )}
-
-              {/* Fallback free-text (hidden if category selected) */}
-              {!selectedCategoryId && (
-                <Input
-                  id="specialty"
-                  name="specialty"
-                  label="Ou saisir librement"
-                  defaultValue={profile.specialty || ""}
-                  placeholder="ex : Développeur Web, Avocat, Architecte"
-                />
               )}
 
               <Input

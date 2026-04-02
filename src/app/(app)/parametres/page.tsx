@@ -8,24 +8,63 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/theme/theme-provider";
 import { Sun, Moon, LogOut, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ProfileVisibility } from "@/lib/types/database";
+
+const VISIBILITY_FIELDS: { key: keyof ProfileVisibility; label: string }[] = [
+  { key: "first_name", label: "Prénom" },
+  { key: "last_name", label: "Nom" },
+  { key: "phone", label: "Téléphone" },
+  { key: "email", label: "E-mail" },
+  { key: "location", label: "Localisation" },
+  { key: "specialty", label: "Spécialité" },
+  { key: "bio", label: "Biographie" },
+  { key: "years_experience", label: "Années d'expérience" },
+  { key: "daily_rate", label: "Tarif journalier" },
+  { key: "website", label: "Site web" },
+  { key: "skills", label: "Compétences" },
+  { key: "links", label: "Liens" },
+];
+
+const DEFAULT_VISIBILITY: ProfileVisibility = {
+  first_name: true,
+  last_name: true,
+  phone: false,
+  email: false,
+  location: true,
+  specialty: true,
+  bio: true,
+  years_experience: true,
+  links: true,
+  daily_rate: false,
+  website: true,
+  skills: true,
+};
 
 export default function ParametresPage() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [acceptDms, setAcceptDms] = useState(true);
   const [loadingDms, setLoadingDms] = useState(true);
+  const [visibility, setVisibility] = useState<ProfileVisibility>(DEFAULT_VISIBILITY);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
       const { data } = await supabase
         .from("profiles")
-        .select("accept_dms")
+        .select("accept_dms, visibility")
         .eq("id", user.id)
         .single();
-      if (data) setAcceptDms(data.accept_dms ?? true);
+      if (data) {
+        setAcceptDms(data.accept_dms ?? true);
+        if (data.visibility) {
+          setVisibility({ ...DEFAULT_VISIBILITY, ...(data.visibility as Partial<ProfileVisibility>) });
+        }
+      }
       setLoadingDms(false);
     };
     load();
@@ -33,13 +72,28 @@ export default function ParametresPage() {
 
   const handleToggleDms = async (checked: boolean) => {
     setAcceptDms(checked);
+    if (!userId) return;
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await supabase
       .from("profiles")
       .update({ accept_dms: checked })
-      .eq("id", user.id);
+      .eq("id", userId);
+  };
+
+  const handleToggleVisibility = async (key: keyof ProfileVisibility, checked: boolean) => {
+    const prevVis = visibility;
+    const newVis = { ...visibility, [key]: checked };
+    setVisibility(newVis);
+    if (!userId) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ visibility: newVis })
+      .eq("id", userId);
+    if (error) {
+      setVisibility(prevVis);
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.");
+    }
   };
 
   const handleLogout = async () => {
@@ -113,6 +167,28 @@ export default function ParametresPage() {
             label="Accepter les messages privés"
             description="Permettre aux autres membres de vous envoyer des messages directs."
           />
+        </div>
+      </section>
+
+      {/* ─── Visibilité du profil ─── */}
+      <section>
+        <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
+          Visibilité du profil
+        </h2>
+        <p className="text-[12px] text-text-muted mb-[12px]">
+          Choisissez les informations visibles par les autres membres sur votre profil public.
+        </p>
+        <div className="rounded-xl border border-border-default divide-y divide-border-subtle">
+          {VISIBILITY_FIELDS.map((field) => (
+            <div key={field.key} className="px-[16px] py-[12px]">
+              <Toggle
+                checked={visibility[field.key]}
+                onChange={(checked) => handleToggleVisibility(field.key, checked)}
+                disabled={loadingDms}
+                label={field.label}
+              />
+            </div>
+          ))}
         </div>
       </section>
 

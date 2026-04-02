@@ -54,5 +54,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // If authenticated and not on /onboarding or public routes, check onboarding status
+  if (user && !isPublicRoute && pathname !== "/onboarding") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status, onboarding_completed")
+      .eq("id", user.id)
+      .single();
+
+    if (
+      profile &&
+      profile.status === "approved" &&
+      profile.onboarding_completed !== true
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

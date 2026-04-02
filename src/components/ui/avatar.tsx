@@ -6,6 +6,7 @@ interface AvatarProps {
   name: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
+  availability?: "available" | "busy" | "unavailable";
 }
 
 const sizes = {
@@ -15,22 +16,36 @@ const sizes = {
   xl: "h-[72px] w-[72px] text-[24px]",
 };
 
-export function Avatar({ src, name, size = "md", className }: AvatarProps) {
+const dotColors = {
+  available: "bg-green-500",
+  busy: "bg-amber-500",
+  unavailable: "bg-red-500",
+};
+
+const dotSizes = {
+  sm: "h-[8px] w-[8px] border",
+  md: "h-[10px] w-[10px] border-[1.5px]",
+  lg: "h-[11px] w-[11px] border-[1.5px]",
+  xl: "h-[14px] w-[14px] border-2",
+};
+
+// Twitter/X avatar URLs contain _normal (48px). Replace with a bigger variant.
+function getHiResAvatar(url: string): string {
+  return url.replace(/_normal\./, "_400x400.");
+}
+
+export function Avatar({ src, name, size = "md", className, availability }: AvatarProps) {
   const initials = name
     ? name.replace(/^@/, "")[0]?.toUpperCase() || ""
     : "";
 
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        className={cn("rounded-xl object-cover", sizes[size], className)}
-      />
-    );
-  }
-
-  return (
+  const inner = src ? (
+    <img
+      src={getHiResAvatar(src)}
+      alt={name}
+      className={cn("rounded-xl object-cover", sizes[size], className)}
+    />
+  ) : (
     <div
       className={cn(
         "rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center font-semibold",
@@ -39,6 +54,21 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
       )}
     >
       {initials || <User className="h-1/2 w-1/2" />}
+    </div>
+  );
+
+  if (!availability) return inner;
+
+  return (
+    <div className="relative inline-flex shrink-0">
+      {inner}
+      <span
+        className={cn(
+          "absolute bottom-0 right-0 rounded-full border-bg-base",
+          dotColors[availability],
+          dotSizes[size]
+        )}
+      />
     </div>
   );
 }

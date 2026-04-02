@@ -35,5 +35,9 @@ export default async function AppLayout({
     redirect("/connexion");
   }
 
+  if (profile.status === "approved" && profile.onboarding_completed !== true) {
+    redirect("/onboarding");
+  }
+
   return <AppShell profile={profile as Profile}>{children}</AppShell>;
 }

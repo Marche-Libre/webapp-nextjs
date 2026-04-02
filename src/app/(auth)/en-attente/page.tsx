@@ -4,6 +4,7 @@ import { Clock, CheckCircle, LogOut } from "lucide-react";
 import Link from "next/link";
 import { InvitationCard } from "@/components/sponsorship/invitation-card";
 import { WaitingPageClient } from "@/components/sponsorship/waiting-page-client";
+import { StatusPoller } from "@/components/sponsorship/status-poller";
 import type { Invitation, SponsorshipRequest } from "@/lib/types/database";
 
 export default async function EnAttentePage() {
@@ -99,7 +100,8 @@ export default async function EnAttentePage() {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-4 border-t border-base-content/[0.06] flex justify-center">
+        <div className="px-8 py-4 border-t border-base-content/[0.06] flex items-center justify-between">
+          <StatusPoller userId={user.id} />
           <Link
             href="/connexion"
             className="inline-flex items-center gap-1.5 text-sm text-base-content/40 hover:text-base-content/60 transition-colors"

@@ -310,79 +310,98 @@ export function HierarchicalFilterDropdown({ label, categories, selectedSpecialt
             </div>
           </div>
 
-          {/* Categories */}
+          {/* Categories grouped by sector */}
           <div className="max-h-[320px] overflow-y-auto p-[4px]">
             {filteredCategories.length === 0 && (
               <p className="px-[12px] py-[8px] text-[12px] text-text-muted">Aucun résultat</p>
             )}
-            {filteredCategories.map((cat) => {
-              const isExpanded = effectiveExpanded.has(cat.id);
-              const fullySelected = isCatFullySelected(cat);
-              const partiallySelected = isCatPartiallySelected(cat);
+            {(() => {
+              // Group categories by sector
+              const sectors = new Map<string, CategoryWithSpecialties[]>();
+              for (const cat of filteredCategories) {
+                const sector = cat.sector || "Autre";
+                if (!sectors.has(sector)) sectors.set(sector, []);
+                sectors.get(sector)!.push(cat);
+              }
 
-              return (
-                <div key={cat.id}>
-                  {/* Category row */}
-                  <div className="flex items-center gap-[4px]">
-                    <button
-                      onClick={() => toggleExpand(cat.id)}
-                      className="p-[4px] rounded text-text-muted hover:text-text-primary cursor-pointer transition-colors"
-                    >
-                      <ChevronRight className={cn("h-[12px] w-[12px] transition-transform", isExpanded && "rotate-90")} />
-                    </button>
-                    <button
-                      onClick={() => toggleCategory(cat)}
-                      className={cn(
-                        "flex items-center gap-[8px] flex-1 px-[6px] py-[7px] rounded-md text-[13px] font-medium cursor-pointer transition-colors",
-                        fullySelected
-                          ? "text-primary-500"
-                          : "text-text-primary hover:bg-bg-surface"
-                      )}
-                    >
-                      <div className={cn(
-                        "h-[16px] w-[16px] rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-                        fullySelected ? "bg-primary-500 border-primary-500" :
-                        partiallySelected ? "border-primary-500 bg-primary-50" :
-                        "border-border-strong"
-                      )}>
-                        {fullySelected && <Check className="h-[10px] w-[10px] text-bg-base" />}
-                        {partiallySelected && <div className="h-[8px] w-[8px] rounded-sm bg-primary-500" />}
-                      </div>
-                      {cat.name}
-                    </button>
-                  </div>
+              return Array.from(sectors.entries()).map(([sector, cats]) => (
+                <div key={sector}>
+                  {/* Sector header */}
+                  <p className="px-[10px] pt-[10px] pb-[4px] text-[10px] font-bold uppercase tracking-[0.08em] text-text-muted">
+                    {sector}
+                  </p>
 
-                  {/* Sub-specialties */}
-                  {isExpanded && (
-                    <div className="ml-[24px]">
-                      {cat.specialties.map((spec) => {
-                        const checked = selectedSpecialtyIds.includes(spec.id);
-                        return (
+                  {cats.map((cat) => {
+                    const isExpanded = effectiveExpanded.has(cat.id);
+                    const fullySelected = isCatFullySelected(cat);
+                    const partiallySelected = isCatPartiallySelected(cat);
+
+                    return (
+                      <div key={cat.id}>
+                        {/* Category row */}
+                        <div className="flex items-center gap-[4px]">
                           <button
-                            key={spec.id}
-                            onClick={() => toggleSpecialty(spec.id)}
+                            onClick={() => toggleExpand(cat.id)}
+                            className="p-[4px] rounded text-text-muted hover:text-text-primary cursor-pointer transition-colors"
+                          >
+                            <ChevronRight className={cn("h-[12px] w-[12px] transition-transform", isExpanded && "rotate-90")} />
+                          </button>
+                          <button
+                            onClick={() => toggleCategory(cat)}
                             className={cn(
-                              "flex items-center gap-[8px] w-full px-[10px] py-[6px] rounded-md text-[12px] cursor-pointer transition-colors",
-                              checked
+                              "flex items-center gap-[8px] flex-1 px-[6px] py-[7px] rounded-md text-[13px] font-medium cursor-pointer transition-colors",
+                              fullySelected
                                 ? "text-primary-500"
-                                : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
+                                : "text-text-primary hover:bg-bg-surface"
                             )}
                           >
                             <div className={cn(
-                              "h-[14px] w-[14px] rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-                              checked ? "bg-primary-500 border-primary-500" : "border-border-strong"
+                              "h-[16px] w-[16px] rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                              fullySelected ? "bg-primary-500 border-primary-500" :
+                              partiallySelected ? "border-primary-500 bg-primary-50" :
+                              "border-border-strong"
                             )}>
-                              {checked && <Check className="h-[9px] w-[9px] text-bg-base" />}
+                              {fullySelected && <Check className="h-[10px] w-[10px] text-bg-base" />}
+                              {partiallySelected && <div className="h-[8px] w-[8px] rounded-sm bg-primary-500" />}
                             </div>
-                            <span className="truncate">{spec.name}</span>
+                            {cat.name}
                           </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                        </div>
+
+                        {/* Sub-specialties */}
+                        {isExpanded && (
+                          <div className="ml-[24px]">
+                            {cat.specialties.map((spec) => {
+                              const checked = selectedSpecialtyIds.includes(spec.id);
+                              return (
+                                <button
+                                  key={spec.id}
+                                  onClick={() => toggleSpecialty(spec.id)}
+                                  className={cn(
+                                    "flex items-center gap-[8px] w-full px-[10px] py-[6px] rounded-md text-[12px] cursor-pointer transition-colors",
+                                    checked
+                                      ? "text-primary-500"
+                                      : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
+                                  )}
+                                >
+                                  <div className={cn(
+                                    "h-[14px] w-[14px] rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                                    checked ? "bg-primary-500 border-primary-500" : "border-border-strong"
+                                  )}>
+                                    {checked && <Check className="h-[9px] w-[9px] text-bg-base" />}
+                                  </div>
+                                  <span className="truncate">{spec.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              ));
+            })()}
           </div>
 
           {/* Footer */}

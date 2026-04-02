@@ -1,15 +1,38 @@
+export type ProfileVisibility = {
+  first_name: boolean;
+  last_name: boolean;
+  phone: boolean;
+  email: boolean;
+  location: boolean;
+  specialty: boolean;
+  bio: boolean;
+  years_experience: boolean;
+  links: boolean;
+  daily_rate: boolean;
+  website: boolean;
+  skills: boolean;
+};
+
 export type Profile = {
   id: string;
   email: string;
   full_name: string;
-  specialty: string | null;
-  specialty_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  specialty_ids: string[];
   specialty_category_id: string | null;
   location: string | null;
   bio: string | null;
   x_handle: string;
   avatar_url: string | null;
   phone: string | null;
+  years_experience: number | null;
+  country_code: string | null;
+  availability_status: "available" | "busy" | "unavailable";
+  skills: string[];
+  daily_rate: string | null;
+  website: string | null;
+  visibility: ProfileVisibility;
   status: "pending" | "approved" | "rejected";
   is_admin: boolean;
   links: Record<string, string> | null;
@@ -17,6 +40,8 @@ export type Profile = {
   accept_dms: boolean;
   sponsored_by: string | null;
   sponsor_approved: boolean;
+  onboarding_completed: boolean;
+  looking_for: string | null;
   hidden_channel_ids: string[];
   created_at: string;
   updated_at: string;
@@ -26,6 +51,7 @@ export type Profile = {
 export type SpecialtyCategory = {
   id: string;
   name: string;
+  sector: string | null;
   sort_order: number;
 };
 
@@ -104,6 +130,7 @@ export type ForumCategory = {
   color: string | null;
   icon: string | null;
   order: number;
+  is_introduction: boolean;
 };
 
 export type ForumPost = {
@@ -155,7 +182,7 @@ export type SponsorshipRequest = {
 export type Notification = {
   id: string;
   user_id: string;
-  type: "chat_mention" | "forum_mention" | "forum_reply" | "sponsor_request";
+  type: "chat_mention" | "forum_mention" | "forum_reply" | "sponsor_request" | "welcome";
   title: string;
   body: string | null;
   link: string | null;

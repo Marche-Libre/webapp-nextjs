@@ -9,6 +9,7 @@ import { HierarchicalFilterDropdown, FilterDropdown } from "@/components/ui/filt
 import type { CategoryWithSpecialties } from "@/components/ui/filter-dropdown";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { countryFlag } from "@/lib/profile-utils";
 import type { Profile } from "@/lib/types/database";
 
 interface MembresContentProps {
@@ -126,10 +127,11 @@ function LetterSeparator({ letter }: { letter: string }) {
 /* ─── Member card (list) ─── */
 
 function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUserId: string; specLabel: string | null }) {
+  const skills = m.skills ?? [];
   return (
     <div className="group flex items-center gap-[14px] px-[14px] py-[12px] rounded-xl border border-transparent hover:border-border-default hover:bg-bg-surface transition-all duration-150">
       <Link href={`/membres/${m.id}`}>
-        <Avatar src={m.avatar_url} name={m.x_handle} size="md" />
+        <Avatar src={m.avatar_url} name={m.x_handle} size="md" availability={m.availability_status} />
       </Link>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-[8px]">
@@ -139,7 +141,15 @@ function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUs
         {(specLabel || m.location) && (
           <div className="flex items-center gap-[10px] mt-[2px]">
             {specLabel && <span className="text-[12px] font-medium text-primary-500">{specLabel}</span>}
-            {m.location && <span className="flex items-center gap-[3px] text-[12px] text-text-muted"><MapPin className="h-[11px] w-[11px]" />{m.location}</span>}
+            {m.location && <span className="flex items-center gap-[3px] text-[12px] text-text-muted"><MapPin className="h-[11px] w-[11px]" />{m.country_code && <span>{countryFlag(m.country_code)}</span>}{m.location}</span>}
+          </div>
+        )}
+        {skills.length > 0 && (
+          <div className="flex flex-wrap gap-[4px] mt-[4px]">
+            {skills.slice(0, 3).map((s) => (
+              <span key={s} className="inline-flex items-center rounded-md px-[6px] py-[1px] text-[10px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">{s}</span>
+            ))}
+            {skills.length > 3 && <span className="text-[10px] text-text-muted">+{skills.length - 3}</span>}
           </div>
         )}
       </div>
@@ -162,12 +172,13 @@ function MemberListItem({ m, currentUserId, specLabel }: { m: Profile; currentUs
 /* ─── Member card (grid) ─── */
 
 function MemberGridCard({ m, currentUserId, specLabel }: { m: Profile; currentUserId: string; specLabel: string | null }) {
+  const skills = m.skills ?? [];
   return (
     <div className="group flex flex-col rounded-xl border border-border-subtle hover:border-border-default bg-bg-base hover:bg-bg-surface transition-all duration-150">
       <div className="p-[20px] pb-[14px]">
         <div className="flex items-start gap-[12px]">
           <Link href={`/membres/${m.id}`}>
-            <Avatar src={m.avatar_url} name={m.x_handle} size="lg" />
+            <Avatar src={m.avatar_url} name={m.x_handle} size="lg" availability={m.availability_status} />
           </Link>
           <div className="min-w-0 flex-1">
             <Link href={`/membres/${m.id}`} className="text-[15px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors block">@{m.x_handle}</Link>
@@ -178,8 +189,16 @@ function MemberGridCard({ m, currentUserId, specLabel }: { m: Profile; currentUs
       </div>
       <div className="px-[20px] flex flex-wrap gap-[6px]">
         {specLabel && <span className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-semibold bg-primary-50 text-primary-500">{specLabel}</span>}
-        {m.location && <span className="inline-flex items-center gap-[3px] rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-bg-surface-2 text-text-muted"><MapPin className="w-[11px] h-[11px]" />{m.location}</span>}
+        {m.location && <span className="inline-flex items-center gap-[3px] rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-bg-surface-2 text-text-muted"><MapPin className="w-[11px] h-[11px]" />{m.country_code && <span>{countryFlag(m.country_code)}</span>}{m.location}</span>}
       </div>
+      {skills.length > 0 && (
+        <div className="px-[20px] flex flex-wrap gap-[4px] mt-[8px]">
+          {skills.slice(0, 3).map((s) => (
+            <span key={s} className="inline-flex items-center rounded-md px-[6px] py-[1px] text-[10px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">{s}</span>
+          ))}
+          {skills.length > 3 && <span className="text-[10px] text-text-muted">+{skills.length - 3}</span>}
+        </div>
+      )}
       {m.bio && <p className="px-[20px] mt-[12px] text-[13px] text-text-secondary line-clamp-2 leading-relaxed">{m.bio}</p>}
       <div className="mt-auto p-[16px]">
         <Link href={`/membres/${m.id}`} className="flex items-center justify-center w-full py-[8px] rounded-lg bg-primary-500 text-bg-base text-[13px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer">Voir profil</Link>
@@ -208,13 +227,23 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     return map;
   }, [categories]);
 
-  // Get display label for a member's specialty
+  // Get display label for a member's specialties
   const getSpecLabel = (m: Profile): string | null => {
-    if (m.specialty_id) {
-      const info = specialtyMap.get(m.specialty_id);
-      if (info) return `${info.category} · ${info.specialty}`;
+    const ids = m.specialty_ids ?? [];
+    if (ids.length > 0) {
+      const names: string[] = [];
+      let catName: string | null = null;
+      for (const id of ids) {
+        const info = specialtyMap.get(id);
+        if (info) {
+          catName = info.category;
+          names.push(info.specialty);
+        }
+      }
+      if (catName && names.length > 0) return `${catName} · ${names.join(", ")}`;
+      if (catName) return catName;
     }
-    return m.specialty || null;
+    return null;
   };
 
   // Build set of category IDs that have selected specialty IDs (for chip display)
@@ -235,7 +264,7 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     const counts = new Map<string, number>();
     for (const cat of categories) {
       const specIds = new Set(cat.specialties.map((s) => s.id));
-      const count = membres.filter((m) => m.specialty_category_id === cat.id || (m.specialty_id && specIds.has(m.specialty_id))).length;
+      const count = membres.filter((m) => m.specialty_category_id === cat.id || (m.specialty_ids ?? []).some((id) => specIds.has(id))).length;
       if (count > 0) counts.set(cat.id, count);
     }
     return categories
@@ -258,18 +287,8 @@ export function MembresContent({ membres, categories, locations, currentUserId }
         }
       }
       result = result.filter((m) => {
-        // Match by new specialty_id
-        if (m.specialty_id && idSet.has(m.specialty_id)) return true;
-        // Fallback: match legacy specialty string against category/specialty names
-        if (m.specialty) {
-          for (const specId of selectedSpecialtyIds) {
-            const info = specialtyMap.get(specId);
-            if (info && (m.specialty === info.category || m.specialty === info.specialty || m.specialty.toLowerCase().includes(info.specialty.toLowerCase()))) {
-              return true;
-            }
-          }
-        }
-        return false;
+        const mIds = m.specialty_ids ?? [];
+        return mIds.some((id) => idSet.has(id));
       });
     }
     if (selectedLocation) result = result.filter((m) => m.location === selectedLocation);
