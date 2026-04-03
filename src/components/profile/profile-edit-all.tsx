@@ -313,7 +313,7 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
           {/* Availability */}
           <div className="space-y-[12px]">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-text-muted">Disponibilité</p>
-            <div className="grid grid-cols-3 gap-[8px]">
+            <div className="grid grid-cols-2 gap-[8px]">
               {AVAILABILITY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -328,7 +328,7 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
                 >
                   <span className={cn("h-[8px] w-[8px] rounded-full", opt.dot)} />
                   <span className={availability === opt.value ? opt.color : "text-text-secondary"}>
-                    {opt.label}
+                    {opt.shortLabel || opt.label}
                   </span>
                 </button>
               ))}

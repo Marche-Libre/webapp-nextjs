@@ -28,7 +28,7 @@ export type Profile = {
   phone: string | null;
   years_experience: number | null;
   country_code: string | null;
-  availability_status: "available" | "busy" | "unavailable";
+  availability_status: "available" | "busy" | "unavailable" | "unset";
   skills: string[];
   daily_rate: string | null;
   website: string | null;

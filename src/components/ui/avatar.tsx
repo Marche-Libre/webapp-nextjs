@@ -1,12 +1,13 @@
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
+import { AVAILABILITY_OPTIONS } from "@/lib/profile-utils";
 
 interface AvatarProps {
   src?: string | null;
   name: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
-  availability?: "available" | "busy" | "unavailable";
+  availability?: string;
 }
 
 const sizes = {
@@ -14,19 +15,6 @@ const sizes = {
   md: "h-[40px] w-[40px] text-[13px]",
   lg: "h-[48px] w-[48px] text-[15px]",
   xl: "h-[72px] w-[72px] text-[24px]",
-};
-
-const dotColors = {
-  available: "bg-green-500",
-  busy: "bg-amber-500",
-  unavailable: "bg-red-500",
-};
-
-const dotSizes = {
-  sm: "h-[8px] w-[8px] border",
-  md: "h-[10px] w-[10px] border-[1.5px]",
-  lg: "h-[11px] w-[11px] border-[1.5px]",
-  xl: "h-[14px] w-[14px] border-2",
 };
 
 // Twitter/X avatar URLs contain _normal (48px). Replace with a bigger variant.
@@ -57,18 +45,22 @@ export function Avatar({ src, name, size = "md", className, availability }: Avat
     </div>
   );
 
-  if (!availability) return inner;
+  if (!availability || availability === "unset") return inner;
+
+  const opt = AVAILABILITY_OPTIONS.find((o) => o.value === availability);
+  if (!opt) return inner;
 
   return (
     <div className="relative inline-flex shrink-0">
       {inner}
       <span
         className={cn(
-          "absolute bottom-0 right-0 rounded-full border-bg-base",
-          dotColors[availability],
-          dotSizes[size]
+          "absolute -bottom-[3px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border px-[5px] py-[1px] text-[8px] font-semibold leading-[11px]",
+          opt.badge
         )}
-      />
+      >
+        {opt.shortLabel}
+      </span>
     </div>
   );
 }
