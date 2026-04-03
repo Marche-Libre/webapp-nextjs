@@ -5,6 +5,7 @@ import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchSelect, type SearchSelectOption } from "@/components/ui/search-select";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { COUNTRIES, AVAILABILITY_OPTIONS } from "@/lib/profile-utils";
@@ -23,6 +24,7 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
   const [selectedSpecialtyIds, setSelectedSpecialtyIds] = useState<string[]>(profile.specialty_ids ?? []);
   const [skills, setSkills] = useState<string[]>(profile.skills ?? []);
   const [skillInput, setSkillInput] = useState("");
+  const [countryCode, setCountryCode] = useState(profile.country_code || "");
   const [availability, setAvailability] = useState(profile.availability_status || "available");
   const router = useRouter();
 
@@ -76,7 +78,7 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
       specialty_category_id: selectedCategoryId || null,
       specialty_ids: selectedSpecialtyIds,
       location: (formData.get("location") as string) || null,
-      country_code: (formData.get("country_code") as string) || null,
+      country_code: countryCode || null,
       years_experience: formData.get("years_experience") ? parseInt(formData.get("years_experience") as string, 10) : null,
       bio: (formData.get("bio") as string) || null,
       skills,
@@ -148,25 +150,16 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
           {/* Specialty */}
           <div className="space-y-[12px]">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-text-muted">Spécialité</p>
-            <div className="space-y-[6px]">
-              <label htmlFor="category_select" className="block text-[13px] font-medium text-text-secondary">
-                Catégorie
-              </label>
-              <select
-                id="category_select"
-                value={selectedCategoryId || ""}
-                onChange={(e) => {
-                  setSelectedCategoryId(e.target.value || null);
-                  setSelectedSpecialtyIds([]);
-                }}
-                className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
-              >
-                <option value="">Sélectionner une catégorie…</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
+            <SearchSelect
+              label="Catégorie"
+              placeholder="Rechercher une catégorie…"
+              value={selectedCategoryId || ""}
+              onChange={(val) => {
+                setSelectedCategoryId(val || null);
+                setSelectedSpecialtyIds([]);
+              }}
+              options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+            />
 
             {selectedCategoryId && subSpecialties.length > 0 && (
               <div className="space-y-[6px]">
@@ -197,24 +190,18 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
                   </div>
                 )}
                 {selectedSpecialtyIds.length < 3 && (
-                  <select
-                    id="specialty_select"
+                  <SearchSelect
+                    placeholder="Rechercher une spécialité…"
                     value=""
-                    onChange={(e) => {
-                      if (e.target.value && !selectedSpecialtyIds.includes(e.target.value)) {
-                        setSelectedSpecialtyIds((prev) => [...prev, e.target.value]);
+                    onChange={(val) => {
+                      if (val && !selectedSpecialtyIds.includes(val)) {
+                        setSelectedSpecialtyIds((prev) => [...prev, val]);
                       }
-                      e.target.value = "";
                     }}
-                    className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
-                  >
-                    <option value="">Sélectionner…</option>
-                    {subSpecialties
+                    options={subSpecialties
                       .filter((s) => !selectedSpecialtyIds.includes(s.id))
-                      .map((spec) => (
-                        <option key={spec.id} value={spec.id}>{spec.name}</option>
-                      ))}
-                  </select>
+                      .map((spec) => ({ value: spec.id, label: spec.name }))}
+                  />
                 )}
               </div>
             )}
@@ -275,22 +262,13 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
             />
 
             <div className="grid grid-cols-2 gap-[12px]">
-              <div className="space-y-[6px]">
-                <label htmlFor="country_code" className="block text-[13px] font-medium text-text-secondary">
-                  Pays
-                </label>
-                <select
-                  id="country_code"
-                  name="country_code"
-                  defaultValue={profile.country_code || ""}
-                  className="w-full rounded-lg border border-border-default bg-bg-elevated px-[12px] py-[9px] text-[14px] text-text-primary focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
-                >
-                  <option value="">Sélectionner…</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <SearchSelect
+                label="Pays"
+                placeholder="Rechercher un pays…"
+                value={countryCode}
+                onChange={(val) => setCountryCode(val)}
+                options={COUNTRIES.map((c) => ({ value: c.code, label: c.name, icon: <span>{c.flag}</span> }))}
+              />
               <Input
                 id="location"
                 name="location"
