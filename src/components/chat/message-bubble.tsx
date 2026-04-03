@@ -8,6 +8,7 @@ import { Pencil, Trash2, Check, X, Flag, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
 import { PostEmbed } from "./post-embed";
+import { UserHoverCard } from "./user-hover-card";
 
 const MENTION_REGEX = /@([A-Za-z0-9_]+)/g;
 
@@ -147,15 +148,19 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
 
   return (
     <div className={`flex items-start gap-[12px] px-[16px] py-[8px] hover:bg-bg-surface/50 transition-colors group relative ${message.is_pinned ? "bg-primary-50/30 border-l-2 border-primary-500" : ""}`}>
-      <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
+      <UserHoverCard authorId={message.author_id} x_handle={message.author.x_handle} avatar_url={message.author.avatar_url}>
+        <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" className="cursor-pointer" />
+      </UserHoverCard>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-[8px]">
           {message.is_pinned && (
             <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
           )}
-          <span className="text-[13px] font-semibold text-text-primary">
-            @{message.author.x_handle}
-          </span>
+          <UserHoverCard authorId={message.author_id} x_handle={message.author.x_handle} avatar_url={message.author.avatar_url}>
+            <span className="text-[13px] font-semibold text-text-primary cursor-pointer hover:underline">
+              @{message.author.x_handle}
+            </span>
+          </UserHoverCard>
           <span className="text-[10px] text-text-muted">
             {timeAgo(message.created_at)}
           </span>
