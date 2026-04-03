@@ -1,36 +1,17 @@
 import Link from "next/link";
-import { ToggleTheme } from "@/components/lightswind/toggle-theme";
 import { AnimatedHero } from "@/components/home/animated-hero";
 import { AnimatedFeatures } from "@/components/home/animated-features";
 import { AnimatedProfessions } from "@/components/home/animated-professions";
 import { AnimatedSteps } from "@/components/home/animated-steps";
 import { AnimatedCTA } from "@/components/home/animated-cta";
 import { FloatingHeader } from "@/components/home/floating-header";
+import { LandingHeader } from "@/components/home/landing-header";
 import { CookieBanner } from "@/components/ui/cookie-banner";
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-base-200">
-      {/* Static top bar — visible at top of page */}
-      <div className="flex items-center justify-between px-6 lg:px-10 py-4 bg-base-100">
-        <Link href="/" className="flex items-center gap-2 cursor-pointer">
-          <img src="/images/logo.png" alt="MarchéLibre" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-[17px] text-base-content tracking-tight">
-            MarchéLibre
-          </span>
-        </Link>
-        <div className="flex items-center gap-1.5">
-          <ToggleTheme animationType="circle-spread" className="text-base-content/50" />
-          <Link href="/connexion" className="btn btn-outline btn-sm border-base-300 text-base-content cursor-pointer">
-            Connexion
-          </Link>
-          <Link href="/inscription" className="btn btn-accent btn-sm text-accent-content cursor-pointer">
-            S&apos;inscrire gratuitement
-          </Link>
-        </div>
-      </div>
-
-      {/* Floating centered header — fades in on scroll */}
+      <LandingHeader />
       <FloatingHeader />
 
       <AnimatedHero />
