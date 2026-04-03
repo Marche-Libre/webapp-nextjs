@@ -79,14 +79,6 @@ export async function notifyMentions(
   // Deduplicate handles
   const handles = [...new Set(mentions.map((m) => m.slice(1).toLowerCase()))];
 
-  // Look up all mentioned profiles
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, x_handle")
-    .in("x_handle", handles);
-
-  if (!profiles || profiles.length === 0) return;
-
   // Fetch author handle for notification text
   const { data: actor } = await supabase
     .from("profiles")
@@ -95,6 +87,39 @@ export async function notifyMentions(
     .single();
 
   const label = params.type === "chat_mention" ? "le chat" : "le forum";
+
+  // Handle @everyone — notify all approved users
+  if (handles.includes("everyone")) {
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("status", "approved")
+      .neq("id", params.authorId);
+
+    if (allProfiles && allProfiles.length > 0) {
+      await Promise.all(
+        allProfiles.map((profile) =>
+          createNotification(supabase, {
+            userId: profile.id,
+            actorId: params.authorId,
+            type: params.type,
+            title: `@${actor?.x_handle ?? "?"} a mentionné @everyone dans ${label}`,
+            body: params.content.slice(0, 200),
+            link: params.link,
+          })
+        )
+      );
+    }
+    return;
+  }
+
+  // Look up all mentioned profiles
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, x_handle")
+    .in("x_handle", handles);
+
+  if (!profiles || profiles.length === 0) return;
 
   await Promise.all(
     profiles.map((profile) =>

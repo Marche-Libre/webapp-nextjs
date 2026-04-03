@@ -10,9 +10,10 @@ interface MessageAreaProps {
   channelId: string;
   userId: string;
   userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
+  isAdmin?: boolean;
 }
 
-export function MessageArea({ channelId, userId, userProfile }: MessageAreaProps) {
+export function MessageArea({ channelId, userId, userProfile, isAdmin }: MessageAreaProps) {
   const store = useChatStore();
   const { messages, reactions, hasMore, loaded } = useChannelState(channelId);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,6 +97,7 @@ export function MessageArea({ channelId, userId, userProfile }: MessageAreaProps
               reactions={reactions[msg.id]}
               onReact={(emoji) => store.toggleReaction(channelId, msg.id, emoji)}
               currentUserId={userId}
+              isAdmin={isAdmin}
               onMessageUpdated={() => store.refreshMessage(channelId, msg.id)}
             />
           ))}

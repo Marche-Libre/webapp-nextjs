@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { timeAgo } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
-import { Pencil, Trash2, Check, X, Flag } from "lucide-react";
+import { Pencil, Trash2, Check, X, Flag, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
 import { PostEmbed } from "./post-embed";
@@ -21,8 +21,9 @@ function renderContentWithMentions(content: string) {
     if (match.index > lastIndex) {
       parts.push(content.slice(lastIndex, match.index));
     }
+    const isEveryone = match[1].toLowerCase() === "everyone";
     parts.push(
-      <span key={match.index} className="text-primary-500 font-medium">
+      <span key={match.index} className={isEveryone ? "text-warning font-semibold bg-warning/10 px-[2px] rounded" : "text-primary-500 font-medium"}>
         {match[0]}
       </span>
     );
@@ -42,12 +43,13 @@ interface MessageBubbleProps {
   reactions?: { emoji: string; count: number; hasReacted: boolean }[];
   onReact?: (emoji: string) => void;
   currentUserId?: string;
+  isAdmin?: boolean;
   onMessageUpdated?: () => void;
 }
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 
-export function MessageBubble({ message, reactions, onReact, currentUserId, onMessageUpdated }: MessageBubbleProps) {
+export function MessageBubble({ message, reactions, onReact, currentUserId, isAdmin, onMessageUpdated }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [deleted, setDeleted] = useState(false);
@@ -86,6 +88,14 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, onMe
       .eq("id", message.id);
     setDeleted(true);
     setSaving(false);
+    onMessageUpdated?.();
+  };
+
+  const handleTogglePin = async () => {
+    await supabase
+      .from("messages")
+      .update({ is_pinned: !message.is_pinned })
+      .eq("id", message.id);
     onMessageUpdated?.();
   };
 
@@ -136,10 +146,13 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, onMe
   }
 
   return (
-    <div className="flex items-start gap-[12px] px-[16px] py-[8px] hover:bg-bg-surface/50 transition-colors group relative">
+    <div className={`flex items-start gap-[12px] px-[16px] py-[8px] hover:bg-bg-surface/50 transition-colors group relative ${message.is_pinned ? "bg-primary-50/30 border-l-2 border-primary-500" : ""}`}>
       <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-[8px]">
+          {message.is_pinned && (
+            <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
+          )}
           <span className="text-[13px] font-semibold text-text-primary">
             @{message.author.x_handle}
           </span>
@@ -222,6 +235,15 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, onMe
 
       {/* Hover actions */}
       <div className="absolute top-[4px] right-[12px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-[2px]">
+        {isAdmin && (
+          <button
+            onClick={handleTogglePin}
+            className={`p-[4px] rounded hover:bg-bg-surface cursor-pointer transition-colors ${message.is_pinned ? "text-primary-500" : "text-text-muted hover:text-text-secondary"}`}
+            title={message.is_pinned ? "Désépingler" : "Épingler"}
+          >
+            <Pin className="h-[13px] w-[13px]" />
+          </button>
+        )}
         {isOwn && !editing && (
           <>
             <button

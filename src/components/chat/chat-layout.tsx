@@ -132,12 +132,14 @@ function ChatArea({
   channels,
   userId,
   userProfile,
+  isAdmin,
   initialMessages,
   initialChannelId,
 }: {
   channels: Channel[];
   userId: string;
   userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
+  isAdmin?: boolean;
   initialMessages?: any[];
   initialChannelId?: string | null;
 }) {
@@ -261,6 +263,7 @@ function ChatArea({
             channelId={activeChannel.id}
             userId={userId}
             userProfile={userProfile}
+            isAdmin={isAdmin}
           />
         </div>
 
@@ -364,6 +367,7 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
                 full_name: profile.full_name,
                 avatar_url: profile.avatar_url,
               }}
+              isAdmin={profile.is_admin}
               initialMessages={initialMessages}
               initialChannelId={initialChannelId}
             />
