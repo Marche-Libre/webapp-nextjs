@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility")
+    .select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, specialty_category_ids, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility")
     .eq("id", user.id)
     .single();
 
@@ -46,7 +46,7 @@ export default async function OnboardingPage() {
   // Fetch a few members for discovery (will be filtered client-side based on user's search)
   const { data: members } = await supabase
     .from("profiles")
-    .select("id, x_handle, full_name, avatar_url, specialty_ids, specialty_category_id, location, bio")
+    .select("id, x_handle, full_name, avatar_url, specialty_ids, specialty_category_id, specialty_category_ids, location, bio")
     .eq("status", "approved")
     .neq("id", user.id)
     .limit(50);

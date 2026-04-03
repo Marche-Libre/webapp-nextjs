@@ -21,6 +21,7 @@ export type Profile = {
   last_name: string | null;
   specialty_ids: string[];
   specialty_category_id: string | null;
+  specialty_category_ids: string[];
   location: string | null;
   bio: string | null;
   x_handle: string;

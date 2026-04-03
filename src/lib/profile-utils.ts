@@ -127,16 +127,27 @@ export function getProfileCompleteness(profile: Profile): { percent: number; mis
 // ─── Specialty display ───
 
 export function getSpecialtyDisplay(
-  profile: Pick<Profile, "specialty_ids" | "specialty_category_id">,
+  profile: Pick<Profile, "specialty_ids" | "specialty_category_id"> & { specialty_category_ids?: string[] },
   categories: (SpecialtyCategory & { specialties: Specialty[] })[],
-): { categoryName: string | null; specialtyNames: string[] } {
-  if (!profile.specialty_category_id) return { categoryName: null, specialtyNames: [] };
-  const cat = categories.find((c) => c.id === profile.specialty_category_id);
-  if (!cat) return { categoryName: null, specialtyNames: [] };
+): { categoryName: string | null; categoryNames: string[]; specialtyNames: string[] } {
+  const catIds = profile.specialty_category_ids?.length
+    ? profile.specialty_category_ids
+    : profile.specialty_category_id
+      ? [profile.specialty_category_id]
+      : [];
+
+  if (catIds.length === 0) return { categoryName: null, categoryNames: [], specialtyNames: [] };
+
+  const matchedCats = catIds.map((id) => categories.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c);
+  const allSpecs = matchedCats.flatMap((c) => c.specialties || []);
 
   const specialtyNames = (profile.specialty_ids ?? [])
-    .map((id) => cat.specialties.find((s) => s.id === id)?.name)
+    .map((id) => allSpecs.find((s) => s.id === id)?.name)
     .filter((n): n is string => !!n);
 
-  return { categoryName: cat.name, specialtyNames };
+  return {
+    categoryName: matchedCats[0]?.name || null,
+    categoryNames: matchedCats.map((c) => c.name),
+    specialtyNames,
+  };
 }

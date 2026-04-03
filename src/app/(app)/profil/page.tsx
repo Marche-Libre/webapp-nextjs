@@ -16,7 +16,7 @@ export default async function ProfilPage() {
   if (!user) redirect("/connexion");
 
   const [{ data: profile }, { data: categoriesData }] = await Promise.all([
-    supabase.from("profiles").select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility").eq("id", user.id).single(),
+    supabase.from("profiles").select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, specialty_category_ids, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility").eq("id", user.id).single(),
     supabase.from("specialty_categories").select("*, specialties(*)").order("sort_order", { ascending: true }),
   ]);
 
@@ -55,9 +55,9 @@ export default async function ProfilPage() {
                   </p>
                 )}
                 <div className="flex items-center gap-[8px] mt-[8px] flex-wrap">
-                  {specDisplay.categoryName && (
-                    <Badge variant="primary">{specDisplay.categoryName}</Badge>
-                  )}
+                  {specDisplay.categoryNames.map((name) => (
+                    <Badge key={name} variant="primary">{name}</Badge>
+                  ))}
                   {specDisplay.specialtyNames.map((name) => (
                     <span
                       key={name}

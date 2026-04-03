@@ -20,7 +20,9 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<(SpecialtyCategory & { specialties: Specialty[] })[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(profile.specialty_category_id || null);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+    profile.specialty_category_ids?.length ? profile.specialty_category_ids : profile.specialty_category_id ? [profile.specialty_category_id] : []
+  );
   const [selectedSpecialtyIds, setSelectedSpecialtyIds] = useState<string[]>(profile.specialty_ids ?? []);
   const [skills, setSkills] = useState<string[]>(profile.skills ?? []);
   const [skillInput, setSkillInput] = useState("");
@@ -41,8 +43,8 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
     }
   }, [open, categories.length]);
 
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
-  const subSpecialties = selectedCategory?.specialties ?? [];
+  const selectedCategories = categories.filter((c) => selectedCategoryIds.includes(c.id));
+  const allSubSpecialties = selectedCategories.flatMap((c) => c.specialties || []);
 
   const handleSkillKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && skillInput.trim() && skills.length < 5) {
@@ -75,7 +77,8 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
       last_name: lastName,
       full_name: fullName,
       phone: (formData.get("phone") as string) || null,
-      specialty_category_id: selectedCategoryId || null,
+      specialty_category_id: selectedCategoryIds[0] || null,
+      specialty_category_ids: selectedCategoryIds,
       specialty_ids: selectedSpecialtyIds,
       location: (formData.get("location") as string) || null,
       country_code: countryCode || null,
@@ -149,27 +152,65 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
 
           {/* Specialty */}
           <div className="space-y-[12px]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-text-muted">Spécialité</p>
-            <SearchSelect
-              label="Catégorie"
-              placeholder="Rechercher une catégorie…"
-              value={selectedCategoryId || ""}
-              onChange={(val) => {
-                setSelectedCategoryId(val || null);
-                setSelectedSpecialtyIds([]);
-              }}
-              options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
-            />
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-text-muted">Spécialités</p>
 
-            {selectedCategoryId && subSpecialties.length > 0 && (
+            {/* Selected categories as pills */}
+            {selectedCategoryIds.length > 0 && (
+              <div className="flex flex-wrap gap-[6px]">
+                {selectedCategoryIds.map((catId) => {
+                  const cat = categories.find((c) => c.id === catId);
+                  if (!cat) return null;
+                  return (
+                    <span
+                      key={catId}
+                      className="inline-flex items-center gap-[4px] rounded-md px-[8px] py-[3px] text-[12px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20"
+                    >
+                      {cat.name}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategoryIds((prev) => prev.filter((x) => x !== catId));
+                          // Remove sub-specialties of this category
+                          const catSpecIds = (cat.specialties || []).map((s) => s.id);
+                          setSelectedSpecialtyIds((prev) => prev.filter((x) => !catSpecIds.includes(x)));
+                        }}
+                        className="hover:text-primary-700 cursor-pointer"
+                      >
+                        <X className="h-[10px] w-[10px]" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add category */}
+            {selectedCategoryIds.length < 5 && (
+              <SearchSelect
+                label={selectedCategoryIds.length === 0 ? "Catégorie" : "Ajouter une catégorie"}
+                placeholder="Rechercher une catégorie…"
+                value=""
+                onChange={(val) => {
+                  if (val && !selectedCategoryIds.includes(val)) {
+                    setSelectedCategoryIds((prev) => [...prev, val]);
+                  }
+                }}
+                options={categories
+                  .filter((c) => !selectedCategoryIds.includes(c.id))
+                  .map((cat) => ({ value: cat.id, label: cat.name }))}
+              />
+            )}
+
+            {/* Sub-specialties for all selected categories */}
+            {selectedCategoryIds.length > 0 && allSubSpecialties.length > 0 && (
               <div className="space-y-[6px]">
                 <label className="block text-[13px] font-medium text-text-secondary">
-                  Sous-spécialités <span className="text-text-muted font-normal">({selectedSpecialtyIds.length}/3)</span>
+                  Sous-spécialités <span className="text-text-muted font-normal">({selectedSpecialtyIds.length}/5)</span>
                 </label>
                 {selectedSpecialtyIds.length > 0 && (
                   <div className="flex flex-wrap gap-[6px] mb-[6px]">
                     {selectedSpecialtyIds.map((id) => {
-                      const spec = subSpecialties.find((s) => s.id === id);
+                      const spec = allSubSpecialties.find((s) => s.id === id);
                       if (!spec) return null;
                       return (
                         <span
@@ -189,7 +230,7 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
                     })}
                   </div>
                 )}
-                {selectedSpecialtyIds.length < 3 && (
+                {selectedSpecialtyIds.length < 5 && (
                   <SearchSelect
                     placeholder="Rechercher une spécialité…"
                     value=""
@@ -198,7 +239,7 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
                         setSelectedSpecialtyIds((prev) => [...prev, val]);
                       }
                     }}
-                    options={subSpecialties
+                    options={allSubSpecialties
                       .filter((s) => !selectedSpecialtyIds.includes(s.id))
                       .map((spec) => ({ value: spec.id, label: spec.name }))}
                   />
@@ -256,9 +297,11 @@ export function ProfileEditAll({ profile }: ProfileEditAllProps) {
             <Input
               id="daily_rate"
               name="daily_rate"
-              label="Tarif journalier"
+              label="Tarif journalier (€/jour)"
+              type="number"
+              min={0}
               defaultValue={profile.daily_rate || ""}
-              placeholder="ex : 400-600€/jour"
+              placeholder="ex : 500"
             />
 
             <div className="grid grid-cols-2 gap-[12px]">
