@@ -32,12 +32,15 @@ function getInitialTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    // Ensure DOM is in sync (handles SSR mismatch)
-    applyTheme(theme);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Read the real theme on mount (client-side only)
+    const stored = localStorage.getItem("ml-theme") as Theme | null;
+    const real = stored === "light" ? "light" : "dark";
+    setThemeState(real);
+    applyTheme(real);
+  }, []);
 
   const setTheme = (next: Theme) => {
     const html = document.documentElement;
