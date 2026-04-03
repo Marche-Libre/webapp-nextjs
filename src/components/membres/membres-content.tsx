@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { MapPin, Users, MoreHorizontal, Flag, Ban, X, List, LayoutGrid, ChevronLeft, ChevronRight, ArrowDownAZ, ArrowUpZA, Clock } from "lucide-react";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { HierarchicalFilterDropdown, FilterDropdown } from "@/components/ui/filter-dropdown";
 import type { CategoryWithSpecialties } from "@/components/ui/filter-dropdown";
@@ -135,9 +135,10 @@ function MemberListItem({ m, currentUserId, specDisplay }: { m: Profile; current
         <Avatar src={m.avatar_url} name={m.x_handle} size="md" availability={m.availability_status} />
       </Link>
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-[8px]">
+        <div className="flex items-center gap-[8px] flex-wrap">
           <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">@{m.x_handle}</Link>
           {m.full_name && <span className="text-[12px] text-text-muted shrink-0 hidden sm:inline">{m.full_name}</span>}
+          <AvailabilityBadge status={m.availability_status} />
         </div>
         {(hasSpec || m.location) && (
           <div className="flex items-center gap-[6px] mt-[4px] flex-wrap">
@@ -183,8 +184,9 @@ function MemberGridCard({ m, currentUserId, specDisplay }: { m: Profile; current
           </div>
           <MemberMenu memberId={m.id} currentUserId={currentUserId} />
         </div>
+        <AvailabilityBadge status={m.availability_status} />
       </div>
-      <div className="px-[20px] flex flex-wrap gap-[6px]">
+      <div className="px-[20px] flex flex-wrap gap-[6px] mt-[8px]">
         {specDisplay.categoryName && <Badge variant="primary">{specDisplay.categoryName}</Badge>}
         {specDisplay.specialtyNames.map((name) => (
           <span key={name} className="inline-flex items-center rounded-md px-[8px] py-[3px] text-[11px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20">{name}</span>

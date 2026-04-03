@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Mail, Globe, Briefcase, Clock } from "lucide-react";
@@ -198,9 +198,12 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isB
             availability={member.availability_status}
           />
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-[20px] font-bold text-text-primary tracking-[-0.02em]">
-              @{member.x_handle}
-            </h1>
+            <div className="flex items-center gap-[10px] flex-wrap">
+              <h1 className="font-display text-[20px] font-bold text-text-primary tracking-[-0.02em]">
+                @{member.x_handle}
+              </h1>
+              <AvailabilityBadge status={member.availability_status} />
+            </div>
             {member.full_name && (
               <p className="text-[14px] text-text-secondary mt-[2px]">{member.full_name}</p>
             )}

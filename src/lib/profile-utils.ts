@@ -82,9 +82,9 @@ export const COUNTRIES = [
 // ─── Availability ───
 
 export const AVAILABILITY_OPTIONS = [
-  { value: "available" as const, label: "Disponible pour des missions", shortLabel: "Disponible", color: "text-green-500", dot: "bg-green-500", badge: "bg-green-500/10 text-green-600 border-green-500/20" },
-  { value: "busy" as const, label: "En mission", shortLabel: "En mission", color: "text-amber-500", dot: "bg-amber-500", badge: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { value: "unavailable" as const, label: "Indisponible", shortLabel: "Indisponible", color: "text-red-500", dot: "bg-red-500", badge: "bg-red-500/10 text-red-600 border-red-500/20" },
+  { value: "available" as const, label: "Disponible pour une mission", shortLabel: "Disponible", color: "text-green-500", dot: "bg-green-500", badge: "bg-green-500/10 text-green-600 border-green-500/20" },
+  { value: "busy" as const, label: "Actuellement en mission", shortLabel: "En mission", color: "text-amber-500", dot: "bg-amber-500", badge: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  { value: "unavailable" as const, label: "Pas disponible pour le moment", shortLabel: "Indisponible", color: "text-red-500", dot: "bg-red-500", badge: "bg-red-500/10 text-red-600 border-red-500/20" },
   { value: "unset" as const, label: "Non renseigné", shortLabel: "", color: "text-text-muted", dot: "bg-text-muted", badge: "bg-bg-surface text-text-muted border-border-default" },
 ];
 

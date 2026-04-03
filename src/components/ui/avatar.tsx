@@ -17,6 +17,13 @@ const sizes = {
   xl: "h-[72px] w-[72px] text-[24px]",
 };
 
+const dotSizes = {
+  sm: "h-[8px] w-[8px] border",
+  md: "h-[10px] w-[10px] border-[1.5px]",
+  lg: "h-[11px] w-[11px] border-[1.5px]",
+  xl: "h-[14px] w-[14px] border-2",
+};
+
 // Twitter/X avatar URLs contain _normal (48px). Replace with a bigger variant.
 function getHiResAvatar(url: string): string {
   return url.replace(/_normal\./, "_400x400.");
@@ -55,12 +62,25 @@ export function Avatar({ src, name, size = "md", className, availability }: Avat
       {inner}
       <span
         className={cn(
-          "absolute -bottom-[3px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border px-[5px] py-[1px] text-[8px] font-semibold leading-[11px]",
-          opt.badge
+          "absolute bottom-0 right-0 rounded-full border-bg-base",
+          opt.dot,
+          dotSizes[size]
         )}
-      >
-        {opt.shortLabel}
-      </span>
+      />
     </div>
+  );
+}
+
+/** Standalone availability badge — use next to handle/name */
+export function AvailabilityBadge({ status }: { status?: string }) {
+  if (!status || status === "unset") return null;
+  const opt = AVAILABILITY_OPTIONS.find((o) => o.value === status);
+  if (!opt) return null;
+
+  return (
+    <span className={cn("inline-flex items-center gap-[5px] rounded-full px-[10px] py-[3px] text-[11px] font-medium border", opt.badge)}>
+      <span className={cn("h-[6px] w-[6px] rounded-full", opt.dot)} />
+      {opt.label}
+    </span>
   );
 }

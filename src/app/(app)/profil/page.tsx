@@ -1,11 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Globe, Briefcase, Clock } from "lucide-react";
 import { ProfileEditAll } from "@/components/profile/profile-edit-all";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
-import { countryFlag, getAvailabilityOption, getProfileCompleteness, getSpecialtyDisplay } from "@/lib/profile-utils";
+import { countryFlag, getProfileCompleteness, getSpecialtyDisplay } from "@/lib/profile-utils";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -24,7 +24,6 @@ export default async function ProfilPage() {
 
   const specDisplay = getSpecialtyDisplay(profile, categoriesData ?? []);
 
-  const availOpt = getAvailabilityOption(profile.availability_status);
   const { percent, missing } = getProfileCompleteness(profile);
   const skills = profile.skills ?? [];
 
@@ -48,6 +47,7 @@ export default async function ProfilPage() {
                     @{profile.x_handle}
                   </h2>
                   <Badge variant="success">Vérifié</Badge>
+                  <AvailabilityBadge status={profile.availability_status} />
                 </div>
                 {profile.full_name && (
                   <p className="text-[14px] text-text-secondary mt-[2px]">
