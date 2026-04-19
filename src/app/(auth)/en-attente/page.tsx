@@ -9,28 +9,45 @@ import type { Invitation, SponsorshipRequest } from "@/lib/types/database";
 
 export default async function EnAttentePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) redirect("/connexion");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, email, phone, x_handle, full_name, first_name, last_name, avatar_url, specialty_ids, specialty_category_id, specialty_category_ids, location, bio, status, is_admin, links, accept_dms, accept_sponsorship, accept_referrals, sponsored_by, sponsor_approved, onboarding_completed, looking_for, created_at, updated_at, hidden_channel_ids, availability_status, skills, country_code, years_experience, daily_rate, website, visibility")
+    .select("id, status, onboarding_completed, x_handle, sponsor_approved")
     .eq("id", user.id)
     .single();
 
+  if (profileError) {
+    console.error("[en-attente] profile fetch failed", profileError.message);
+    redirect("/connexion");
+  }
+
   if (!profile) redirect("/connexion");
-  if (profile.status === "approved") redirect("/forum");
+
+  if (profile.status === "rejected") {
+    redirect("/connexion");
+  }
+
+  if (profile.status === "approved") {
+    redirect(profile.onboarding_completed ? "/forum" : "/onboarding");
+  }
 
   const { data: invitations } = profile.x_handle
     ? await supabase
         .from("invitations")
-        .select("*, inviter:profiles!inviter_id(x_handle, full_name, avatar_url)")
+        .select(
+          "*, inviter:profiles!inviter_id(x_handle, full_name, avatar_url)",
+        )
         .eq("invited_x_handle", profile.x_handle)
         .eq("status", "pending")
     : { data: null };
 
-  const hasInvitations = invitations && invitations.length > 0;
+  const hasInvitations = !!invitations?.length;
 
   const { data: sponsorshipRequests } = await supabase
     .from("sponsorship_requests")
@@ -38,12 +55,14 @@ export default async function EnAttentePage() {
     .eq("requester_id", user.id)
     .order("attempt_number", { ascending: false });
 
-  const xHandle = profile.x_handle || user.user_metadata?.user_name || user.user_metadata?.preferred_username;
+  const xHandle =
+    profile.x_handle ||
+    user.user_metadata?.user_name ||
+    user.user_metadata?.preferred_username;
 
   return (
     <div className="w-full max-w-[600px] mx-auto">
       <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
-        {/* Header */}
         <div className="px-8 pt-8 pb-6 text-center border-b border-base-content/[0.06]">
           {hasInvitations ? (
             <>
@@ -63,7 +82,12 @@ export default async function EnAttentePage() {
                 <Clock className="h-7 w-7 text-warning" />
               </div>
               <h1 className="text-xl font-bold text-base-content tracking-tight">
-                Bienvenue{xHandle ? <>, <span className="text-accent">@{xHandle}</span></> : null}
+                Bienvenue
+                {xHandle ? (
+                  <>
+                    , <span className="text-accent">@{xHandle}</span>
+                  </>
+                ) : null}
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 MarchéLibre est un réseau sur invitation.
@@ -78,13 +102,23 @@ export default async function EnAttentePage() {
         <div className="px-8 py-6">
           {hasInvitations ? (
             <div className="space-y-2">
-              {invitations.map((inv: Invitation & { inviter: { x_handle: string; full_name: string; avatar_url: string | null } }) => (
-                <InvitationCard
-                  key={inv.id}
-                  invitation={inv}
-                  mode="received"
-                />
-              ))}
+              {invitations.map(
+                (
+                  inv: Invitation & {
+                    inviter: {
+                      x_handle: string;
+                      full_name: string;
+                      avatar_url: string | null;
+                    };
+                  },
+                ) => (
+                  <InvitationCard
+                    key={inv.id}
+                    invitation={inv}
+                    mode="received"
+                  />
+                ),
+              )}
             </div>
           ) : profile.sponsor_approved ? (
             <div className="flex items-center gap-3 p-3.5 rounded-xl bg-success/10 text-sm text-success">
@@ -93,7 +127,9 @@ export default async function EnAttentePage() {
             </div>
           ) : (
             <WaitingPageClient
-              existingRequests={(sponsorshipRequests as SponsorshipRequest[]) || []}
+              existingRequests={
+                (sponsorshipRequests as SponsorshipRequest[]) || []
+              }
               requesterId={user.id}
             />
           )}
