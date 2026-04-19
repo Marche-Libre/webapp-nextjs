@@ -58,16 +58,11 @@ export default async function OnboardingPage() {
     .eq("slug", "presentations")
     .single();
 
-  // Fetch countries and cities from DB
+  // Fetch countries from DB (city search is now API-driven)
   const { data: countries } = await supabase
     .from("countries")
     .select("id, name, flag, code, is_francophone")
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-
-  const { data: cities } = await supabase
-    .from("cities")
-    .select("id, name, country_id, region")
+    .order("is_francophone", { ascending: false })
     .order("name", { ascending: true });
 
   return (
@@ -81,7 +76,6 @@ export default async function OnboardingPage() {
           members={members ?? []}
           presentationsCategoryId={presentationsCat?.id ?? null}
           countries={countries ?? []}
-          cities={cities ?? []}
         />
       </div>
     </div>
