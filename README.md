@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MarcheLibre Webapp
 
-## Getting Started
+Application Next.js / Supabase du projet Le Marche Libre.
 
-First, run the development server:
+## Etat actuel
+
+Au 2026-04-24, ce repo contient un prototype produit avance couvrant deja :
+
+- auth X et session
+- admission membre avec statuts
+- onboarding et parrainage
+- annuaire / profils
+- forum
+- chat / notifications
+- admin
+
+Le repo n'est cependant pas encore pleinement aligne avec le scope produit ecrit ni avec un niveau de qualite release-ready :
+
+- `npm run build` passe
+- `npm run lint` echoue
+- `npx vitest run` echoue partiellement
+- le schema Supabase utilise en runtime n'est pas entierement reproductible depuis les migrations versionnees
+
+Le cadrage, le PRD et la roadmap vivent dans le repo `Marche-Libre/le-marche-libre`.
+
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript strict
+- Supabase (auth, DB, storage, realtime)
+- Tailwind CSS 4
+- Vitest + Testing Library
+
+## Commandes utiles
+
+Depuis ce dossier :
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run start
+npm run lint
+npx vitest run
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Zones fonctionnelles presentes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- landing + pages legales
+- auth / callback OAuth
+- onboarding
+- forum
+- annuaire membres
+- profil et parametres
+- chat
+- notifications
+- parrainages
+- admin
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Risques connus
 
-## Learn More
+- drift entre code et scope produit ecrit
+- drift entre code et schema Supabase versionne
+- backlog GitHub encore peu representatif de l'etat reel du code
+- absence de CI visible dans le repo
 
-To learn more about Next.js, take a look at the following resources:
+## Intention de travail
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+La priorite n'est pas d'ajouter de nouvelles features. La priorite est :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. stabiliser les parcours coeur
+2. rendre le schema et l'environnement reproductibles
+3. realigner le backlog avec l'etat reel du produit
+4. preparer une beta fermee proprement cadree
