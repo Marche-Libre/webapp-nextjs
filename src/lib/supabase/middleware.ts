@@ -8,7 +8,7 @@ export async function updateSession(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {
@@ -16,17 +16,17 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
+            request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
   const {
@@ -36,7 +36,13 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Public routes that don't require auth
-  const publicRoutes = ["/", "/connexion", "/inscription", "/en-attente", "/rejoindre"];
+  const publicRoutes = [
+    "/",
+    "/connexion",
+    "/inscription",
+    "/en-attente",
+    "/rejoindre",
+  ];
   const isPublicRoute =
     publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
 
@@ -74,7 +80,14 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Fully onboarded users on landing/auth pages → redirect to app
-    if (isApproved && isOnboarded && (pathname === "/" || pathname === "/connexion" || pathname === "/inscription" || pathname === "/en-attente")) {
+    if (
+      isApproved &&
+      isOnboarded &&
+      (pathname === "/" ||
+        pathname === "/connexion" ||
+        pathname === "/inscription" ||
+        pathname === "/en-attente")
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/forum";
       return NextResponse.redirect(url);
@@ -84,8 +97,14 @@ export async function updateSession(request: NextRequest) {
   // Security headers
   supabaseResponse.headers.set("X-Frame-Options", "DENY");
   supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
-  supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  supabaseResponse.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  supabaseResponse.headers.set(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin",
+  );
+  supabaseResponse.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
   supabaseResponse.headers.set("X-XSS-Protection", "1; mode=block");
 
   return supabaseResponse;

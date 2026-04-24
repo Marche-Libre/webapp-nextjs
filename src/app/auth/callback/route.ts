@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
           cookiesToSet.forEach((c) => cookiesToWrite.push(c));
         },
       },
-    }
+    },
   );
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -58,7 +58,11 @@ export async function GET(request: NextRequest) {
 
   if (profile?.status === "approved") {
     // Clear stale referral
-    cookiesToWrite.push({ name: "ml-referral", value: "", options: { path: "/", maxAge: 0 } });
+    cookiesToWrite.push({
+      name: "ml-referral",
+      value: "",
+      options: { path: "/", maxAge: 0 },
+    });
     redirectPath = profile.onboarding_completed ? "/forum" : "/onboarding";
   } else {
     // New/pending user — handle referral
@@ -88,7 +92,10 @@ export async function GET(request: NextRequest) {
             .eq("sponsored_by", sponsor.id)
             .eq("status", "approved");
 
-          if ((pendingCount ?? 0) >= MAX_PENDING_REFERRALS || (totalFilleuls ?? 0) >= MAX_TOTAL_FILLEULS) {
+          if (
+            (pendingCount ?? 0) >= MAX_PENDING_REFERRALS ||
+            (totalFilleuls ?? 0) >= MAX_TOTAL_FILLEULS
+          ) {
             canSponsor = false;
           }
         }
@@ -109,7 +116,11 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      cookiesToWrite.push({ name: "ml-referral", value: "", options: { path: "/", maxAge: 0 } });
+      cookiesToWrite.push({
+        name: "ml-referral",
+        value: "",
+        options: { path: "/", maxAge: 0 },
+      });
     }
 
     redirectPath = "/en-attente";

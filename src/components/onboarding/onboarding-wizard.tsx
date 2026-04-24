@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useConfetti } from "@/hooks/use-confetti";
@@ -41,6 +41,15 @@ type MemberPreview = {
   bio: string | null;
 };
 
+type CitySuggestion = {
+  name: string;
+  region: string | null;
+  countryCode: string;
+  countryName: string;
+  label: string;
+  source: "geonames" | "fallback-db";
+};
+
 interface OnboardingWizardProps {
   profile: Profile;
   specialtyCategories: (SpecialtyCategory & { specialties: { id: string; name: string }[] })[];
@@ -49,7 +58,6 @@ interface OnboardingWizardProps {
   members: MemberPreview[];
   presentationsCategoryId: string | null;
   countries: { id: string; name: string; flag: string; code: string; is_francophone: boolean }[];
-  cities: { id: string; name: string; country_id: string; region: string | null }[];
 }
 
 const TOTAL_STEPS = 9;
@@ -74,7 +82,6 @@ export function OnboardingWizard({
   members,
   presentationsCategoryId,
   countries,
-  cities,
 }: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -99,6 +106,9 @@ export function OnboardingWizard({
     if (profile.location?.includes(",")) return profile.location.split(",")[0]?.trim() || "";
     return "";
   });
+  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
+  const [citySearchLoading, setCitySearchLoading] = useState(false);
+  const [citySearchError, setCitySearchError] = useState<string | null>(null);
 
   const [bio, setBio] = useState(profile.bio || "");
 
@@ -116,6 +126,107 @@ export function OnboardingWizard({
   // Looking for
   const [lookingForTags, setLookingForTags] = useState<string[]>([]);
   const [lookingForCities, setLookingForCities] = useState<string[]>([]);
+  const [lookingForCityQuery, setLookingForCityQuery] = useState("");
+  const [lookingForCitySuggestions, setLookingForCitySuggestions] = useState<CitySuggestion[]>([]);
+  const [lookingForCityLoading, setLookingForCityLoading] = useState(false);
+  const [lookingForCityError, setLookingForCityError] = useState<string | null>(null);
+
+  const selectedCountry = countries.find((c) => c.name === country) ?? null;
+
+  useEffect(() => {
+    if (step !== 4) return;
+
+    const query = city.trim();
+    if (query.length < 2) {
+      setCitySuggestions([]);
+      setCitySearchError(null);
+      setCitySearchLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setCitySearchLoading(true);
+      setCitySearchError(null);
+
+      try {
+        const params = new URLSearchParams({ q: query, limit: "12", lang: "fr" });
+        if (selectedCountry?.code) params.set("country", selectedCountry.code);
+
+        const response = await fetch(`/api/geo/cities?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("city-search-failed");
+        }
+
+        const payload = (await response.json()) as { results?: CitySuggestion[] };
+        setCitySuggestions(payload.results ?? []);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setCitySearchError("Recherche indisponible pour le moment.");
+          setCitySuggestions([]);
+        }
+      } finally {
+        setCitySearchLoading(false);
+      }
+    }, 280);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [city, selectedCountry?.code, step]);
+
+  useEffect(() => {
+    if (step !== 7) return;
+
+    const query = lookingForCityQuery.trim();
+    if (query.length < 2) {
+      setLookingForCitySuggestions([]);
+      setLookingForCityError(null);
+      setLookingForCityLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setLookingForCityLoading(true);
+      setLookingForCityError(null);
+
+      try {
+        const params = new URLSearchParams({ q: query, limit: "10", lang: "fr" });
+
+        const response = await fetch(`/api/geo/cities?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("city-search-failed");
+        }
+
+        const payload = (await response.json()) as { results?: CitySuggestion[] };
+        const results = payload.results ?? [];
+
+        setLookingForCitySuggestions(
+          results.filter((item) => !lookingForCities.includes(item.name)),
+        );
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setLookingForCityError("Recherche indisponible pour le moment.");
+          setLookingForCitySuggestions([]);
+        }
+      } finally {
+        setLookingForCityLoading(false);
+      }
+    }, 280);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [lookingForCityQuery, lookingForCities, step]);
 
   // Specialty labels — handles both category IDs (cat:xxx) and specialty IDs
   const specNameMap = new Map<string, string>();
@@ -458,7 +569,12 @@ export function OnboardingWizard({
               label="Pays"
               placeholder="Sélectionner votre pays…"
               value={country}
-              onChange={(value) => { setCountry(value === "__non_renseigne" ? "" : value); setCity(""); }}
+              onChange={(value) => {
+                setCountry(value === "__non_renseigne" ? "" : value);
+                setCity("");
+                setCitySuggestions([]);
+                setCitySearchError(null);
+              }}
               options={[
                 { value: "__non_renseigne", label: "Non renseigné" },
                 ...countries.map((c) => ({
@@ -469,37 +585,62 @@ export function OnboardingWizard({
                 })),
               ]}
             />
-            <SearchSelect
-              label="Ville"
-              placeholder="Rechercher votre ville…"
-              value={city}
-              onChange={(value, label) => {
-                setCity(label);
-                // Auto-set country from city if not already set
-                if (!country) {
-                  const selectedCity = cities.find((c) => c.name === label);
-                  if (selectedCity) {
-                    const co = countries.find((c) => c.id === selectedCity.country_id);
-                    if (co) setCountry(co.name);
-                  }
-                }
-              }}
-              options={(() => {
-                if (country) {
-                  // Filter by selected country
-                  const co = countries.find((c) => c.name === country);
-                  if (!co) return [];
-                  return cities
-                    .filter((c) => c.country_id === co.id)
-                    .map((c) => ({ value: c.name, label: c.name, group: c.region || undefined }));
-                }
-                // No country selected — show ALL cities grouped by country
-                return cities.map((c) => {
-                  const co = countries.find((ct) => ct.id === c.country_id);
-                  return { value: c.name, label: c.name, group: co ? co.name : undefined };
-                });
-              })()}
-            />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-base-content/70">Ville</label>
+
+              <div className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-4 py-2.5 focus-within:border-accent transition-colors">
+                <input
+                  value={city}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    setCitySearchError(null);
+                  }}
+                  placeholder="Rechercher votre ville…"
+                  className="w-full bg-transparent text-sm text-base-content placeholder:text-base-content/30 focus:outline-none"
+                />
+              </div>
+
+              {citySearchLoading && (
+                <p className="text-xs text-base-content/40">Recherche de villes…</p>
+              )}
+
+              {citySearchError && (
+                <p className="text-xs text-warning">{citySearchError}</p>
+              )}
+
+              {citySuggestions.length > 0 && (
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-base-content/[0.08] bg-base-100 divide-y divide-base-content/[0.05]">
+                  {citySuggestions.map((item) => (
+                    <button
+                      key={`${item.name}-${item.countryCode}-${item.region ?? ""}`}
+                      type="button"
+                      onClick={() => {
+                        setCity(item.name);
+                        setCitySuggestions([]);
+                        setCitySearchError(null);
+
+                        if (!country) {
+                          const detectedCountry =
+                            countries.find((c) => c.code === item.countryCode)?.name ||
+                            item.countryName;
+                          setCountry(detectedCountry);
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 text-left hover:bg-base-content/[0.04] transition-colors cursor-pointer"
+                    >
+                      <p className="text-sm text-base-content">{item.name}</p>
+                      <p className="text-xs text-base-content/40">
+                        {[item.region, item.countryName].filter(Boolean).join(" · ")}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-base-content/35">
+                Tapez au moins 2 lettres pour rechercher parmi les villes mondiales.
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-between pt-4 mt-auto">
@@ -697,25 +838,78 @@ export function OnboardingWizard({
                   ))}
                 </div>
               )}
-              <SearchSelect
-                placeholder="Ajouter une ville…"
-                value=""
-                onChange={(_, label) => {
-                  if (label && !lookingForCities.includes(label)) {
-                    setLookingForCities((prev) => [...prev, label]);
-                  }
-                }}
-                options={[
-                  { value: "__remote", label: "À distance / Partout" },
-                  { value: "__france", label: "Toute la France" },
-                  ...cities
-                    .filter((c) => !lookingForCities.includes(c.name))
-                    .map((c) => {
-                      const co = countries.find((ct) => ct.id === c.country_id);
-                      return { value: `${c.name}-${c.country_id}`, label: c.name, group: co?.name };
-                    }),
-                ]}
-              />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!lookingForCities.includes("__remote")) {
+                      setLookingForCities((prev) => [...prev, "__remote"]);
+                    }
+                  }}
+                >
+                  À distance / Partout
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!lookingForCities.includes("__france")) {
+                      setLookingForCities((prev) => [...prev, "__france"]);
+                    }
+                  }}
+                >
+                  Toute la France
+                </Button>
+              </div>
+
+              <div className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-4 py-2.5 focus-within:border-accent transition-colors">
+                <input
+                  value={lookingForCityQuery}
+                  onChange={(e) => {
+                    setLookingForCityQuery(e.target.value);
+                    setLookingForCityError(null);
+                  }}
+                  placeholder="Ajouter une ville…"
+                  className="w-full bg-transparent text-sm text-base-content placeholder:text-base-content/30 focus:outline-none"
+                />
+              </div>
+
+              {lookingForCityLoading && (
+                <p className="text-xs text-base-content/40">Recherche de villes…</p>
+              )}
+
+              {lookingForCityError && (
+                <p className="text-xs text-warning">{lookingForCityError}</p>
+              )}
+
+              {lookingForCitySuggestions.length > 0 && (
+                <div className="max-h-56 overflow-y-auto rounded-lg border border-base-content/[0.08] bg-base-100 divide-y divide-base-content/[0.05]">
+                  {lookingForCitySuggestions.map((item) => (
+                    <button
+                      key={`looking-for-${item.name}-${item.countryCode}-${item.region ?? ""}`}
+                      type="button"
+                      onClick={() => {
+                        if (!lookingForCities.includes(item.name)) {
+                          setLookingForCities((prev) => [...prev, item.name]);
+                        }
+                        setLookingForCityQuery("");
+                        setLookingForCitySuggestions([]);
+                        setLookingForCityError(null);
+                      }}
+                      className="w-full px-4 py-2.5 text-left hover:bg-base-content/[0.04] transition-colors cursor-pointer"
+                    >
+                      <p className="text-sm text-base-content">{item.name}</p>
+                      <p className="text-xs text-base-content/40">
+                        {[item.region, item.countryName].filter(Boolean).join(" · ")}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
