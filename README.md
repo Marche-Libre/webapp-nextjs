@@ -16,9 +16,9 @@ Au 2026-04-24, ce repo contient un prototype produit avance couvrant deja :
 
 Le repo n'est cependant pas encore pleinement aligne avec le scope produit ecrit ni avec un niveau de qualite release-ready :
 
-- `npm run build` passe
-- `npm run lint` echoue
-- `npx vitest run` echoue partiellement
+- `bun run build` passe
+- `bun run lint` echoue
+- `bunx vitest run` echoue partiellement
 - le schema Supabase utilise en runtime n'est pas entierement reproductible depuis les migrations versionnees
 
 Le cadrage, le PRD et la roadmap vivent dans le repo `Marche-Libre/le-marche-libre`.
@@ -37,11 +37,11 @@ Le cadrage, le PRD et la roadmap vivent dans le repo `Marche-Libre/le-marche-lib
 Depuis ce dossier :
 
 ```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
-npx vitest run
+bun run dev
+bun run build
+bun run start
+bun run lint
+bunx vitest run
 ```
 
 ## Zones fonctionnelles presentes
