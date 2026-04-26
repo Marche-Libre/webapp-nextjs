@@ -258,6 +258,107 @@ Observed changed file surface for this execution:
 | Archive entries | 1 |
 | Archive entries with reason | 1/1 |
 | Archive entries with retention notes | 1/1 |
+
+## VERIFY-PHASE7-2026-04-26 - Final Cleaned-State and Quickstart Acceptance Review
+
+- Date: 2026-04-26
+- Reviewer: project-maintenance
+- Local document coverage:
+  Pass. 34/34 in-scope local source documents remain classified in
+  `docs/project-management/current-state.md`: 5 active, 8 reference, 0 merged,
+  19 archived, 0 deleted, 2 needs-owner-decision.
+- External source coverage:
+  Pass with owner decision. 35/35 external source records retain one
+  disposition and one local destination: 8 external docs, 22 GitHub issues,
+  and 5 GitHub Project item records. Project decommission remains blocked by
+  `DEC-012` / `EXT-PROJ-005`.
+- Task status coverage:
+  Pass. 20/20 local task records (`TASK-APP-00`..`TASK-APP-10`,
+  `CAND-001`..`CAND-009`) include required fields and transition history; task
+  status counts remain 1 `in-progress` and 19 `proposed`; priority counts
+  remain 13 `P0`, 6 `P1`, and 1 `P2`.
+- Duplicate canonical topics:
+  Pass. `docs/project-management/README.md` remains the canonical local
+  project-management entrypoint and no active task or project status depends on
+  archived APP_REFINEMENT files or GitHub Project columns.
+- Archive reason coverage:
+  Pass. `ARCH-APPREF-001` still covers 19/19 archived APP_REFINEMENT source
+  files with archive reason, retention notes, and replacement references.
+- GitHub Project dependency check:
+  Pass with owner decision. Local replacement review is complete and no active
+  workflow depends on org Project 1 status, but freeze/delete/decommission was
+  not executed because no owner-authenticated Project 1 export was available to
+  resolve `DEC-012`.
+- Runtime diff check:
+  Pass. Final Phase 7 diff is docs-only:
+  `docs/project-management/README.md`,
+  `docs/project-management/verification.md`,
+  `docs/project-management/github-project-decommission.md`,
+  `specs/001-project-management-cleanup/plan.md`, and
+  `specs/001-project-management-cleanup/tasks.md`.
+  No app routes, UI, Supabase files, permissions, dependencies, package locks,
+  generated types, tests, or runtime behavior changed.
+- Quality gate record:
+  `bun run build`: skipped (docs-only)
+  `bun run lint`: skipped (docs-only)
+  `bunx vitest run`: skipped (docs-only)
+- Open owner decisions:
+  DEC-006, DEC-007, DEC-008, DEC-009, DEC-012, DEC-017
+- Result: passed-with-owner-decisions
+
+### Final Cleaned-State Inventory Evidence
+
+| Classification | Count |
+| --- | --- |
+| `active` | 5 |
+| `reference` | 8 |
+| `merged` | 0 |
+| `archived` | 19 |
+| `deleted` | 0 |
+| `needs-owner-decision` | 2 |
+| **Total in-scope local sources** | **34** |
+
+### External Source Coverage Evidence
+
+| Source type | Count |
+| --- | --- |
+| `external-doc` | 8 |
+| `github-issue` | 22 |
+| `github-project-item` | 5 |
+| **Total** | **35** |
+
+| Disposition | Count |
+| --- | --- |
+| `imported-active` | 5 |
+| `merged` | 27 |
+| `discarded-no-unique-value` | 2 |
+| `needs-owner-decision` | 1 |
+
+### Task Record Coverage Evidence
+
+| Metric | Value |
+| --- | --- |
+| Local task records with required fields | 20/20 |
+| Local task records with transition history | 20/20 |
+| Status `in-progress` | 1 |
+| Status `proposed` | 19 |
+| Priority `P0` | 13 |
+| Priority `P1` | 6 |
+| Priority `P2` | 1 |
+
+### Quickstart Acceptance Review
+
+| Acceptance check | Result | Evidence |
+| --- | --- | --- |
+| Scope stayed docs-only | pass | Final diff is limited to documentation files. |
+| Local replacement surface is complete | pass | Start Here, current-state, tasks, external sources, decisions, verification, archive, and decommission docs are present and linked. |
+| Local source inventory remains fully classified | pass | 34/34 in-scope local documents classified. |
+| External sources retain full provenance and disposition coverage | pass with owner decision | 35/35 records have one disposition and one destination; `EXT-PROJ-005` remains blocked by `DEC-012`. |
+| Task normalization remains fully covered | pass | 20/20 local task records retain required fields and transition history. |
+| Archive and replacement coverage remains reviewable | pass | `ARCH-APPREF-001` covers all 19 archived APP_REFINEMENT files. |
+| GitHub Project is no longer an active workflow dependency | pass with owner decision | Local status is fully local, but no freeze/delete/decommission action was taken without the required export review. |
+| Quality-gate handling is recorded | pass | `build`, `lint`, and `vitest` explicitly recorded as skipped (docs-only). |
+| Overall acceptance result | passed-with-owner-decisions | Cleanup passes locally; owner-authenticated Project 1 export is still required before decommission execution. |
 | Archived APP_REFINEMENT files moved | 19 |
 | Archived files with replacement references | 19/19 |
 | Local files deleted in US4 | 0 |
