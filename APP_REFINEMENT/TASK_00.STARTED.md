@@ -1,3 +1,9 @@
+-- Note pour moi
+
+Relire toutes les tasks pour le refinement et clean de l'app. Attention aux schemas de BDD
+
+--
+
 # TASK_00 - Cadrage MVP
 
 ## Objectif
@@ -8,22 +14,22 @@ Ce document sert de reference pour les taches suivantes et evite de transformer 
 
 ## Decisions Actees
 
-| Sujet | Decision |
-| --- | --- |
-| Rebuild | Pas de rebuild complet |
-| Profils existants | Les 2 profils actuellement en DB sont conserves et deviennent admins |
-| Parrainage | 1 parrain unique par candidat pour le MVP |
-| Admission | Sponsor valide le parrainage, admin valide l'acces final |
-| Bypass parrainage | Non par defaut; possible uniquement via bouton admin explicite, confirme et audite |
-| Jobs | Canal lisible par membres approuves, publication admin-only |
-| Refus | Admin peut rebasculer un compte refuse/rejected vers approved |
-| Moderation | Soft delete visible comme message supprime |
-| Contenu supprime | Tombstone visible; contenu original non expose aux clients standards |
-| Parrainage visible | Visible par soi-meme et par admin; pas par tous les membres |
-| Annuaire | Page annuaire standalone retiree |
-| Membres | Liste/recherche membres conservees dans le chat |
-| DMs | Legacy tolere; pas coeur du MVP actif |
-| Notifications minimales | `welcome`, `sponsor_request`, `account_approved`, `chat_mention` si deja present |
+| Sujet                   | Decision                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| Rebuild                 | Pas de rebuild complet                                                             |
+| Profils existants       | Les 2 profils actuellement en DB sont conserves et deviennent admins               |
+| Parrainage              | 1 parrain unique par candidat pour le MVP                                          |
+| Admission               | Sponsor valide le parrainage, admin valide l'acces final                           |
+| Bypass parrainage       | Non par defaut; possible uniquement via bouton admin explicite, confirme et audite |
+| Jobs                    | Canal lisible par membres approuves, publication admin-only                        |
+| Refus                   | Admin peut rebasculer un compte refuse/rejected vers approved                      |
+| Moderation              | Soft delete visible comme message supprime                                         |
+| Contenu supprime        | Tombstone visible; contenu original non expose aux clients standards               |
+| Parrainage visible      | Visible par soi-meme et par admin; pas par tous les membres                        |
+| Annuaire                | Page annuaire standalone retiree                                                   |
+| Membres                 | Liste/recherche membres conservees dans le chat                                    |
+| DMs                     | Legacy tolere; pas coeur du MVP actif                                              |
+| Notifications minimales | `welcome`, `sponsor_request`, `account_approved`, `chat_mention` si deja present   |
 
 ## Perimetre MVP
 
@@ -63,18 +69,18 @@ Ce document sert de reference pour les taches suivantes et evite de transformer 
 
 ## Ordre D'Execution Recommande
 
-| Ordre | Tache | Pourquoi |
-| --- | --- | --- |
-| 1 | `TASK_00` | Figer le perimetre |
-| 2 | `TASK_02` | Documenter DB/RLS avant migrations |
-| 3 | `TASK_03` | Backup + bootstrap admins |
-| 4 | `TASK_04` | Admission X/email/parrain/statuts |
-| 5 | `TASK_05` | Admin approve/refuse/bypass |
-| 6 | `TASK_08` | Chat canaux + Jobs admin-only |
-| 7 | `TASK_07` | Profil simple + recherche membre dans chat |
-| 8 | `TASK_06` | Retrait forum/annuaire standalone |
-| 9 | `TASK_09` | Moderation/edit/delete/pin |
-| 10 | `TASK_10` | Durcissement RLS + nettoyage final |
+| Ordre | Tache     | Pourquoi                                   |
+| ----- | --------- | ------------------------------------------ |
+| 1     | `TASK_00` | Figer le perimetre                         |
+| 2     | `TASK_02` | Documenter DB/RLS avant migrations         |
+| 3     | `TASK_03` | Backup + bootstrap admins                  |
+| 4     | `TASK_04` | Admission X/email/parrain/statuts          |
+| 5     | `TASK_05` | Admin approve/refuse/bypass                |
+| 6     | `TASK_08` | Chat canaux + Jobs admin-only              |
+| 7     | `TASK_07` | Profil simple + recherche membre dans chat |
+| 8     | `TASK_06` | Retrait forum/annuaire standalone          |
+| 9     | `TASK_09` | Moderation/edit/delete/pin                 |
+| 10    | `TASK_10` | Durcissement RLS + nettoyage final         |
 
 ## Critères De Completion
 
