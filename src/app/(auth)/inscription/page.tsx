@@ -4,13 +4,14 @@ import Link from "next/link";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Shield } from "lucide-react";
+import { getAuthCallbackUrl } from "@/lib/auth-url";
 
 export default function InscriptionPage() {
   const handleSignUp = () => {
     const supabase = createClient();
     supabase.auth.signInWithOAuth({
       provider: "x",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: getAuthCallbackUrl() },
     });
   };
 
