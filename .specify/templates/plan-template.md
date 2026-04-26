@@ -31,7 +31,24 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Answer each gate with PASS, FAIL, or N/A. Any FAIL requires an entry in
+Complexity Tracking before implementation tasks are generated.
+
+- **Core-flow priority**: Does this plan stabilize or protect the beta-critical
+  flows before expanding product surface?
+- **Supabase reproducibility**: Are all schema, RLS, trigger, function, realtime,
+  storage, and generated-type impacts captured as migrations or explicit
+  blockers?
+- **Authorization integrity**: For auth/admission/profile/admin/chat/
+  notification changes, does the plan review server-side checks, RLS, and
+  sensitive fields?
+- **Next.js 16 source-of-truth**: Has the relevant installed documentation in
+  `node_modules/next/dist/docs/` been checked for routing, middleware, caching,
+  server actions, metadata, or app-structure changes?
+- **Brownfield blast radius**: Does the plan list current routes, guards,
+  redirects, database objects, and tests affected by this change?
+- **Quality gates**: Does the plan state expected results for `bun run build`,
+  `bun run lint`, and `bunx vitest run`, including known baseline failures?
 
 ## Project Structure
 
