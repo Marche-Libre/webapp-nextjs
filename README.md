@@ -21,12 +21,16 @@ Le repo n'est cependant pas encore pleinement aligne avec le scope produit ecrit
 - `bunx vitest run` echoue partiellement
 - le schema Supabase utilise en runtime n'est pas entierement reproductible depuis les migrations versionnees
 
-Le cadrage, le PRD et la roadmap vivent dans le repo `Marche-Libre/le-marche-libre`.
+Le cadrage, le PRD et la roadmap importes depuis
+`Marche-Libre/le-marche-libre` sont maintenant centralises dans Speckit.
 
-## Gestion de projet locale
+## Source de verite projet
 
-Le point d'entree canonique pour le suivi local est
-`docs/project-management/README.md`.
+Le point d'entree canonique pour le pilotage projet est Speckit:
+`specs/000-project-source-of-truth/README.md`.
+
+GitHub Project 1 et `Marche-Libre/le-marche-libre` sont des sources importees,
+pas des outils de pilotage actifs.
 
 ## Stack
 
