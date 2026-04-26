@@ -9,14 +9,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/001-project-management-cleanup/plan.md`
+`specs/000-project-source-of-truth/plan.md`
 <!-- SPECKIT END -->
 
 <!-- PROJECT-MANAGEMENT START -->
-For local project-management execution, start at:
-`docs/project-management/README.md`
+For local project-management execution, start at the Speckit source of truth:
+`specs/000-project-source-of-truth/README.md`
 
-When implementing `specs/001-project-management-cleanup`, Phase 1/2/US1/US2
-work is docs-only. Do not change app routes, UI, Supabase files, dependencies,
-package locks, generated types, tests, or runtime behavior in that scope.
+GitHub Project 1 and `Marche-Libre/le-marche-libre` are imported sources only.
+Do not use GitHub Project status as active task status after the import.
+
+Do not change app routes, UI, Supabase files, dependencies, package locks,
+generated types, tests, or runtime behavior when maintaining the Speckit project
+source-of-truth records.
 <!-- PROJECT-MANAGEMENT END -->
