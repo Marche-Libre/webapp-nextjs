@@ -23,7 +23,7 @@
 
 ## Phase 3: Backlog Realignment
 
-- [ ] T011 Classify all Admission items from `001-admission-membre` as done, partial, missing, parked, or rescoped after code review.
+- [X] T011 Classify all Admission items from `001-admission-membre` as done, partial, missing, parked, or rescoped after code review. See `admission-tracking.md`.
 - [ ] T012 Classify all Profile/Search items from `002-profil-recherche-membre` as done, partial, missing, parked, or rescoped after code review.
 - [ ] T013 Classify all Channels/Messages items from `003-canaux-messages` as done, partial, missing, parked, or rescoped after code review.
 - [ ] T014 Classify Landing Page from `005-landing-page` as beta-blocking, separate, or parked.
@@ -33,7 +33,7 @@
 
 - [ ] T016 Resolve forum beta position.
 - [ ] T017 Resolve launch channel taxonomy.
-- [ ] T018 Resolve admission data model direction.
+- [X] T018 Resolve admission data model direction. See `../001-admission-membre/research.md` and `admission-tracking.md`.
 - [ ] T019 Resolve refused-member UX.
 - [ ] T020 Define minimal merge/beta quality gate.
 - [ ] T021 Define closed-beta go/no-go checklist and owner signoff path.

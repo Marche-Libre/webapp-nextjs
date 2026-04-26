@@ -33,10 +33,16 @@ Project decommission.
 
 ## DEC-005 - Admission Data Model Simplification
 
-- Status: open
-- Question: Does admission keep both `invitation` and `sponsorship request`, or is it simplified for beta?
+- Status: decided
+- Decision: Beta 1 keeps `profiles.status` as the final access gate, uses
+  `sponsorship_requests` as canonical sponsor evidence, and keeps
+  `invitations` as compatibility/member-referral input.
+- Rationale: The runtime already gates access through `profiles.status`; the
+  committed admission hardening migration constrains sponsorship requests and
+  invitation evidence without adding a third access-request table.
 - Source: PRD, `03-questions-equipe.md`, webapp audit.
-- Blocks: `001-admission-membre`, schema reproducibility work.
+- Follow-up: Apply/review the admission RLS migration in staging and validate
+  live Postgres behavior because repo tests remain DB-free.
 
 ## DEC-006 - Refused Member UX
 
