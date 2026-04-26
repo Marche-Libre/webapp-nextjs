@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { XLogo } from "@/components/ui/x-logo";
+import { getAuthCallbackUrl } from "@/lib/auth-url";
 
 export function OAuthButtons() {
   const [loading, setLoading] = useState(false);
@@ -13,7 +14,7 @@ export function OAuthButtons() {
     await supabase.auth.signInWithOAuth({
       provider: "x",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthCallbackUrl(),
       },
     });
   };

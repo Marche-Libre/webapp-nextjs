@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Suspense } from "react";
+import { getAuthCallbackUrl } from "@/lib/auth-url";
 
 function RejoindreContent() {
   const searchParams = useSearchParams();
@@ -18,7 +19,7 @@ function RejoindreContent() {
     const supabase = createClient();
     supabase.auth.signInWithOAuth({
       provider: "x",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: getAuthCallbackUrl() },
     });
   };
 
