@@ -48,24 +48,33 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
     setLoading(true);
     const supabase = createClient();
 
-    // Update request status
-    await supabase
+    const { error: requestError } = await supabase
       .from("sponsorship_requests")
       .update({ status: action })
       .eq("id", request.id);
 
+    if (requestError) {
+      console.error(requestError);
+      setLoading(false);
+      return;
+    }
+
     if (action === "approved") {
-      // Update requester profile: set status to approved, sponsored_by to sponsor
+      // Sponsor confirmation is not final admission approval. Admin review still
+      // controls profiles.status.
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        const { error: profileError } = await supabase
           .from("profiles")
           .update({
-            status: "approved",
             sponsored_by: user.id,
             sponsor_approved: true,
           })
           .eq("id", request.requester_id);
+
+        if (profileError) {
+          console.error(profileError);
+        }
       }
     }
 

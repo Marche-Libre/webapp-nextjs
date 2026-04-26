@@ -84,6 +84,50 @@ whether admins see enough sponsor context to decide.
 - Trust client-side UI hiding: rejected because admission authorization must be
   enforced server-side and by database policy.
 
+## Decision: Sponsor Evidence RLS Guardrails
+
+Admission status remains on `profiles.status`, but sponsor evidence is bounded
+by database policy. Requester-created sponsorship requests must be pending,
+requester-owned, non-self, point at an approved sponsor, and keep
+`sponsor_handle` consistent with `sponsor_id`. Sponsor request updates are
+status-only and pending-only. Sponsor profile confirmation can change only
+`sponsored_by`, `sponsor_approved`, and trigger-managed `updated_at`; final
+member status and profile content remain outside sponsor control.
+
+**Rationale**: Server Actions protect admin review, but direct client
+Supabase calls still reach RLS. The migration must therefore enforce the same
+admission invariants independently of UI visibility or client code paths.
+
+**Alternatives considered**:
+- App-only sponsor validation: rejected because direct Supabase clients could
+  bypass UI checks.
+- Let sponsors update broader requester profile rows: rejected because sponsor
+  confirmation is evidence, not profile administration.
+- Add new transactional sponsor/invitation confirmation RPCs now: deferred as a
+  follow-up; they are cleaner for consistency, but the MVP migration can still
+  harden the current two-write paths.
+
+## Decision: Invitation Compatibility Guardrails
+
+Keep invitations as member-referral compatibility input, but do not let them
+become a broad admission bypass. Invitation inserts must be made by the
+authenticated inviter, start pending, and have no accepted user. Invited users
+can accept/reject only matching invitations without rewriting inviter/target
+identity. Because invitation matching relies on `profiles.x_handle`, self
+profile updates must not change `x_handle` after the RLS hardening migration.
+
+**Rationale**: Removing invitations would be a larger product/data migration,
+but trusting handle-matched invitations without hardening insert/update rules
+allows forged sponsor evidence.
+
+**Alternatives considered**:
+- Remove invitations from admission evidence immediately: rejected as broader
+  than Beta 1 stabilization.
+- Keep invitation policies unchanged: rejected because accepted invitations can
+  attach sponsor evidence.
+- Add a new immutable invitation token identity: deferred for a later cleanup
+  because the current migration can reduce risk without a new table/flow.
+
 ## Decision: Next.js Planning Baseline
 
 Implementation must use installed Next.js 16 docs for exact API behavior.
@@ -100,7 +144,9 @@ must follow local docs rather than memory.
 ## Decision: Quality Gate
 
 Expected verification for implementation is `bun run build`, `bun run lint`,
-and `bunx vitest run`, plus focused admission tests or SQL/RLS checks. If
+and `bunx vitest run`, plus focused admission tests. Admission repo tests must
+not call Supabase/Postgres; RLS coverage is represented by static migration
+inspection and reviewed manually/staged after migration application. If
 baseline failures remain, record the failure and prove the admission change did
 not worsen it.
 
@@ -110,3 +156,5 @@ release-readiness feature owns baseline cleanup.
 **Alternatives considered**:
 - Skip tests because the feature is brownfield: rejected because auth,
   admission, admin, and route guards are core-flow/security-sensitive.
+- Add DB integration tests for RLS: rejected for this repo workflow because
+  tests must mock the database or inspect SQL statically.

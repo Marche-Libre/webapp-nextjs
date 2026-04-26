@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -23,11 +22,9 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
 
-  const latestRequest = existingRequests[0] ?? null;
   const totalAttempts = existingRequests.length;
   const hasPending = existingRequests.some((r) => r.status === "pending");
   const hasApproved = existingRequests.some((r) => r.status === "approved");
-  const allRejected = totalAttempts > 0 && existingRequests.every((r) => r.status === "rejected");
   const maxedOut = totalAttempts >= 2 && !hasPending && !hasApproved;
   const canSubmit = !hasPending && !hasApproved && !submitted && totalAttempts < 2;
 
@@ -147,6 +144,13 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
         </div>
       )}
 
+      {(error || success) && (
+        <div className="space-y-1">
+          {error && <p className="text-xs text-error px-1">{error}</p>}
+          {success && <p className="text-xs text-success px-1">{success}</p>}
+        </div>
+      )}
+
       {/* Form to declare sponsor */}
       {canSubmit && (
         <div className="space-y-3">
@@ -176,9 +180,6 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
               </Button>
             </form>
           </div>
-
-          {error && <p className="text-xs text-error px-1">{error}</p>}
-          {success && <p className="text-xs text-success px-1">{success}</p>}
         </div>
       )}
     </div>

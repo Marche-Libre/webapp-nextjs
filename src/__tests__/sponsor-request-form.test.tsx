@@ -41,7 +41,7 @@ function makeSupabase({
     }),
     _insert: insert,
     _profileQuery: profileQuery,
-  } as any;
+  };
 }
 
 function renderForm(requesterId = "candidate-1") {
@@ -98,7 +98,8 @@ describe("SponsorRequestForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     document.body.innerHTML = "";
-    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
+      .IS_REACT_ACT_ENVIRONMENT = true;
   });
 
   it("requires a sponsor handle before calling Supabase", async () => {
@@ -145,7 +146,7 @@ describe("SponsorRequestForm", () => {
     unmount();
   });
 
-  it.fails("keeps non-disclosing copy visible for unknown sponsor handles", async () => {
+  it("keeps non-disclosing copy visible for unknown sponsor handles", async () => {
     const supabase = makeSupabase({ sponsor: null });
     createClientMock.mockReturnValue(supabase);
     const { container, unmount } = renderForm();

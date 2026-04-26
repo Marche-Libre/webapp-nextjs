@@ -115,14 +115,14 @@ already-implemented issues before adding new behavior.
 | --- | --- | --- |
 | Public home | `src/app/page.tsx` exists and links to signup/login/app areas. | Admission plan should preserve the existing landing entry, not create a new public journey. |
 | X OAuth | `/connexion`, `/inscription`, `/rejoindre`, and `src/app/auth/callback/route.ts` use Supabase X OAuth. | Treat `webapp-nextjs#7` as likely partial/done pending live OAuth and profile-trigger verification. |
-| Referral entry | `/rejoindre?ref=` stores `ml-referral`; callback creates a `sponsorship_requests` row when sponsor is valid. | Keep referral-cookie callback path in scope for regression testing. |
+| Referral entry | `/rejoindre?ref=` stores `ml-referral`; callback creates a pending `sponsorship_requests` row when sponsor is valid and no longer pre-writes `profiles.sponsored_by`. | Keep referral-cookie callback path in scope for regression testing and preserve request-first sponsor evidence. |
 | First X login | User-reported bug: X OAuth callback can redirect back to `/connexion` on first login, while a second login enters the app. | Treat callback/session cookie/profile creation ordering as a blocker regression before closing auth/session work. |
 | Waiting state | `/en-attente` supports invitations and sponsorship requests. Rejected users are redirected to `/connexion`. | Refused UX is not truly selected; `rejected` exists in code while spec says `refused`. Normalize terminology or document mapping. |
 | Onboarding | `/onboarding` only allows approved users and uses a 9-step profile/community wizard marked `@ARCHIVED - Potentially unused`. | This is post-approval profile completion, not the candidate admission form described by FR-002. Plan must separate candidate sponsor request from approved-member onboarding. |
 | Admin review | `/admin` and `/admin/utilisateurs` list pending users; Server Actions approve/reject profiles after checking `is_admin`. | Admin exists; implementation should harden authorization, idempotency, status transitions, and evidence display rather than build a new admin. |
 | App guards | Middleware and `(app)/layout.tsx` redirect pending/rejected/approved users. | Access guard exists but needs status matrix tests and loop checks. |
 | Data model | `profiles.status` is `pending/approved/rejected`; `invitations` and `sponsorship_requests` both exist; `sponsor_approved` and `sponsored_by` are profile fields. | DEC-005 is the central implementation blocker. The plan should decide the Beta 1 canonical admission request model before schema/UI changes. |
-| RLS | Migrations include profile, invitation, and sponsorship RLS; admin Server Actions also check `is_admin`. | Need explicit RLS/server-action review because sensitive profile status changes rely on both app and DB enforcement. |
+| RLS | Migrations include profile, invitation, and sponsorship RLS; admin Server Actions also check `is_admin`. A new admission RLS migration hardens profile admission fields, request insert/update shape, sponsor confirmation, and invitation acceptance. | Treat migration review and staged/manual validation as required because repo tests must stay DB-free. |
 
 ## Revised Design Direction
 
@@ -144,6 +144,27 @@ already-implemented issues before adding new behavior.
    - avoid adding a third access-request table for MVP.
 6. Keep admin approval on existing admin routes, but require status transition
    rules, server-side authorization, and RLS verification before closure.
+7. Keep sponsor confirmation evidence-only:
+   - requesters can create only pending, requester-owned, non-self sponsorship
+     requests;
+   - sponsorship request evidence must target an approved sponsor and keep
+     `sponsor_handle` consistent with `sponsor_id`;
+   - sponsors can update only request status for requests addressed to them;
+   - sponsor decisions are pending-only and cannot be flipped after approval or
+     rejection through the sponsor path;
+   - sponsor profile confirmation can change only `sponsored_by`,
+     `sponsor_approved`, and trigger-managed `updated_at`;
+   - final access status remains admin-controlled through `profiles.status`.
+8. Keep invitation compatibility evidence but harden it:
+   - invitation inserts must come from the authenticated inviter, start
+     `pending`, and have no `accepted_by`;
+   - invited users cannot rewrite inviter/target identity while accepting or
+     rejecting;
+   - `x_handle` is frozen for self-profile updates because invitation matching
+     currently relies on that handle.
+9. Keep automated admission tests DB-free by mocking Supabase clients or
+   statically inspecting migration files; live RLS behavior is verified in
+   staging/manual validation, not unit tests.
 
 ## Imported Source Mapping
 
@@ -170,11 +191,13 @@ already-implemented issues before adding new behavior.
    partial, missing, or rescoped using file/route/table evidence.
 4. Fix only confirmed Beta 1 gaps: finalization loop/error, sponsor-handle
    validation, first-login callback/session routing, admin status transition
-   hardening, and guard behavior.
-5. Add or update tests for pending/rejected/approved access, admin
-   authorization, and the reproduced onboarding/waiting regression.
+   hardening, RLS guardrails, and guard behavior.
+5. Add or update DB-free tests for pending/rejected/approved access, admin
+   authorization, sponsor request submission, and migration-shape guardrails.
 6. Run the agreed release-readiness quality gate or record baseline failures.
-7. Record issue closure/rescope recommendations after code evidence.
+7. Apply/review the migration in staging and manually validate live RLS and X
+   OAuth behavior because those checks are intentionally outside repo tests.
+8. Record issue closure/rescope recommendations after code evidence.
 
 ## Open Decisions
 
@@ -202,8 +225,17 @@ already-implemented issues before adding new behavior.
   under RLS and protected from non-admin calls, repeated actions, and unintended
   reversal.
 - Profile RLS is the highest-risk authorization gap to verify: if a non-admin
-  can update their own `profiles.status`, app-level admin checks do not satisfy
-  FR-010/SC-003.
+  can update their own admission fields, forge self-sponsorship, or use sponsor
+  confirmation to mutate requester profile content, app-level admin checks do
+  not satisfy FR-010/SC-003.
+- Invitation compatibility depends on X handle identity. The migration freezes
+  self-profile `x_handle` changes and hardens invitation inserts/acceptance, but
+  live data should still be checked for duplicate/blank handles before relying
+  on invitation evidence at scale.
+- Sponsor approval and invitation acceptance are currently two client-side
+  writes; if the profile update fails after the request/invitation status
+  update succeeds, the app can show split sponsorship state. A transactional
+  server/RPC path is the preferred follow-up.
 - `profiles.status` uses `rejected`, while the feature spec uses `refused`.
   Do not introduce both runtime terms.
 - The source-of-truth pointer in `AGENTS.md` was realigned to the active

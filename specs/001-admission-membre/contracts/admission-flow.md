@@ -36,6 +36,8 @@ Actions, and database paths. They are not new public APIs.
 - If profile is not approved, resolves `ml-referral` to an approved sponsor
   where possible and creates `sponsorship_requests` evidence, then redirects to
   `/en-attente`.
+- Referral processing must not set `profiles.sponsored_by` directly; that field
+  changes only after sponsor confirmation or accepted invitation evidence.
 - Must clear `ml-referral` after processing.
 - Must not produce a redirect loop when profile data is incomplete.
 
@@ -62,6 +64,10 @@ Actions, and database paths. They are not new public APIs.
 - Resolve only approved sponsor profiles.
 - Insert `sponsorship_requests` with `requester_id = current user`,
   `sponsor_handle`, optional `sponsor_id`, and next valid `attempt_number`.
+- Inserted requests must be `pending`, owned by the requester, and non-self when
+  `sponsor_id` is present.
+- Inserted requests with `sponsor_id` must reference an approved sponsor and
+  match the normalized `sponsor_handle` to the sponsor profile `x_handle`.
 - Unknown sponsor copy must avoid unnecessary account-existence disclosure.
 - Failure must show a recoverable error and must not loop.
 
@@ -127,6 +133,22 @@ and server layouts:
 - Non-admin authenticated users must not be able to update another profile's
   `status` through client Supabase calls.
 - Sponsor actions can only affect requests addressed to that sponsor.
+- Requester inserts must be pending-only and cannot self-sponsor.
+- Requester inserts must target an approved sponsor and keep handle/id evidence
+  consistent.
+- Sponsor request updates must be status-only and cannot rewrite request
+  identity fields.
+- Sponsor request updates must start from `pending`; sponsors cannot flip an
+  already approved/rejected request through the sponsor path.
+- Sponsor profile confirmation can update only `profiles.sponsored_by`,
+  `profiles.sponsor_approved`, and trigger-managed `updated_at`; it cannot
+  change final `profiles.status` or profile content.
+- Self-profile updates cannot change `x_handle` while invitation compatibility
+  uses X handle matching as admission evidence.
+- Invitation acceptance can attach sponsor context only from an accepted
+  invitation matching the candidate handle, must start from a pending
+  invitation for non-admin invitees, and cannot rewrite invitation identity
+  fields.
 - Requesters can only create/view their own sponsorship requests.
 - Admin review must be protected both by Server Action checks and database/RLS
   behavior.
@@ -135,6 +157,8 @@ and server layouts:
 
 - Automated or documented manual checks must cover pending, rejected, approved
   not-onboarded, and approved onboarded routing.
-- Tests or SQL/RLS checks must prove non-admin status mutation is rejected.
+- Repo tests must not call the database. They must use mocked Supabase clients
+  or static migration inspection for RLS guardrails; live RLS behavior is
+  validated manually/staged after migration application.
 - Regression checks must cover sponsor request submission and onboarding
   finalization without 500/loop.

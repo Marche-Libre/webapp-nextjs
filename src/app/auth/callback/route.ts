@@ -1,9 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import type { CookieOptions } from "@supabase/ssr";
 
 const MAX_PENDING_REFERRALS = 5;
 const MAX_TOTAL_FILLEULS = 20;
+const PROFILE_READ_ATTEMPTS = 5;
+const PROFILE_READ_DELAY_MS = 150;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -17,7 +24,7 @@ export async function GET(request: NextRequest) {
   // We need a response object to write cookies to.
   // Start with a redirect to /forum (we'll change the destination later if needed).
   let redirectPath = "/forum";
-  const cookiesToWrite: { name: string; value: string; options?: any }[] = [];
+  const cookiesToWrite: { name: string; value: string; options?: CookieOptions }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,14 +56,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/connexion", origin));
   }
 
-  // Check profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("status, onboarding_completed")
-    .eq("id", user.id)
-    .single();
+  // The auth trigger that creates profiles can lag behind the OAuth callback by
+  // a brief moment. Retry before redirecting so first login does not bounce to
+  // /connexion via /en-attente when the profile becomes readable shortly after.
+  let profile: { status: string; onboarding_completed: boolean | null } | null = null;
 
-  if (profile?.status === "approved") {
+  for (let attempt = 0; attempt < PROFILE_READ_ATTEMPTS; attempt += 1) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("status, onboarding_completed")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (data) {
+      profile = data;
+      break;
+    }
+
+    if (attempt < PROFILE_READ_ATTEMPTS - 1) {
+      await wait(PROFILE_READ_DELAY_MS);
+    }
+  }
+
+  if (!profile) {
+    redirectPath = "/connexion";
+  } else if (profile.status === "approved") {
     // Clear stale referral
     cookiesToWrite.push({
       name: "ml-referral",
@@ -101,11 +125,6 @@ export async function GET(request: NextRequest) {
         }
 
         if (canSponsor) {
-          await supabase
-            .from("profiles")
-            .update({ sponsored_by: sponsor.id })
-            .eq("id", user.id);
-
           await supabase.from("sponsorship_requests").insert({
             requester_id: user.id,
             sponsor_handle: referralHandle,

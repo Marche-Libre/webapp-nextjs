@@ -64,6 +64,12 @@ A signed-in user must be routed according to membership status so pending/refuse
 - A non-admin attempts to access review actions.
 - A non-admin attempts to self-update `profiles.status` directly through the
   Supabase client/API rather than using admin actions.
+- A requester attempts to create a pre-approved or self-sponsored sponsorship
+  request through the Supabase client/API.
+- A sponsor attempts to rewrite request identity fields or candidate profile
+  content while confirming sponsorship.
+- An approved user attempts to forge an invitation from another member, create
+  a pre-accepted invitation, or claim an invitation by changing `x_handle`.
 - X OAuth succeeds but required profile fields are incomplete.
 - X OAuth succeeds on first login but the user is redirected back to
   `/connexion`; a second login then enters the app.
@@ -83,7 +89,12 @@ A signed-in user must be routed according to membership status so pending/refuse
 - **FR-008**: Admins MUST be able to list and review pending access requests.
 - **FR-009**: Admins MUST be able to approve or refuse a request.
 - **FR-010**: Non-admin users MUST NOT be able to approve, refuse, or bypass access review.
-- **FR-011**: The selected admission data model MUST be explicit before implementation if both invitations and sponsorship requests remain present.
+- **FR-010a**: Database authorization MUST prevent non-admin users from changing admission fields on their own profile except through explicitly allowed sponsor/invitation evidence flows.
+- **FR-010b**: Sponsor confirmation MUST be limited to matching, non-self sponsorship evidence and MUST NOT allow sponsors to change final member status or arbitrary requester profile content.
+- **FR-010c**: Sponsorship request creation MUST be pending-only, requester-owned, and unable to self-sponsor; sponsor-side request updates MUST be status-only.
+- **FR-010d**: Sponsorship request evidence MUST reference an approved sponsor and keep `sponsor_handle` consistent with `sponsor_id`.
+- **FR-010e**: Invitation evidence MUST be created only by the inviter, start pending with no accepted user, and cannot be claimed by changing `x_handle`.
+- **FR-011**: The selected admission data model MUST remain explicit while both invitations and sponsorship requests are present: `profiles.status` is the final access gate, `sponsorship_requests` is canonical sponsor evidence, and `invitations` is compatibility/member-referral input.
 
 ### Key Entities
 
@@ -108,7 +119,7 @@ A signed-in user must be routed according to membership status so pending/refuse
 - **SC-001**: A candidate can complete admission submission without a 500 error in the reviewed test scenario.
 - **SC-001a**: A candidate who completes X OAuth reaches the correct pending, onboarding, or app destination on the first callback attempt.
 - **SC-002**: Pending, refused, and approved statuses each produce the expected access result in manual or automated checks.
-- **SC-003**: Non-admin approval/refusal attempts are rejected in server/database-enforced checks.
+- **SC-003**: Non-admin approval/refusal attempts and sponsor-evidence bypass attempts are rejected by server/database-enforced checks or DB-free static migration guards plus staged validation.
 - **SC-004**: Admin review can process a pending request in under 3 minutes from the review surface.
 - **SC-005**: The admission issue set has a local Speckit task for every imported source issue.
 
@@ -118,3 +129,4 @@ A signed-in user must be routed according to membership status so pending/refuse
 - Email and sponsor handles are sufficient minimum onboarding data for Beta 1.
 - Exact refused-member UX is an owner decision tracked in `../archive/000-project-source-of-truth/decisions.md`.
 - Runtime implementation must verify current code before deciding whether each imported GitHub issue is done, partial, missing, or rescoped.
+- Repo tests for admission must mock database clients or inspect migration files; they must not connect to Supabase/Postgres.

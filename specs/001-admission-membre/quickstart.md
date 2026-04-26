@@ -42,6 +42,7 @@ Review admission-related schema and RLS:
 - `supabase/migrations/00011_sponsorship_requests.sql`
 - `supabase/migrations/00014_onboarding.sql`
 - `supabase/migrations/00020_profiles_schema_alignment.sql`
+- `supabase/migrations/20260426192341_admission_profile_status_rls.sql`
 - `src/lib/types/database.ts`
 
 ## 4. Reproduce Before Fixing
@@ -67,8 +68,11 @@ Also test the routing matrix:
    whether `/onboarding` remains post-approval profile completion.
 2. Fix only reproduced admission blockers.
 3. Harden admin review actions and evidence display.
-4. Verify RLS/server-side authorization for non-admin mutation attempts.
-5. Add focused tests or SQL/RLS checks.
+4. Verify RLS/server-side authorization for non-admin mutation attempts with
+   DB-free static tests in the repo and staged/manual checks after applying the
+   migration.
+5. Add focused mocked tests or static migration checks; do not call Supabase or
+   Postgres from repo tests.
 6. Record GitHub issue closure/rescope recommendations.
 
 ## 6. Verification Commands
@@ -83,3 +87,10 @@ bunx vitest run
 
 If baseline failures exist, document the exact failure and why the admission
 change did not worsen it.
+
+Admission-specific DB-free checks:
+
+```bash
+bunx vitest run src/__tests__/admin-admission-actions.test.ts src/__tests__/sponsor-request-form.test.tsx src/__tests__/admission-rls-migration.test.ts
+bunx eslint src/app/auth/callback/route.ts src/components/sponsorship/sponsor-request-form.tsx src/components/sponsorship/parrainages-tabs.tsx src/__tests__/admin-admission-actions.test.ts src/__tests__/sponsor-request-form.test.tsx src/__tests__/admission-rls-migration.test.ts
+```

@@ -24,6 +24,9 @@ Signed-in Supabase/X user requesting access.
 - Candidate must have a profile row before admission routing can complete.
 - Missing X/profile fields are a recoverable admission error, not a redirect
   loop.
+- `x_handle` is treated as admission identity for invitation compatibility and
+  must not be user-mutable through self-profile updates after the RLS hardening
+  migration.
 
 ## Member Profile
 
@@ -81,18 +84,27 @@ Canonical Beta 1 evidence that a candidate requested sponsorship from a member.
 
 **Validation rules**:
 - Requester can create only for self.
+- Requester-created requests must start as `pending`.
 - Sponsor handle is trimmed and normalized without `@`.
-- Candidate cannot sponsor self.
+- Candidate cannot sponsor self; database policy must reject
+  `sponsor_id = requester_id` when `sponsor_id` is present.
+- `sponsor_id` must reference an approved sponsor profile and `sponsor_handle`
+  must match that sponsor profile's normalized `x_handle`.
 - Unknown sponsor handle must not leak user existence beyond intended product
   copy.
 - Existing attempt and pending/approved constraints must be respected.
+- Sponsor-side updates can change only `status`; identity fields such as
+  `requester_id`, `sponsor_id`, `sponsor_handle`, and `attempt_number` remain
+  immutable from the sponsor path.
 
 **State transitions**:
 - Candidate submits: `pending`.
-- Sponsor approves: request `approved`; profile `sponsor_approved = true` and
-  `sponsored_by = sponsor_id`.
-- Sponsor rejects: request `rejected`; candidate may submit next allowed
-  attempt or wait for admin fallback.
+- Sponsor approves from `pending`: request `approved`; profile
+  `sponsor_approved = true` and `sponsored_by = sponsor_id`.
+- Sponsor rejects from `pending`: request `rejected`; candidate may submit next
+  allowed attempt or wait for admin fallback.
+- Sponsor cannot flip an already approved/rejected request through the sponsor
+  RLS path.
 - Admin review consumes request evidence but final access is `profiles.status`.
 
 ## Invitation
@@ -117,8 +129,12 @@ candidate.
 
 **Validation rules**:
 - Only approved members create invitations.
-- Invited candidate can accept/reject when `invited_x_handle` matches their
-  profile handle.
+- Invitation inserts must use `inviter_id = auth.uid()`, start `pending`, and
+  have `accepted_by = null`.
+- Invited candidate can accept/reject a pending invitation when
+  `invited_x_handle` matches their profile handle.
+- Invited candidate cannot rewrite invitation identity fields while accepting
+  or rejecting.
 - Invitation acceptance may set `profiles.sponsored_by` and
   `profiles.sponsor_approved`, but final admission remains admin-controlled.
 
@@ -138,6 +154,8 @@ Privileged decision to approve or reject a candidate profile.
 - Actor must be authenticated.
 - Actor must have `profiles.is_admin = true`.
 - Database/RLS must also prevent non-admin status changes.
+- Database/RLS must prevent sponsors from changing candidate profile content
+  while confirming sponsorship; only sponsor evidence fields may change.
 - Client UI state is not an authorization boundary.
 
 **Outputs**:
