@@ -26,15 +26,15 @@ Last updated: 2026-04-26
 | US2 Normalize Tasks and Statuses | Complete | APP_REFINEMENT task/session status is represented locally. |
 | US3 Localize External GitHub Sources | Complete with owner decision | External docs/issues/Project proxies are localized; Project 1 full card export remains an owner decision before decommission. |
 | US4 Archive Without Losing History | Complete | Archive rules, historical APP_REFINEMENT movement, replacement references, and boundary verification are recorded. |
-| Phase 7 Polish & Cross-Cutting Verification | Blocked until local replacement and Project export review | Do not freeze/delete the GitHub Project until local replacement review and Project item export coverage are resolved. |
+| Phase 7 Polish & Cross-Cutting Verification | Complete with owner decision | `VERIFY-PHASE7-2026-04-26` records local replacement review, docs-only diff confirmation, and quickstart acceptance review; freeze/delete/decommission remains blocked until `DEC-012` is resolved with an owner-authenticated Project 1 export. |
 
 Current active responsibilities:
 
 - Keep runtime/product work as candidate Task Records only.
 - Use the US4 archive records as the historical source surface for normalized
   APP_REFINEMENT planning files.
-- Resolve `DEC-012` with an owner-authenticated Project 1 export before Phase 7
-  decommission work.
+- Resolve `DEC-012` with an owner-authenticated Project 1 export before any
+  GitHub Project freeze/delete/decommission action.
 - Do not change app routes, UI, Supabase files, dependencies, package locks,
   generated types, tests, or runtime behavior in this cleanup.
 
@@ -176,16 +176,19 @@ historical planning material without losing decision history:
   records.
 - Recorded archive coverage in `docs/project-management/verification.md`.
 
-### Later: Phase 7
+### Completed: Phase 7 Review Slice
 
-Phase 7 remains a final reconciliation/decommission slice:
+Phase 7 reconciliation is complete for the docs-only cleanup surface:
 
-- Reconcile final inventory counts.
-- Confirm the diff is docs-only.
-- Record quality-gate skip/run status.
-- Complete `github-project-decommission.md`.
-- Freeze or delete GitHub Project 1 only after local replacement review and
-  Project item export coverage are resolved.
+- Reconciled final inventory counts in `docs/project-management/verification.md`.
+- Confirmed the final diff is docs-only.
+- Recorded quality-gate skip status for `build`, `lint`, and `vitest`.
+- Completed `docs/project-management/github-project-decommission.md` local
+  replacement review and deletion readiness assessment.
+- Ran the quickstart acceptance review with result
+  `passed-with-owner-decisions`.
+- Did not freeze/delete/decommission GitHub Project 1 because no
+  owner-authenticated export was available to resolve `DEC-012`.
 
 ## Post-Design Constitution Check
 

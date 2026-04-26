@@ -134,13 +134,13 @@
 
 **Purpose**: Reconcile the cleaned state, record evidence, and decommission the GitHub Project only after local replacement review.
 
-- [ ] T048 Reconcile final cleaned-state inventory counts for active, reference, merged, archived, deleted, and needs-owner-decision local documents in `docs/project-management/verification.md`
-- [ ] T049 Inspect the final diff for app routes, components, Supabase files, permissions, dependencies, package locks, generated types, tests, and runtime behavior changes, then record the no-runtime-change result in `docs/project-management/verification.md`
-- [ ] T050 Record whether `bun run build`, `bun run lint`, and `bunx vitest run` were skipped as docs-only, run successfully, or run with known baseline failures in `docs/project-management/verification.md`
-- [ ] T051 Complete the local replacement review checklist, Project item disposition summary, and deletion readiness assessment in `docs/project-management/github-project-decommission.md`
-- [ ] T052 After local replacement review, freeze or delete org GitHub Project 1 with a pointer to `docs/project-management/README.md` and record the action, blocker, owner, next action, and review date in `docs/project-management/github-project-decommission.md`
-- [ ] T053 Update the source-of-truth statement and last reviewed date after decommission review in `docs/project-management/README.md`
-- [ ] T054 Run the `specs/001-project-management-cleanup/quickstart.md` acceptance review and record pass, passed-with-owner-decisions, or failed in `docs/project-management/verification.md`
+- [X] T048 Reconcile final cleaned-state inventory counts for active, reference, merged, archived, deleted, and needs-owner-decision local documents in `docs/project-management/verification.md`
+- [X] T049 Inspect the final diff for app routes, components, Supabase files, permissions, dependencies, package locks, generated types, tests, and runtime behavior changes, then record the no-runtime-change result in `docs/project-management/verification.md`
+- [X] T050 Record whether `bun run build`, `bun run lint`, and `bunx vitest run` were skipped as docs-only, run successfully, or run with known baseline failures in `docs/project-management/verification.md`
+- [X] T051 Complete the local replacement review checklist, Project item disposition summary, and deletion readiness assessment in `docs/project-management/github-project-decommission.md`
+- [X] T052 After local replacement review, freeze or delete org GitHub Project 1 with a pointer to `docs/project-management/README.md` and record the action, blocker, owner, next action, and review date in `docs/project-management/github-project-decommission.md`
+- [X] T053 Update the source-of-truth statement and last reviewed date after decommission review in `docs/project-management/README.md`
+- [X] T054 Run the `specs/001-project-management-cleanup/quickstart.md` acceptance review and record pass, passed-with-owner-decisions, or failed in `docs/project-management/verification.md`
 
 ---
 
@@ -156,7 +156,7 @@
 | Phase 4 US2 | Complete | `VERIFY-US2-2026-04-26`. |
 | Phase 5 US3 | Complete with owner decision | `VERIFY-US3-2026-04-26`; Project 1 export remainder tracked by `DEC-012` / `EXT-PROJ-005`. |
 | Phase 6 US4 | Complete | `VERIFY-US4-2026-04-26`; archive movement and boundary checks complete. |
-| Phase 7 Polish | Pending | Do after local replacement review and Project export/decommission review conditions are ready. |
+| Phase 7 Polish | Complete with owner decision | `VERIFY-PHASE7-2026-04-26`; local replacement review passed, but freeze/delete/decommission remains blocked until `DEC-012` is resolved with an owner-authenticated Project 1 export. |
 
 ### Phase Dependencies
 

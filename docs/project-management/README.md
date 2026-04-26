@@ -16,8 +16,10 @@ this repository.
 - Active planning status must be readable from local records in this directory.
 - Archived legacy planning files are source material, not canonical active
   status after normalization.
-- External GitHub docs/issues/Project items were localized in US3. They are now
-  provenance inputs only; active status lives in local records.
+- External GitHub docs/issues/Project items were localized in US3. Phase 7
+  local replacement review confirmed they are provenance inputs only; active
+  status lives in local records. Project 1 decommission action remains blocked
+  by `DEC-012` until an owner-authenticated export is reviewed.
 
 ## No-Runtime-Change Boundary
 
@@ -37,11 +39,12 @@ that app behavior is unchanged.
 
 ## Working Notes
 
-- Completed cleanup scope: Phase 1, Phase 2, US1, US2, US3, and US4.
-- Next cleanup scope: Phase 7 final reconciliation and decommission review,
-  after local replacement review and the `DEC-012` Project 1 export owner
-  decision are resolved.
-- GitHub Project freeze/delete remains intentionally deferred.
+- Completed cleanup scope: Phase 1, Phase 2, US1, US2, US3, US4, and the
+  Phase 7 local replacement review.
+- Remaining blocker: `DEC-012` still requires an owner-authenticated Project 1
+  export review before any freeze/delete/decommission action.
+- GitHub Project 1 is not an active workflow dependency, but decommission
+  remains intentionally deferred until that export review is complete.
 
 ## Last Reviewed
 
