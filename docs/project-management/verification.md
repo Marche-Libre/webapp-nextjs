@@ -154,3 +154,62 @@ Observed changed file surface for this execution:
 - `README.md`
 - `AGENTS.md`
 - `specs/001-project-management-cleanup/tasks.md`
+
+## VERIFY-US3-2026-04-26 - External Source Localization Coverage
+
+- Date: 2026-04-26
+- Reviewer: project-maintenance
+- Local document coverage:
+  6/6 targeted canonical files updated for US3 localization:
+  `external-sources.md`, `product-framing.md`, `current-state.md`, `tasks.md`,
+  `decisions.md`, `verification.md`.
+- External source coverage:
+  35/35 imported external source records in `external-sources.md` have exactly
+  one disposition and one local destination.
+- Task status coverage:
+  4/4 external-origin candidate parent tasks (`CAND-006`..`CAND-009`) include
+  required task fields and transition history.
+- Duplicate canonical topics:
+  No external issue or project status remains canonical; local status is tracked
+  only in `docs/project-management/tasks.md`.
+- Archive reason coverage:
+  Not applicable (US4 archive actions deferred).
+- GitHub Project dependency check:
+  Pass with owner decision. Active local status no longer depends on Project 1;
+  full project-card export is still required before decommission execution.
+- Runtime diff check:
+  Pass (US3 changes are documentation-only and stay inside project-management
+  docs plus spec task checklist updates).
+- Quality gate record:
+  `bun run build`: skipped (docs-only)
+  `bun run lint`: skipped (docs-only)
+  `bunx vitest run`: skipped (docs-only)
+- Open owner decisions:
+  DEC-006, DEC-007, DEC-008, DEC-009, DEC-012
+- Result: passed-with-owner-decisions
+
+### External Source Coverage Evidence
+
+| Metric | Value |
+| --- | --- |
+| External docs imported | 8 |
+| GitHub issues imported | 22 |
+| GitHub Project item records imported | 5 |
+| Total external records | 35 |
+| Records with one disposition and one destination | 35/35 |
+
+| Disposition | Count |
+| --- | --- |
+| `imported-active` | 5 |
+| `merged` | 27 |
+| `discarded-no-unique-value` | 2 |
+| `needs-owner-decision` | 1 |
+| `archived` | 0 |
+
+### GitHub Project Access Evidence
+
+| Check | Result |
+| --- | --- |
+| `https://github.com/orgs/Marche-Libre/projects/1` anonymous access | `404` |
+| Local active status depends on Project board columns | no |
+| Project decommission action executed in US3 | no (intentionally deferred) |

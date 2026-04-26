@@ -14,6 +14,30 @@ verification, archives, and GitHub Project decommissioning. External GitHub docs
 issues, and Project items are treated as migration inputs with provenance, not
 future sources of truth.
 
+## Current Implementation State
+
+Last updated: 2026-04-26
+
+| Phase / story | State | Notes |
+| --- | --- | --- |
+| Phase 1 Setup | Complete | Local project-management document surface exists. |
+| Phase 2 Foundational | Complete | Record contracts, taxonomy, lifecycle, and scope guard are defined. |
+| US1 Find the Current Source of Truth | Complete | Start Here navigation and local source inventory are usable. |
+| US2 Normalize Tasks and Statuses | Complete | APP_REFINEMENT task/session status is represented locally. |
+| US3 Localize External GitHub Sources | Complete with owner decision | External docs/issues/Project proxies are localized; Project 1 full card export remains an owner decision before decommission. |
+| US4 Archive Without Losing History | Next | Archive rules and movement/deletion decisions are the next logical implementation slice. |
+| Phase 7 Polish & Cross-Cutting Verification | Blocked until US4 and Project export review | Do not freeze/delete the GitHub Project until local replacement review and Project item export coverage are resolved. |
+
+Current active responsibilities:
+
+- Keep runtime/product work as candidate Task Records only.
+- Execute US4 next to define archive rules, move historical material, and verify
+  archive boundaries.
+- Resolve `DEC-012` with an owner-authenticated Project 1 export before Phase 7
+  decommission work.
+- Do not change app routes, UI, Supabase files, dependencies, package locks,
+  generated types, tests, or runtime behavior in this cleanup.
+
 ## Technical Context
 
 **Language/Version**: Markdown documentation and Spec Kit artifacts in this
@@ -125,6 +149,43 @@ Data entities and lifecycle rules are recorded in [data-model.md](./data-model.m
 The local markdown interface contracts are recorded in
 [contracts/local-project-management.md](./contracts/local-project-management.md).
 Reviewer and implementation guidance is recorded in [quickstart.md](./quickstart.md).
+
+## Phase Execution Responsibilities
+
+### Completed Through US3
+
+- Phase 1 and Phase 2 created the local records and contracts.
+- US1 established the canonical local project-management entrypoint.
+- US2 normalized local APP_REFINEMENT work into Task Records.
+- US3 imported and localized external docs, relevant issue chains, and Project
+  item proxies into `docs/project-management/external-sources.md`,
+  `product-framing.md`, `current-state.md`, `tasks.md`, `decisions.md`, and
+  `verification.md`.
+
+### Next: US4 Archive Slice
+
+US4 should be executed before Phase 7. Its responsibility is to move or mark
+historical planning material without losing decision history:
+
+- Define archive categories and retention rules in
+  `docs/project-management/archive/README.md`.
+- Record archive/delete/rename/owner-decision outcomes in
+  `docs/project-management/decisions.md`.
+- Move historical local planning files only after useful content is captured.
+- Update active navigation so active readers do not have to inspect archived
+  records.
+- Record archive coverage in `docs/project-management/verification.md`.
+
+### Later: Phase 7
+
+Phase 7 remains a final reconciliation/decommission slice:
+
+- Reconcile final inventory counts.
+- Confirm the diff is docs-only.
+- Record quality-gate skip/run status.
+- Complete `github-project-decommission.md`.
+- Freeze or delete GitHub Project 1 only after local replacement review and
+  Project item export coverage are resolved.
 
 ## Post-Design Constitution Check
 

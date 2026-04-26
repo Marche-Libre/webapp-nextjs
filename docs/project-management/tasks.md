@@ -427,3 +427,85 @@ Transition history is required for every record. Baseline imports can use
 | Date | From | To | Reason | Next action |
 |------|------|----|--------|-------------|
 | 2026-04-26 | n/a | proposed | Existing baseline issue listed in root status overview. | Schedule focused lint/test repair work. |
+
+## External-Origin Candidate Runtime/Product Work (US3)
+
+## CAND-006 - External Admission MVP Epic Localization
+
+- Priority: P0
+- Status: proposed
+- Purpose: Convert external admission-epic issue set into one local candidate parent task while keeping execution out of this cleanup.
+- Scope: Admission parent and child issue chain from `webapp-nextjs#3`, `#6`, `#7`, `#14`, `#16` and story anchor `le-marche-libre#16`.
+- Out of scope: Runtime admission implementation in this cleanup.
+- Completion criteria: External admission issue set is represented locally with provenance and no active status dependency on GitHub.
+- Related local documents: `docs/project-management/external-sources.md`, `docs/project-management/product-framing.md`, `docs/project-management/decisions.md`
+- External provenance: `EXT-ISSUE-WA-003`, `EXT-ISSUE-WA-006`, `EXT-ISSUE-WA-007`, `EXT-ISSUE-WA-014`, `EXT-ISSUE-WA-016`, `EXT-ISSUE-LM-016`, `EXT-PROJ-001`
+- Dependencies: Owner confirmation of external story status and runtime execution window.
+- Last reviewed: 2026-04-26
+- Next action: Decompose into implementation tickets outside this cleanup.
+
+### Transition History
+
+| Date | From | To | Reason | Next action |
+|------|------|----|--------|-------------|
+| 2026-04-26 | n/a | proposed | Imported from external issue set during US3 localization. | Keep local-only status and plan runtime execution separately. |
+
+## CAND-007 - External Profile/Search MVP Epic Localization
+
+- Priority: P1
+- Status: proposed
+- Purpose: Convert external profile/search issue set into one local candidate parent task while keeping execution out of this cleanup.
+- Scope: Parent and subtask chain from `webapp-nextjs#5`, `#13`, `#17`, `#18`, `#19` and story anchor `le-marche-libre#17`.
+- Out of scope: Runtime profile/search implementation in this cleanup.
+- Completion criteria: External profile/search issue set is represented locally with provenance and no active status dependency on GitHub.
+- Related local documents: `docs/project-management/external-sources.md`, `docs/project-management/product-framing.md`, `docs/project-management/decisions.md`
+- External provenance: `EXT-ISSUE-WA-005`, `EXT-ISSUE-WA-013`, `EXT-ISSUE-WA-017`, `EXT-ISSUE-WA-018`, `EXT-ISSUE-WA-019`, `EXT-ISSUE-LM-017`, `EXT-PROJ-002`
+- Dependencies: Owner confirmation of member-detail scope and runtime execution window.
+- Last reviewed: 2026-04-26
+- Next action: Decompose into implementation tickets outside this cleanup.
+
+### Transition History
+
+| Date | From | To | Reason | Next action |
+|------|------|----|--------|-------------|
+| 2026-04-26 | n/a | proposed | Imported from external issue set during US3 localization. | Keep local-only status and plan runtime execution separately. |
+
+## CAND-008 - External Channels/Messages MVP Epic Localization
+
+- Priority: P0
+- Status: proposed
+- Purpose: Convert external channels/messages issue set into one local candidate parent task while keeping execution out of this cleanup.
+- Scope: Parent and subtask chain from `webapp-nextjs#4`, `#20`, `#21`, `#23`, `#24`, `#25`, `#26` and story anchor `le-marche-libre#15`.
+- Out of scope: Runtime channels/messages implementation in this cleanup.
+- Completion criteria: External channels/messages issue set is represented locally with provenance and no active status dependency on GitHub.
+- Related local documents: `docs/project-management/external-sources.md`, `docs/project-management/product-framing.md`, `docs/project-management/decisions.md`
+- External provenance: `EXT-ISSUE-WA-004`, `EXT-ISSUE-WA-020`, `EXT-ISSUE-WA-021`, `EXT-ISSUE-WA-023`, `EXT-ISSUE-WA-024`, `EXT-ISSUE-WA-025`, `EXT-ISSUE-WA-026`, `EXT-ISSUE-LM-015`, `EXT-PROJ-003`
+- Dependencies: Owner confirmation of forum/jobs/reply scope and runtime execution window.
+- Last reviewed: 2026-04-26
+- Next action: Decompose into implementation tickets outside this cleanup.
+
+### Transition History
+
+| Date | From | To | Reason | Next action |
+|------|------|----|--------|-------------|
+| 2026-04-26 | n/a | proposed | Imported from external issue set during US3 localization. | Keep local-only status and plan runtime execution separately. |
+
+## CAND-009 - External Onboarding Blocker Localization
+
+- Priority: P0
+- Status: proposed
+- Purpose: Preserve the open onboarding blocker from external tracking as a local candidate blocker record.
+- Scope: Runtime follow-up for `webapp-nextjs#1` (`500` on onboarding finalization) and related Project tracking proxy.
+- Out of scope: Runtime bug fix implementation in this cleanup.
+- Completion criteria: Blocker is tracked locally with provenance and explicit out-of-scope execution boundary.
+- Related local documents: `docs/project-management/external-sources.md`, `docs/project-management/current-state.md`, `docs/project-management/decisions.md`
+- External provenance: `EXT-ISSUE-WA-001`, `EXT-DOC-006`, `EXT-DOC-008`, `EXT-PROJ-004`
+- Dependencies: Runtime owner assignment and reproducible failing scenario.
+- Last reviewed: 2026-04-26
+- Next action: Open dedicated runtime bugfix ticket outside this cleanup.
+
+### Transition History
+
+| Date | From | To | Reason | Next action |
+|------|------|----|--------|-------------|
+| 2026-04-26 | n/a | proposed | Imported from external blocker record during US3 localization. | Keep local-only status and plan runtime bugfix separately. |

@@ -96,16 +96,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Refresh and record external documentation source records from `Marche-Libre/le-marche-libre` including `README.md` and `docs/00-cadrage.md` through `docs/06-etat-webapp-nextjs.md` in `docs/project-management/external-sources.md`
-- [ ] T033 [US3] Refresh and record relevant GitHub issue source records from `Marche-Libre/le-marche-libre` in `docs/project-management/external-sources.md`
-- [ ] T034 [US3] Refresh and record relevant GitHub issue source records from `Marche-Libre/webapp-nextjs` in `docs/project-management/external-sources.md`
-- [ ] T035 [US3] Refresh and record org GitHub Project 1 item source records, including title, URL or identifier, status at import time, and source repository when available, in `docs/project-management/external-sources.md`
-- [ ] T036 [US3] Assign each external source record a local destination and disposition of imported-active, merged, archived, discarded-no-unique-value, or needs-owner-decision in `docs/project-management/external-sources.md`
-- [ ] T037 [US3] Merge active external product framing and beta-scope value into canonical local framing with source references in `docs/project-management/product-framing.md`
-- [ ] T038 [US3] Merge external current-state webapp observations into the local current-state map with source references in `docs/project-management/current-state.md`
-- [ ] T039 [US3] Create local Task Records or candidate parent tasks for active external issues and Project items, with external provenance but local-only active status, in `docs/project-management/tasks.md`
-- [ ] T040 [US3] Record duplicate, conflicting, discarded, broad, or owner-decision external source outcomes in `docs/project-management/decisions.md`
-- [ ] T041 [US3] Verify 100% external source disposition coverage and no active dependency on external GitHub sources in `docs/project-management/verification.md`
+- [X] T032 [US3] Refresh and record external documentation source records from `Marche-Libre/le-marche-libre` including `README.md` and `docs/00-cadrage.md` through `docs/06-etat-webapp-nextjs.md` in `docs/project-management/external-sources.md`
+- [X] T033 [US3] Refresh and record relevant GitHub issue source records from `Marche-Libre/le-marche-libre` in `docs/project-management/external-sources.md`
+- [X] T034 [US3] Refresh and record relevant GitHub issue source records from `Marche-Libre/webapp-nextjs` in `docs/project-management/external-sources.md`
+- [X] T035 [US3] Refresh and record org GitHub Project 1 item source records, including title, URL or identifier, status at import time, and source repository when available, in `docs/project-management/external-sources.md`
+- [X] T036 [US3] Assign each external source record a local destination and disposition of imported-active, merged, archived, discarded-no-unique-value, or needs-owner-decision in `docs/project-management/external-sources.md`
+- [X] T037 [US3] Merge active external product framing and beta-scope value into canonical local framing with source references in `docs/project-management/product-framing.md`
+- [X] T038 [US3] Merge external current-state webapp observations into the local current-state map with source references in `docs/project-management/current-state.md`
+- [X] T039 [US3] Create local Task Records or candidate parent tasks for active external issues and Project items, with external provenance but local-only active status, in `docs/project-management/tasks.md`
+- [X] T040 [US3] Record duplicate, conflicting, discarded, broad, or owner-decision external source outcomes in `docs/project-management/decisions.md`
+- [X] T041 [US3] Verify 100% external source disposition coverage and no active dependency on external GitHub sources in `docs/project-management/verification.md`
 
 **Checkpoint**: User Story 3 is complete when every relevant external source has provenance, local destination, disposition, and no active planning status depends on GitHub issues or the GitHub Project.
 
@@ -146,26 +146,38 @@
 
 ## Dependencies & Execution Order
 
+### Current Phase Status
+
+| Phase / story | Status | Verification / blocker |
+|------|--------|------------------------|
+| Phase 1 Setup | Complete | T001-T008 complete. |
+| Phase 2 Foundational | Complete | T009-T015 complete. |
+| Phase 3 US1 | Complete | `VERIFY-US1-2026-04-26`. |
+| Phase 4 US2 | Complete | `VERIFY-US2-2026-04-26`. |
+| Phase 5 US3 | Complete with owner decision | `VERIFY-US3-2026-04-26`; Project 1 export remainder tracked by `DEC-012` / `EXT-PROJ-005`. |
+| Phase 6 US4 | Next | Execute T042-T047 next. |
+| Phase 7 Polish | Pending | Do after US4 and after Project export/decommission review conditions are ready. |
+
 ### Phase Dependencies
 
 | Phase | Depends On | Notes |
 |------|------------|-------|
 | Phase 1 Setup | None | Creates the local documentation surface. |
 | Phase 2 Foundational | Phase 1 | Defines contracts and scope guard before classification/import work. |
-| Phase 3 US1 | Phase 2 | Builds the canonical entrypoint and local source-of-truth navigation. |
-| Phase 4 US2 | Phase 2 | Can proceed alongside US1 after foundational contracts are ready. |
-| Phase 5 US3 | Phase 2, preferably US1 and US2 | External sources can be imported after contracts exist; mapping is easier once local destinations and tasks exist. |
-| Phase 6 US4 | US1, US2, US3 | Archive actions require classification, task normalization, and external dispositions. |
-| Phase 7 Polish | Desired user stories complete | Decommission happens only after local replacement review. |
+| Phase 3 US1 | Phase 2 | Complete; canonical entrypoint and local source-of-truth navigation exist. |
+| Phase 4 US2 | Phase 2 | Complete; APP_REFINEMENT task status is local. |
+| Phase 5 US3 | Phase 2, preferably US1 and US2 | Complete with owner decision; external sources are localized and Project export remainder is explicit. |
+| Phase 6 US4 | US1, US2, US3 | Next; archive actions require classification, task normalization, and external dispositions. |
+| Phase 7 Polish | Desired user stories complete | Decommission happens only after US4, local replacement review, and Project export coverage. |
 
 ### User Story Dependencies
 
 | User Story | Priority | Dependencies | Can Be Delivered Independently |
 |------------|----------|--------------|--------------------------------|
-| US1 Find the Current Source of Truth | P1 | Phase 2 | Yes, as the navigation MVP. |
-| US2 Normalize Tasks and Statuses | P1 | Phase 2 | Yes, as the local task board MVP. |
-| US3 Localize External GitHub Sources | P2 | Phase 2, then local destinations from US1/US2 | Yes, but disposition mapping benefits from US1/US2. |
-| US4 Archive Without Losing History | P3 | US1, US2, US3 | Yes, after source records and classifications exist. |
+| US1 Find the Current Source of Truth | P1 | Phase 2 | Delivered; navigation MVP verified. |
+| US2 Normalize Tasks and Statuses | P1 | Phase 2 | Delivered; local task board verified. |
+| US3 Localize External GitHub Sources | P2 | Phase 2, then local destinations from US1/US2 | Delivered with owner decision; external provenance/disposition coverage verified. |
+| US4 Archive Without Losing History | P3 | US1, US2, US3 | Next deliverable; source records and classifications now exist. |
 
 ### Within Each User Story
 
@@ -225,15 +237,16 @@ Task: T043 Record archive and deletion decisions in docs/project-management/deci
 
 1. Complete Phase 1 and Phase 2.
 2. Complete US1 and US2 because both are P1 and together provide the local entrypoint plus the usable local task board.
-3. Stop and validate that `docs/project-management/README.md` and `docs/project-management/tasks.md` are independently usable.
+3. Complete US3 to localize external docs/issues/Project provenance before any archive/decommission work.
+4. Stop and validate that `docs/project-management/README.md`, `docs/project-management/tasks.md`, and `docs/project-management/external-sources.md` are independently usable.
 
 ### Incremental Delivery
 
 1. Deliver US1 for source-of-truth navigation.
 2. Deliver US2 for local task/status normalization.
-3. Deliver US3 for external source localization and local provenance.
-4. Deliver US4 for archive cleanup and historical retention.
-5. Complete Phase 7 only after the local replacement review confirms no active dependency on the GitHub Project.
+3. Deliver US3 for external source localization and local provenance. (Complete as of 2026-04-26 with `DEC-012` owner decision.)
+4. Deliver US4 for archive cleanup and historical retention. (Next.)
+5. Complete Phase 7 only after US4 and after the local replacement review confirms no active dependency on the GitHub Project.
 
 ### Decommission Gate
 

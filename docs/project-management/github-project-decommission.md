@@ -10,26 +10,30 @@ Required gate checks before freeze/delete:
 - Local replacement entrypoint exists and is reviewable:
   `docs/project-management/README.md`.
 - Local task status does not depend on GitHub Project status.
-- External source records and dispositions are captured locally (US3/Phase 7).
+- External source records and dispositions are captured locally.
 - Blockers, owner, and next action are recorded if deletion is delayed.
 
 ## Tracking Record
 
 - Project identifier:
-  Org GitHub Project 1 (exact URL/ID to be captured during US3 import).
+  Org GitHub Project 1 (`https://github.com/orgs/Marche-Libre/projects/1`).
 - Local replacement entrypoint:
   `docs/project-management/README.md`
 - Local replacement review date:
-  2026-04-26 (partial review for Phase 1/2/US1/US2 only)
+  2026-04-26 (partial review through US3 only; US4/Phase 7 still pending)
 - Project-item disposition summary:
-  Pending (US3 not executed; no Project item import/disposition yet).
+  5 Project item records imported in US3:
+  `EXT-PROJ-001` through `EXT-PROJ-004` mapped to local candidate tasks, and
+  `EXT-PROJ-005` records the unmapped Project 1 remainder as an owner decision.
 - Current action state:
   Deletion deferred; do not decommission in this scope.
 - Delayed-deletion blocker:
-  External source localization and disposition coverage are not complete yet.
+  US4 archive work is not complete, Phase 7 replacement review has not run, and
+  `DEC-012` requires an owner-authenticated Project 1 export for unmapped items.
 - Responsible owner:
   needs-owner-decision
 - Next action:
-  Execute US3 external-source import and Phase 7 decommission review.
+  Execute US4 archive cleanup, then resolve `DEC-012`, then run Phase 7
+  decommission review.
 - Next review date:
   2026-05-03

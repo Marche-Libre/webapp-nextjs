@@ -16,8 +16,8 @@ this repository.
 - Active planning status must be readable from local records in this directory.
 - `APP_REFINEMENT/*.md` and other legacy planning files are source material,
   not canonical active status after normalization.
-- External GitHub docs/issues/Project items are handled in US3; until then they
-  remain provenance inputs and are not imported as active local status records.
+- External GitHub docs/issues/Project items were localized in US3. They are now
+  provenance inputs only; active status lives in local records.
 
 ## No-Runtime-Change Boundary
 
@@ -37,9 +37,12 @@ that app behavior is unchanged.
 
 ## Working Notes
 
-- Active cleanup scope in this MVP execution: Phase 1, Phase 2, US1, US2.
-- External source import (US3) and GitHub Project decommission (Phase 7) are
-  intentionally deferred.
+- Completed cleanup scope: Phase 1, Phase 2, US1, US2, and US3.
+- Next cleanup scope: US4 archive rules, historical movement, replacement
+  references, and archive-boundary verification.
+- GitHub Project decommission (Phase 7) is intentionally deferred until US4,
+  local replacement review, and the `DEC-012` Project 1 export owner decision
+  are resolved.
 
 ## Last Reviewed
 
