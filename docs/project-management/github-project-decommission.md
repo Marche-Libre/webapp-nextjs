@@ -34,15 +34,20 @@ Required gate checks before freeze/delete:
 - Current action state:
   Local replacement review completed. Freeze/delete/decommission not executed.
 - Delayed-deletion blocker:
-  No owner-authenticated Project 1 export was available for review, so
-  `DEC-012` remains unresolved and unmapped Project 1 items cannot be
-  reconciled safely.
+  Rechecked on 2026-04-26; no owner-authenticated Project 1 export artifact was
+  available in the repository for review. `DEC-012` remains unresolved and
+  unmapped Project 1 items cannot be reconciled safely.
+- Owner decision:
+  Keep org GitHub Project 1 active outside the local source of truth, but do
+  not freeze, delete, or decommission it until an owner-authenticated export is
+  reviewed and any unmapped Project 1 items are reconciled locally.
 - Responsible owner:
   Marche-Libre org/project owner with authenticated Project 1 access
 - Next action:
-  Provide an owner-authenticated Project 1 export, reconcile any remaining
-  items into local records, then rerun decommission review before any
-  freeze/delete action.
+  Owner exports the full Project 1 item list with item/card identifiers,
+  titles, linked content, source repositories, and status values; project
+  maintenance then reconciles any unmapped items into local records and reruns
+  decommission review before any freeze/delete action.
 - Next review date:
   2026-05-03
 

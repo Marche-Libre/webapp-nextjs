@@ -248,8 +248,11 @@
   `https://github.com/orgs/Marche-Libre/projects/1`,
   `EXT-PROJ-005`
 - Decision:
-  Owner must provide authenticated export for unmapped Project 1 items before
-  final decommission/freeze execution.
+  Owner decision remains pending as of the 2026-04-26 recheck. No
+  owner-authenticated Project 1 export artifact was available in the
+  repository, so org Project 1 must not be frozen, deleted, or decommissioned.
+  Owner must provide an authenticated export for unmapped Project 1 items
+  before final decommission/freeze execution.
 - Rationale:
   Project item list is not publicly readable (`404` anonymously), so only
   inferred/mapped items could be localized in this US3 run.
@@ -258,7 +261,12 @@
   `docs/project-management/external-sources.md` (`EXT-PROJ-005`),
   `docs/project-management/github-project-decommission.md`
 - Next action:
-  Export full project item list with card identifiers/status values.
+  Owner exports the full Project 1 item list with item/card identifiers,
+  titles, linked content, source repositories, and status values; then project
+  maintenance reconciles any unmapped items into local records before
+  decommission review.
+- Next review date:
+  2026-05-03
 
 ## DEC-013 - Discard External Landing-Page Issue From Cleanup Scope
 
