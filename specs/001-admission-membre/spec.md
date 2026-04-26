@@ -57,16 +57,23 @@ A signed-in user must be routed according to membership status so pending/refuse
 
 - Onboarding finalization returns a server/database error.
 - A candidate enters an invalid or unknown sponsor handle.
+- Unknown sponsor feedback is set but not visible after submission, leaving the
+  candidate without confirmation.
 - The app has both invitation and sponsorship-request mechanisms active.
 - An admin tries to approve a request twice or reverse a decision.
 - A non-admin attempts to access review actions.
+- A non-admin attempts to self-update `profiles.status` directly through the
+  Supabase client/API rather than using admin actions.
 - X OAuth succeeds but required profile fields are incomplete.
+- X OAuth succeeds on first login but the user is redirected back to
+  `/connexion`; a second login then enters the app.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: Candidates MUST authenticate with X for Beta 1 admission.
+- **FR-001a**: After a successful X OAuth callback, the session/profile routing MUST complete on the first login attempt without requiring a second X login.
 - **FR-002**: The onboarding flow MUST collect at minimum email and sponsor handle information.
 - **FR-003**: The onboarding flow MUST avoid the reported finalization 500/loop and provide a recoverable error state if submission fails.
 - **FR-004**: Member status MUST support `pending`, `approved`, and `refused` access states.
@@ -91,6 +98,7 @@ A signed-in user must be routed according to membership status so pending/refuse
 - **Current behavior**: The audit reports X auth, callback OAuth, protected routes, waiting page, onboarding, sponsor/invitation flows, and admin review already exist in some form.
 - **Affected surface**: Auth/session flow, onboarding pages, protected-route guards, admin review surface, profile/member status data, sponsorship/invitation data, tests for admission utilities.
 - **Compatibility risks**: `webapp-nextjs#1` reports onboarding finalization 500/loop. The admission model may be too complex because both `invitations` and `sponsorship_requests` appear in the current state. DB/RLS reproducibility must be checked before hardening.
+- **New findings from QA planning**: Unknown-sponsor submission currently hides its non-disclosing success/feedback copy after submit. Profile RLS must be checked first because a broad own-profile update policy may allow non-admin self-approval while `status` lives on `profiles`. A reported OAuth/session bug redirects first X login back to `/connexion`, while the second login enters the app.
 - **Out of scope**: Public signup, non-X auth, AI matching, broad profile redesign, payment, or deleting historical admission data.
 
 ## Success Criteria *(mandatory)*
@@ -98,6 +106,7 @@ A signed-in user must be routed according to membership status so pending/refuse
 ### Measurable Outcomes
 
 - **SC-001**: A candidate can complete admission submission without a 500 error in the reviewed test scenario.
+- **SC-001a**: A candidate who completes X OAuth reaches the correct pending, onboarding, or app destination on the first callback attempt.
 - **SC-002**: Pending, refused, and approved statuses each produce the expected access result in manual or automated checks.
 - **SC-003**: Non-admin approval/refusal attempts are rejected in server/database-enforced checks.
 - **SC-004**: Admin review can process a pending request in under 3 minutes from the review surface.
@@ -107,5 +116,5 @@ A signed-in user must be routed according to membership status so pending/refuse
 
 - X OAuth remains the only Beta 1 authentication method.
 - Email and sponsor handles are sufficient minimum onboarding data for Beta 1.
-- Exact refused-member UX is an owner decision tracked in `000-project-source-of-truth/decisions.md`.
+- Exact refused-member UX is an owner decision tracked in `../archive/000-project-source-of-truth/decisions.md`.
 - Runtime implementation must verify current code before deciding whether each imported GitHub issue is done, partial, missing, or rescoped.

@@ -1,6 +1,6 @@
 # Tasks: Profil et Recherche Membre MVP
 
-**Input**: `spec.md`, `plan.md`, sources in `../000-project-source-of-truth/sources.md`  
+**Input**: `spec.md`, `plan.md`, sources in `../archive/000-project-source-of-truth/sources.md`  
 **Prerequisites**: Release-readiness schema reproducibility review for profile objects
 
 **Tests**: Required for profile edit, search, member-card access, and private sponsor-field visibility.

@@ -8,13 +8,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/000-project-source-of-truth/plan.md`
+shell commands, and other important information, read the relevant feature plan
+under `specs/`. For release-readiness work, start with
+`specs/004-release-readiness/plan.md`.
 <!-- SPECKIT END -->
 
 <!-- PROJECT-MANAGEMENT START -->
 For local project-management execution, start at the Speckit source of truth:
-`specs/000-project-source-of-truth/README.md`
+`specs/004-release-readiness/tasks.md`
+
+The imported project source-of-truth records are archived at:
+`specs/archive/000-project-source-of-truth/README.md`
 
 GitHub Project 1 and `Marche-Libre/le-marche-libre` are imported sources only.
 Do not use GitHub Project status as active task status after the import.

@@ -105,5 +105,5 @@ An approved member wants to use retained message interactions such as reply, men
 ## Assumptions
 
 - Approved-member access is provided by `001-admission-membre`.
-- Channel taxonomy and forum beta position are owner decisions tracked in `000-project-source-of-truth/decisions.md`.
+- Channel taxonomy and forum beta position are owner decisions tracked in `../archive/000-project-source-of-truth/decisions.md`.
 - Existing chat functionality should be adapted, not rebuilt, unless audit proves it is unsafe or unreproducible.
