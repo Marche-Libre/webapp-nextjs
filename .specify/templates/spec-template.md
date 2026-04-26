@@ -100,6 +100,21 @@
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+## Brownfield Context *(mandatory)*
+
+<!--
+  ACTION REQUIRED: Describe the current observed state before proposing change.
+  Include affected routes, guards, redirects, components, Supabase objects,
+  migrations, RLS policies, existing tests, and known docs such as app_flow.md
+  or db_flow.md. Classify touched areas as keep, adapt, freeze, archive later,
+  or remove.
+-->
+
+- **Current behavior**: [Observed behavior and source files/docs]
+- **Affected surface**: [Routes/components/tables/policies/tests impacted]
+- **Compatibility risks**: [Auth, RLS, migration, redirect, data, or UX risks]
+- **Out of scope**: [Existing behavior this feature will not change]
+
 ## Success Criteria *(mandatory)*
 
 <!--
