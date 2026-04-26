@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Complex onboarding wizard exceeds Beta 1 needs
+ */
 "use client";
 
 import Link from "next/link";

@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Link preview not in Beta 1 requirements (FR-005/FR-006)
+ */
 "use client";
 
 import { useEffect, useState } from "react";

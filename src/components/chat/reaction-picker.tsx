@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Message reactions marked as "parked" (DEC-003 open)
+ */
 "use client";
 
 import { useState, useRef, useEffect } from "react";

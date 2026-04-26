@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Confetti hook not in Beta 1 roadmap
+ */
 "use client";
 
 import { useEffect, useRef } from "react";

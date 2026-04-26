@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Forum feature marked as "parked" (DEC-003 open)
+ */
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { TagBadge } from "@/components/ui/tag-badge";
