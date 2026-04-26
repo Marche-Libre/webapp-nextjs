@@ -2,12 +2,15 @@
 
 **Feature Branch**: `001-project-management-cleanup`  
 **Created**: 2026-04-26  
-**Status**: Draft  
+**Status**: In progress - US1, US2, and US3 complete; US4 and Phase 7 remain
 **Input**: User description: "Define a brownfield project-management cleanup feature. Goal: clean up messy project management, planning docs, tasks, issues, and documentation without changing app behavior. The spec should define current problems, target structure, document taxonomy, task/status lifecycle, how GitHub issues should map to local docs, what should be archived, merged, renamed, or deleted, and acceptance criteria for a cleaned-up project state. Updated direction: retire the GitHub Project as the project-management source of truth and localize planning, documentation, tasks, and imported context into this repository. External sources include Marche-Libre/le-marche-libre and Marche-Libre org Project 1, which currently centralizes documentation and app work."
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Find the Current Source of Truth (Priority: P1)
+
+**Implementation status**: Complete as of 2026-04-26. Verification record:
+`docs/project-management/verification.md` (`VERIFY-US1-2026-04-26`).
 
 A project contributor needs to understand the current product scope, cleanup
 priorities, and next actionable work without reading every historical task file
@@ -36,6 +39,9 @@ material in under 10 minutes.
 
 ### User Story 2 - Normalize Tasks and Statuses (Priority: P1)
 
+**Implementation status**: Complete as of 2026-04-26. Verification record:
+`docs/project-management/verification.md` (`VERIFY-US2-2026-04-26`).
+
 A project maintainer needs every cleanup task to have one owner-facing status,
 one priority, one scope, and clear completion criteria, instead of statuses being
 implied by filenames or scattered session notes.
@@ -58,6 +64,12 @@ opening unrelated documents.
 ---
 
 ### User Story 3 - Localize External GitHub Sources (Priority: P2)
+
+**Implementation status**: Complete with owner decision as of 2026-04-26.
+Verification record: `docs/project-management/verification.md`
+(`VERIFY-US3-2026-04-26`). External source records are localized, and the
+remaining Project 1 export gap is tracked as `DEC-012` / `EXT-PROJ-005` before
+Phase 7 decommission.
 
 A maintainer needs planning context from the external documentation repository,
 GitHub issues, and the org GitHub Project imported into this repository so local
@@ -88,6 +100,10 @@ discarded, or left as an explicit owner decision.
 ---
 
 ### User Story 4 - Archive Without Losing History (Priority: P3)
+
+**Implementation status**: Next. This story should run before Phase 7 so archive
+rules, historical movement, replacement references, and active-navigation
+boundaries are reviewable before final reconciliation.
 
 A future contributor needs historical planning context to remain available
 without polluting the active planning surface.

@@ -190,3 +190,87 @@
 - Reviewer: project-maintenance
 - Resulting local record: `docs/project-management/tasks.md` (`CAND-004`)
 - Next action: Resolve data-model direction before hardening execution.
+
+## DEC-010 - Merge External Documentation Sources Into Local Canonical Records
+
+- Date: 2026-04-26
+- Type: merge
+- Affected items:
+  `Marche-Libre/le-marche-libre`:
+  `README.md`,
+  `docs/00-cadrage.md`,
+  `docs/02-prd.md`,
+  `docs/03-questions-equipe.md`,
+  `docs/04-warnings.md`,
+  `docs/05-roadmap.md`,
+  `docs/06-etat-webapp-nextjs.md`
+- Decision:
+  External framing/current-state content is localized into
+  `product-framing.md`, `current-state.md`, `tasks.md`, and
+  `verification.md`; external docs are provenance only after import.
+- Rationale:
+  Removes active dependency on external docs while preserving traceability.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/external-sources.md`,
+  `docs/project-management/product-framing.md`,
+  `docs/project-management/current-state.md`,
+  `docs/project-management/tasks.md`
+- Next action:
+  Re-run targeted refresh if external docs change before decommission review.
+
+## DEC-011 - Merge External Issue Backlog Into Local Candidate Parent Tasks
+
+- Date: 2026-04-26
+- Type: merge
+- Affected items:
+  `Marche-Libre/webapp-nextjs#1,#3,#4,#5,#6,#7,#13,#14,#16,#17,#18,#19,#20,#21,#23,#24,#25,#26`,
+  `Marche-Libre/le-marche-libre#15,#16,#17`
+- Decision:
+  Active external issue chains are localized into candidate local task records
+  `CAND-006` through `CAND-009`; GitHub issue state is provenance only.
+- Rationale:
+  Keeps one local status surface and still preserves external issue lineage.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/tasks.md` (`CAND-006`..`CAND-009`)
+- Next action:
+  Create implementation tickets from these candidates outside this cleanup.
+
+## DEC-012 - Owner Decision Needed: Org Project 1 Item Export Completeness
+
+- Date: 2026-04-26
+- Type: owner-decision-needed
+- Affected items:
+  `https://github.com/orgs/Marche-Libre/projects/1`,
+  `EXT-PROJ-005`
+- Decision:
+  Owner must provide authenticated export for unmapped Project 1 items before
+  final decommission/freeze execution.
+- Rationale:
+  Project item list is not publicly readable (`404` anonymously), so only
+  inferred/mapped items could be localized in this US3 run.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/external-sources.md` (`EXT-PROJ-005`),
+  `docs/project-management/github-project-decommission.md`
+- Next action:
+  Export full project item list with card identifiers/status values.
+
+## DEC-013 - Discard External Landing-Page Issue From Cleanup Scope
+
+- Date: 2026-04-26
+- Type: delete
+- Affected items:
+  `Marche-Libre/webapp-nextjs#2`
+- Decision:
+  Treat landing-page issue as non-unique for this stabilization cleanup and do
+  not import it as active or candidate runtime work.
+- Rationale:
+  It is not a release blocker for current cleanup goals and adds no unique
+  localization value.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/external-sources.md` (`EXT-ISSUE-WA-002`)
+- Next action:
+  Reconsider only if landing scope becomes part of a separate product effort.

@@ -84,6 +84,19 @@
 | `APP_REFINEMENT/TASK_09.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-09`) | 2026-04-26 | Canonical status moved to local Task Record. |
 | `APP_REFINEMENT/TASK_10.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-10`) | 2026-04-26 | Canonical status moved to local Task Record. |
 
+## External Current-State Observations (US3)
+
+Imported from `EXT-DOC-008` (`le-marche-libre/docs/06-etat-webapp-nextjs.md`)
+and localized to local canonical records:
+
+| Observation imported | Source record | Canonical local destination | Localization result |
+| --- | --- | --- | --- |
+| Webapp is an advanced prototype, not a blank MVP skeleton | `EXT-DOC-008` | `docs/project-management/product-framing.md` | Scope language updated to stabilization-first framing. |
+| Backlog status drifts from runtime reality | `EXT-DOC-008` | `docs/project-management/tasks.md` | External-origin candidate parent tasks (`CAND-006`..`CAND-009`) created. |
+| Quality signal: build OK, lint/vitest not fully green in external audit snapshot | `EXT-DOC-008` | `docs/project-management/tasks.md`, `docs/project-management/verification.md` | Preserved as provenance only; no runtime fixes executed. |
+| DB reproducibility drift (missing views/tables/columns in migrations) | `EXT-DOC-008` | `db_flow.md`, `docs/project-management/tasks.md` (`CAND-002`) | Kept as runtime follow-up candidate, not implemented in cleanup. |
+| Onboarding finalization blocker tracked externally (`webapp-nextjs#1`) | `EXT-DOC-006`, `EXT-ISSUE-WA-001` | `docs/project-management/tasks.md` (`CAND-009`) | Local candidate task created with external provenance. |
+
 ## Classification Summary (Current In-Scope Local Sources)
 
 | Classification | Count |
