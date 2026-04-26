@@ -23,6 +23,11 @@ Le repo n'est cependant pas encore pleinement aligne avec le scope produit ecrit
 
 Le cadrage, le PRD et la roadmap vivent dans le repo `Marche-Libre/le-marche-libre`.
 
+## Gestion de projet locale
+
+Le point d'entree canonique pour le suivi local est
+`docs/project-management/README.md`.
+
 ## Stack
 
 - Next.js 16

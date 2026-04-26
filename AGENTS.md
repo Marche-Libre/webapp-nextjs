@@ -11,3 +11,12 @@ For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
 `specs/001-project-management-cleanup/plan.md`
 <!-- SPECKIT END -->
+
+<!-- PROJECT-MANAGEMENT START -->
+For local project-management execution, start at:
+`docs/project-management/README.md`
+
+When implementing `specs/001-project-management-cleanup`, Phase 1/2/US1/US2
+work is docs-only. Do not change app routes, UI, Supabase files, dependencies,
+package locks, generated types, tests, or runtime behavior in that scope.
+<!-- PROJECT-MANAGEMENT END -->
