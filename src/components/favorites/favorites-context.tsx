@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Feature not in Beta 1 roadmap - awaiting decision (DEC-003)
+ */
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";

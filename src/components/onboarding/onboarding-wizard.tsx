@@ -1,3 +1,8 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Complex onboarding wizard exceeds Beta 1 needs (FR-001 simplified)
+ * Consider: inline profile form instead
+ */
 "use client";
 
 import { useEffect, useState } from "react";

@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Dark mode/theme toggle not in Beta 1 roadmap
+ */
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
