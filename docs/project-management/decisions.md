@@ -23,6 +23,8 @@
 - `archive`: item moved out of active surface with archive reason and
   replacement reference.
 - `delete`: only when no unique value remains; deletion reason required.
+- `rename`: use when an active/reference file remains useful but its current
+  path or title misleads contributors about status, ownership, or scope.
 - `owner-decision-needed`: use for unresolved conflicts, unclear ownership, or
   scope ambiguity; include explicit next action.
 
@@ -66,13 +68,14 @@
 - Date: 2026-04-26
 - Type: merge
 - Affected items:
-  `APP_REFINEMENT/TASK_00.STARTED.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_00.TODO.md` through
-  `APP_REFINEMENT/TASK_00.SESSION_07.TODO.md`,
-  `APP_REFINEMENT/TASK_01.TODO.md` through `APP_REFINEMENT/TASK_10.TODO.md`
+  `docs/project-management/archive/app-refinement/TASK_00.STARTED.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_00.TODO.md` through
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_07.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_01.TODO.md` through `docs/project-management/archive/app-refinement/TASK_10.TODO.md`
 - Decision:
   Canonical active task status now lives in `docs/project-management/tasks.md`.
-  APP_REFINEMENT files are retained as merged source context.
+  APP_REFINEMENT files are retained as archived merged source context after US4
+  archive movement.
 - Rationale:
   Removes filename-driven status ambiguity and creates one local task lifecycle
   surface.
@@ -105,7 +108,7 @@
 - Date: 2026-04-26
 - Type: keep
 - Affected items:
-  `APP_REFINEMENT/*.md`,
+  `docs/project-management/archive/app-refinement/*.md`,
   `docs/project-management/tasks.md`
 - Decision:
   Normalize filename tokens as:
@@ -124,10 +127,10 @@
 - Date: 2026-04-26
 - Type: owner-decision-needed
 - Affected items:
-  `APP_REFINEMENT/TASK_00.STARTED.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_00.TODO.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_01.READY.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_03.READY.md`
+  `docs/project-management/archive/app-refinement/TASK_00.STARTED.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_00.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_01.READY.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_03.READY.md`
 - Decision:
   Owner must decide whether `TASK-APP-00` should remain active `in-progress` or
   be moved to `ready`/`archived` after framing completion.
@@ -160,8 +163,8 @@
 - Date: 2026-04-26
 - Type: owner-decision-needed
 - Affected items:
-  `APP_REFINEMENT/TASK_06.TODO.md`,
-  `APP_REFINEMENT/TASK_07.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_06.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_07.TODO.md`,
   `app_flow.md`
 - Decision:
   Owner must choose whether member detail remains as route `/membres/[id]` or
@@ -178,8 +181,8 @@
 - Date: 2026-04-26
 - Type: owner-decision-needed
 - Affected items:
-  `APP_REFINEMENT/TASK_04.TODO.md`,
-  `APP_REFINEMENT/TASK_10.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_04.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_10.TODO.md`,
   `db_flow.md`
 - Decision:
   Owner must decide whether `invitations` remains active, becomes legacy-only,
@@ -274,3 +277,96 @@
   `docs/project-management/external-sources.md` (`EXT-ISSUE-WA-002`)
 - Next action:
   Reconsider only if landing scope becomes part of a separate product effort.
+
+## DEC-014 - Archive Merged APP_REFINEMENT Planning Sources
+
+- Date: 2026-04-26
+- Type: archive
+- Affected items:
+  `docs/project-management/archive/app-refinement/TASK_00.STARTED.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_00.TODO.md` through
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_07.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_01.TODO.md` through `docs/project-management/archive/app-refinement/TASK_10.TODO.md`
+- Decision:
+  Moved the 19 merged APP_REFINEMENT markdown files from the historical
+  `APP_REFINEMENT/` directory to
+  `docs/project-management/archive/app-refinement/`.
+- Rationale:
+  Their useful planning value is already captured in canonical Task Records,
+  candidate runtime Task Records, current-state classification, and owner
+  decisions. Keeping the original files active would preserve filename-driven
+  status ambiguity.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/archive/README.md` (`ARCH-APPREF-001`),
+  `docs/project-management/archive/app-refinement/`
+- Next action:
+  Use archived files as provenance only; update active status in
+  `docs/project-management/tasks.md`.
+
+## DEC-015 - Local Deletion Review for Historical Planning Material
+
+- Date: 2026-04-26
+- Type: delete
+- Affected items:
+  No local historical planning files selected for deletion in US4.
+- Decision:
+  Do not delete local project-management source files in this run. Retain the
+  merged APP_REFINEMENT sources in the archive because they contain task scope,
+  sequencing, and decision-history provenance.
+- Rationale:
+  The user requested archive without losing history. No reviewed local file had
+  zero unique value after merge.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/archive/README.md` (`ARCH-APPREF-001`)
+- Next action:
+  Future delete actions must add a decision record naming the exact path,
+  deletion reason, reviewer, and replacement or no-replacement rationale.
+
+## DEC-016 - Rename Review for Active and Historical Planning Material
+
+- Date: 2026-04-26
+- Type: rename
+- Affected items:
+  `docs/project-management/archive/app-refinement/*.md`,
+  `design.md`,
+  `design-system/marchélibre/MASTER.md`
+- Decision:
+  Do not rename active/reference planning documents in US4. Move merged
+  APP_REFINEMENT files to the archive instead of renaming status-token
+  filenames, and keep overlapping design guidance under owner decision.
+- Rationale:
+  Renaming archived historical files would obscure provenance without improving
+  active navigation. Renaming design guidance before owner review could imply a
+  canonical source that has not been approved.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/archive/README.md`,
+  `docs/project-management/current-state.md`
+- Next action:
+  Resolve `DEC-007` before renaming or merging design guidance.
+
+## DEC-017 - Owner-Decision Holds After Archive Review
+
+- Date: 2026-04-26
+- Type: owner-decision-needed
+- Affected items:
+  `design.md`,
+  `design-system/marchélibre/MASTER.md`,
+  `https://github.com/orgs/Marche-Libre/projects/1`
+- Decision:
+  Keep unresolved design-source authority and Project 1 export completeness as
+  explicit owner decisions; do not archive, delete, freeze, or decommission
+  those surfaces in US4.
+- Rationale:
+  Both items affect future active workflow or contributor guidance and cannot be
+  resolved by moving historical local task files.
+- Reviewer: project-maintenance
+- Resulting local record:
+  `docs/project-management/current-state.md`,
+  `docs/project-management/external-sources.md`,
+  `docs/project-management/github-project-decommission.md`
+- Next action:
+  Owner resolves `DEC-007` and `DEC-012` before final cleanup/decommission
+  reconciliation.

@@ -14,8 +14,8 @@ this repository.
 ## Local Source-of-Truth Rule
 
 - Active planning status must be readable from local records in this directory.
-- `APP_REFINEMENT/*.md` and other legacy planning files are source material,
-  not canonical active status after normalization.
+- Archived legacy planning files are source material, not canonical active
+  status after normalization.
 - External GitHub docs/issues/Project items were localized in US3. They are now
   provenance inputs only; active status lives in local records.
 
@@ -37,12 +37,11 @@ that app behavior is unchanged.
 
 ## Working Notes
 
-- Completed cleanup scope: Phase 1, Phase 2, US1, US2, and US3.
-- Next cleanup scope: US4 archive rules, historical movement, replacement
-  references, and archive-boundary verification.
-- GitHub Project decommission (Phase 7) is intentionally deferred until US4,
-  local replacement review, and the `DEC-012` Project 1 export owner decision
-  are resolved.
+- Completed cleanup scope: Phase 1, Phase 2, US1, US2, US3, and US4.
+- Next cleanup scope: Phase 7 final reconciliation and decommission review,
+  after local replacement review and the `DEC-012` Project 1 export owner
+  decision are resolved.
+- GitHub Project freeze/delete remains intentionally deferred.
 
 ## Last Reviewed
 

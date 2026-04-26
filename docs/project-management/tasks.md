@@ -62,15 +62,15 @@ Transition history is required for every record. Baseline imports can use
 - Completion criteria: One canonical record exists; session sources are merged;
   transition history reflects status evidence from source files.
 - Related local documents:
-  `APP_REFINEMENT/TASK_00.STARTED.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_00.TODO.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_01.READY.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_02.TODO.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_03.READY.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_04.TODO.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_05.TODO.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_06.TODO.md`,
-  `APP_REFINEMENT/TASK_00.SESSION_07.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.STARTED.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_00.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_01.READY.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_02.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_03.READY.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_04.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_05.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_06.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_00.SESSION_07.TODO.md`,
   `docs/project-management/decisions.md`
 - External provenance: none (local source material)
 - Dependencies: Owner decision on whether framing is still active vs reference-only.
@@ -97,7 +97,7 @@ Transition history is required for every record. Baseline imports can use
 - Completion criteria: `app_flow.md` remains current and separates observed vs
   target state.
 - Related local documents:
-  `APP_REFINEMENT/TASK_01.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_01.TODO.md`,
   `app_flow.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-02` for DB/RLS context when behavior coupling exists.
@@ -120,7 +120,7 @@ Transition history is required for every record. Baseline imports can use
 - Completion criteria: `db_flow.md` stays aligned with observed schema and known
   MVP target constraints.
 - Related local documents:
-  `APP_REFINEMENT/TASK_02.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_02.TODO.md`,
   `db_flow.md`
 - External provenance: none (local source material)
 - Dependencies: Access to current migration set and Supabase review context.
@@ -144,7 +144,7 @@ Transition history is required for every record. Baseline imports can use
   changes.
 - Completion criteria: Backup + preflight checks + guarded migration + admin
   access verification.
-- Related local documents: `APP_REFINEMENT/TASK_03.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_03.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: Confirmed Supabase target environment and backup availability.
 - Last reviewed: 2026-04-26
@@ -167,7 +167,7 @@ Transition history is required for every record. Baseline imports can use
 - Completion criteria: Sponsor cannot grant final access, admin approval rules
   are enforced, one active sponsorship request per candidate, clear pending vs
   rejected UX.
-- Related local documents: `APP_REFINEMENT/TASK_04.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_04.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-02`, `TASK-APP-03`.
 - Last reviewed: 2026-04-26
@@ -189,7 +189,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Notification expansion beyond agreed MVP minimum.
 - Completion criteria: Valid transition controls, audited bypass with reason,
   non-admin failure paths.
-- Related local documents: `APP_REFINEMENT/TASK_05.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_05.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-04`.
 - Last reviewed: 2026-04-26
@@ -212,7 +212,7 @@ Transition history is required for every record. Baseline imports can use
 - Completion criteria: Main navigation no longer exposes forum/standalone
   directory; `/forum*` and `/membres` have controlled behavior.
 - Related local documents:
-  `APP_REFINEMENT/TASK_06.TODO.md`,
+  `docs/project-management/archive/app-refinement/TASK_06.TODO.md`,
   `app_flow.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-01`, `TASK-APP-07`, `TASK-APP-08`.
@@ -235,7 +235,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Full profile feature redesign.
 - Completion criteria: Search by handle/name variants, defined member detail
   surface, no sponsorship data leakage to other members.
-- Related local documents: `APP_REFINEMENT/TASK_07.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_07.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-06` and owner decision on member-detail destination.
 - Last reviewed: 2026-04-26
@@ -257,7 +257,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Historical recruitment-content migration without owner decision.
 - Completion criteria: Approved users can read Jobs, only admins can post Jobs,
   private-channel membership controls are enforced.
-- Related local documents: `APP_REFINEMENT/TASK_08.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_08.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-02`, `TASK-APP-04`.
 - Last reviewed: 2026-04-26
@@ -279,7 +279,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Full moderation event archive unless explicitly approved.
 - Completion criteria: Non-admin cannot pin/moderate; deleted content is not
   exposed; user reports remain functional where retained.
-- Related local documents: `APP_REFINEMENT/TASK_09.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_09.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-04`, `TASK-APP-08`.
 - Last reviewed: 2026-04-26
@@ -301,7 +301,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Destructive DB drops mixed with security-hardening work.
 - Completion criteria: Critical negative checks pass, chat/admission/admin flows
   remain functional, and cleanup is staged without destructive coupling.
-- Related local documents: `APP_REFINEMENT/TASK_10.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_10.TODO.md`
 - External provenance: none (local source material)
 - Dependencies: `TASK-APP-03`, `TASK-APP-04`, `TASK-APP-08`, `TASK-APP-09`.
 - Last reviewed: 2026-04-26
@@ -326,7 +326,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Documentation-only cleanup implementation.
 - Completion criteria: Runtime redirect matrix matches target app flow and avoids
   forum-first defaults.
-- Related local documents: `app_flow.md`, `APP_REFINEMENT/TASK_01.TODO.md`, `APP_REFINEMENT/TASK_06.TODO.md`
+- Related local documents: `app_flow.md`, `docs/project-management/archive/app-refinement/TASK_01.TODO.md`, `docs/project-management/archive/app-refinement/TASK_06.TODO.md`
 - External provenance: none
 - Dependencies: Product confirmation of legacy `/forum*` behavior.
 - Last reviewed: 2026-04-26
@@ -349,7 +349,7 @@ Transition history is required for every record. Baseline imports can use
 - Out of scope: Documentation-only cleanup implementation.
 - Completion criteria: `profiles_public` usage is fully reproducible from
   versioned migrations or removed from runtime paths.
-- Related local documents: `db_flow.md`, `APP_REFINEMENT/TASK_02.TODO.md`
+- Related local documents: `db_flow.md`, `docs/project-management/archive/app-refinement/TASK_02.TODO.md`
 - External provenance: none
 - Dependencies: Supabase owner review.
 - Last reviewed: 2026-04-26
@@ -371,7 +371,7 @@ Transition history is required for every record. Baseline imports can use
   and `chat_mention`; migration and runtime parity validation.
 - Out of scope: Documentation-only cleanup implementation.
 - Completion criteria: Notification writes do not fail due to type drift.
-- Related local documents: `db_flow.md`, `APP_REFINEMENT/TASK_04.TODO.md`, `APP_REFINEMENT/TASK_05.TODO.md`
+- Related local documents: `db_flow.md`, `docs/project-management/archive/app-refinement/TASK_04.TODO.md`, `docs/project-management/archive/app-refinement/TASK_05.TODO.md`
 - External provenance: none
 - Dependencies: Product confirmation of accepted notification set.
 - Last reviewed: 2026-04-26
@@ -388,13 +388,13 @@ Transition history is required for every record. Baseline imports can use
 - Priority: P0
 - Status: proposed
 - Purpose: Implement the admission-field hardening and privileged transition
-  controls documented in APP_REFINEMENT tasks.
+  controls documented in archived APP_REFINEMENT task sources.
 - Scope: `profiles` and `sponsorship_requests` hardening, server-controlled
   transitions, audited bypass action.
 - Out of scope: Documentation-only cleanup implementation.
 - Completion criteria: Non-admin and sponsor escalation paths are blocked in DB
   and server layers.
-- Related local documents: `APP_REFINEMENT/TASK_04.TODO.md`, `APP_REFINEMENT/TASK_05.TODO.md`
+- Related local documents: `docs/project-management/archive/app-refinement/TASK_04.TODO.md`, `docs/project-management/archive/app-refinement/TASK_05.TODO.md`
 - External provenance: none
 - Dependencies: Supabase migration execution window and rollback plan.
 - Last reviewed: 2026-04-26

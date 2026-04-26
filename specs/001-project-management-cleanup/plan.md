@@ -25,14 +25,14 @@ Last updated: 2026-04-26
 | US1 Find the Current Source of Truth | Complete | Start Here navigation and local source inventory are usable. |
 | US2 Normalize Tasks and Statuses | Complete | APP_REFINEMENT task/session status is represented locally. |
 | US3 Localize External GitHub Sources | Complete with owner decision | External docs/issues/Project proxies are localized; Project 1 full card export remains an owner decision before decommission. |
-| US4 Archive Without Losing History | Next | Archive rules and movement/deletion decisions are the next logical implementation slice. |
-| Phase 7 Polish & Cross-Cutting Verification | Blocked until US4 and Project export review | Do not freeze/delete the GitHub Project until local replacement review and Project item export coverage are resolved. |
+| US4 Archive Without Losing History | Complete | Archive rules, historical APP_REFINEMENT movement, replacement references, and boundary verification are recorded. |
+| Phase 7 Polish & Cross-Cutting Verification | Blocked until local replacement and Project export review | Do not freeze/delete the GitHub Project until local replacement review and Project item export coverage are resolved. |
 
 Current active responsibilities:
 
 - Keep runtime/product work as candidate Task Records only.
-- Execute US4 next to define archive rules, move historical material, and verify
-  archive boundaries.
+- Use the US4 archive records as the historical source surface for normalized
+  APP_REFINEMENT planning files.
 - Resolve `DEC-012` with an owner-authenticated Project 1 export before Phase 7
   decommission work.
 - Do not change app routes, UI, Supabase files, dependencies, package locks,
@@ -162,19 +162,19 @@ Reviewer and implementation guidance is recorded in [quickstart.md](./quickstart
   `product-framing.md`, `current-state.md`, `tasks.md`, `decisions.md`, and
   `verification.md`.
 
-### Next: US4 Archive Slice
+### Completed: US4 Archive Slice
 
-US4 should be executed before Phase 7. Its responsibility is to move or mark
+US4 was executed before Phase 7. Its responsibility was to move or mark
 historical planning material without losing decision history:
 
-- Define archive categories and retention rules in
+- Defined archive categories and retention rules in
   `docs/project-management/archive/README.md`.
-- Record archive/delete/rename/owner-decision outcomes in
+- Recorded archive/delete/rename/owner-decision outcomes in
   `docs/project-management/decisions.md`.
-- Move historical local planning files only after useful content is captured.
-- Update active navigation so active readers do not have to inspect archived
+- Moved historical local planning files only after useful content was captured.
+- Updated active navigation so active readers do not have to inspect archived
   records.
-- Record archive coverage in `docs/project-management/verification.md`.
+- Recorded archive coverage in `docs/project-management/verification.md`.
 
 ### Later: Phase 7
 

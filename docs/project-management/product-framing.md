@@ -28,12 +28,12 @@ The canonical local framing for cleanup and stabilization is:
 | Topic | Canonical local record | Supporting source references |
 | --- | --- | --- |
 | Cleanup scope and constraints | [README.md](./README.md) | `specs/001-project-management-cleanup/spec.md`, `specs/001-project-management-cleanup/plan.md` |
-| MVP framing baseline | [tasks.md](./tasks.md) (`TASK-APP-00`) | `APP_REFINEMENT/TASK_00.STARTED.md`, `APP_REFINEMENT/TASK_00.SESSION_00.TODO.md` |
+| MVP framing baseline | [tasks.md](./tasks.md) (`TASK-APP-00`) | `docs/project-management/archive/app-refinement/TASK_00.STARTED.md`, `docs/project-management/archive/app-refinement/TASK_00.SESSION_00.TODO.md` |
 | External-origin admission MVP backlog | [tasks.md](./tasks.md) (`CAND-006`, `CAND-009`) | `EXT-ISSUE-WA-001`, `EXT-ISSUE-WA-003`, `EXT-ISSUE-WA-006`, `EXT-ISSUE-WA-007`, `EXT-ISSUE-WA-014`, `EXT-ISSUE-WA-016` |
 | External-origin profile/search MVP backlog | [tasks.md](./tasks.md) (`CAND-007`) | `EXT-ISSUE-WA-005`, `EXT-ISSUE-WA-013`, `EXT-ISSUE-WA-017`, `EXT-ISSUE-WA-018`, `EXT-ISSUE-WA-019` |
 | External-origin channels/messages MVP backlog | [tasks.md](./tasks.md) (`CAND-008`) | `EXT-ISSUE-WA-004`, `EXT-ISSUE-WA-020`, `EXT-ISSUE-WA-021`, `EXT-ISSUE-WA-023`, `EXT-ISSUE-WA-024`, `EXT-ISSUE-WA-025`, `EXT-ISSUE-WA-026` |
-| Current app route and redirect map | `app_flow.md` | `APP_REFINEMENT/TASK_01.TODO.md` |
-| Current Supabase schema and RLS map | `db_flow.md` | `APP_REFINEMENT/TASK_02.TODO.md` |
+| Current app route and redirect map | `app_flow.md` | `docs/project-management/archive/app-refinement/TASK_01.TODO.md` |
+| Current Supabase schema and RLS map | `db_flow.md` | `docs/project-management/archive/app-refinement/TASK_02.TODO.md` |
 
 ## Current-State Map Destinations
 
@@ -45,9 +45,8 @@ Use these documents when reviewing implementation reality:
 
 ## Out of Scope for This Cleanup Slice
 
-- Runtime implementation from `APP_REFINEMENT` tasks and external issue backlog.
-- US4 archive movement/deletion execution.
-- GitHub Project decommission execution.
+- Runtime implementation from archived APP_REFINEMENT task sources and external issue backlog.
+- Phase 7 final reconciliation and GitHub Project decommission execution.
 
 ## Last Reviewed
 

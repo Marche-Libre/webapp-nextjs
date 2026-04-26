@@ -60,29 +60,29 @@
 | `specs/001-project-management-cleanup/checklists/requirements.md` | `reference` | `reference` | Requirements quality checklist provenance | 2026-04-26 | Checklist passed before implementation. |
 | `specs/001-project-management-cleanup/contracts/local-project-management.md` | `reference` | `reference` | Markdown record contract definitions | 2026-04-26 | Contract source for local PM docs. |
 
-## APP_REFINEMENT Source Documents (US2)
+## Archived APP_REFINEMENT Source Documents (US2-US4)
 
-| Source file | Filename status token | Post-normalization classification | Canonical local destination | Last reviewed | Notes |
+| Source file | Filename status token | Post-US4 classification | Canonical local destination | Last reviewed | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `APP_REFINEMENT/TASK_00.STARTED.md` | `STARTED` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Parent framing/workstream merged into canonical task record. |
-| `APP_REFINEMENT/TASK_00.SESSION_00.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Session guidance captured in transition history and notes. |
-| `APP_REFINEMENT/TASK_00.SESSION_01.READY.md` | `READY` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Ready checkpoint captured in transition history. |
-| `APP_REFINEMENT/TASK_00.SESSION_02.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
-| `APP_REFINEMENT/TASK_00.SESSION_03.READY.md` | `READY` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Ready checkpoint captured in transition history. |
-| `APP_REFINEMENT/TASK_00.SESSION_04.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
-| `APP_REFINEMENT/TASK_00.SESSION_05.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
-| `APP_REFINEMENT/TASK_00.SESSION_06.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
-| `APP_REFINEMENT/TASK_00.SESSION_07.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
-| `APP_REFINEMENT/TASK_01.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-01`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_02.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-02`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_03.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-03`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_04.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-04`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_05.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-05`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_06.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-06`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_07.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-07`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_08.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-08`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_09.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-09`) | 2026-04-26 | Canonical status moved to local Task Record. |
-| `APP_REFINEMENT/TASK_10.TODO.md` | `TODO` | `merged` | `docs/project-management/tasks.md` (`TASK-APP-10`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_00.STARTED.md` | `STARTED` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Parent framing/workstream merged into canonical task record. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_00.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Session guidance captured in transition history and notes. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_01.READY.md` | `READY` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Ready checkpoint captured in transition history. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_02.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_03.READY.md` | `READY` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Ready checkpoint captured in transition history. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_04.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_05.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_06.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
+| `docs/project-management/archive/app-refinement/TASK_00.SESSION_07.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-00`) | 2026-04-26 | Runtime execution scope kept out of cleanup. |
+| `docs/project-management/archive/app-refinement/TASK_01.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-01`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_02.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-02`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_03.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-03`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_04.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-04`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_05.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-05`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_06.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-06`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_07.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-07`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_08.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-08`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_09.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-09`) | 2026-04-26 | Canonical status moved to local Task Record. |
+| `docs/project-management/archive/app-refinement/TASK_10.TODO.md` | `TODO` | `archived` | `docs/project-management/tasks.md` (`TASK-APP-10`) | 2026-04-26 | Canonical status moved to local Task Record. |
 
 ## External Current-State Observations (US3)
 
@@ -103,8 +103,8 @@ and localized to local canonical records:
 | --- | --- |
 | `active` | 5 |
 | `reference` | 8 |
-| `merged` | 19 |
-| `archived` | 0 |
+| `merged` | 0 |
+| `archived` | 19 |
 | `deleted` | 0 |
 | `needs-owner-decision` | 2 |
 
