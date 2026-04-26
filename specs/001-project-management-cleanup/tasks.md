@@ -119,12 +119,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T042 [P] [US4] Define archive categories, retention rules, archive entry format, and active-navigation restrictions in `docs/project-management/archive/README.md`
-- [ ] T043 [P] [US4] Record initial merge, archive, delete, rename, and owner-decision actions for historical material in `docs/project-management/decisions.md`
-- [ ] T044 [US4] Move historical local planning files whose useful content is captured and no longer active into `docs/project-management/archive/` with replacement references recorded in `docs/project-management/archive/README.md`
-- [ ] T045 [US4] Record deleted or deletion-pending documents that have no unique project value, including deletion reason and reviewer, in `docs/project-management/decisions.md`
-- [ ] T046 [US4] Update active navigation so `docs/project-management/README.md` links only canonical active documents and the archive index, not archived source files as required reading
-- [ ] T047 [US4] Verify archive reason coverage, replacement-reference coverage, and active-navigation archive boundaries in `docs/project-management/verification.md`
+- [X] T042 [P] [US4] Define archive categories, retention rules, archive entry format, and active-navigation restrictions in `docs/project-management/archive/README.md`
+- [X] T043 [P] [US4] Record initial merge, archive, delete, rename, and owner-decision actions for historical material in `docs/project-management/decisions.md`
+- [X] T044 [US4] Move historical local planning files whose useful content is captured and no longer active into `docs/project-management/archive/` with replacement references recorded in `docs/project-management/archive/README.md`
+- [X] T045 [US4] Record deleted or deletion-pending documents that have no unique project value, including deletion reason and reviewer, in `docs/project-management/decisions.md`
+- [X] T046 [US4] Update active navigation so `docs/project-management/README.md` links only canonical active documents and the archive index, not archived source files as required reading
+- [X] T047 [US4] Verify archive reason coverage, replacement-reference coverage, and active-navigation archive boundaries in `docs/project-management/verification.md`
 
 **Checkpoint**: User Story 4 is complete when archived material is discoverable, active navigation is not polluted by historical source files, and deletion/archive actions are reviewable.
 
@@ -155,8 +155,8 @@
 | Phase 3 US1 | Complete | `VERIFY-US1-2026-04-26`. |
 | Phase 4 US2 | Complete | `VERIFY-US2-2026-04-26`. |
 | Phase 5 US3 | Complete with owner decision | `VERIFY-US3-2026-04-26`; Project 1 export remainder tracked by `DEC-012` / `EXT-PROJ-005`. |
-| Phase 6 US4 | Next | Execute T042-T047 next. |
-| Phase 7 Polish | Pending | Do after US4 and after Project export/decommission review conditions are ready. |
+| Phase 6 US4 | Complete | `VERIFY-US4-2026-04-26`; archive movement and boundary checks complete. |
+| Phase 7 Polish | Pending | Do after local replacement review and Project export/decommission review conditions are ready. |
 
 ### Phase Dependencies
 
@@ -167,8 +167,8 @@
 | Phase 3 US1 | Phase 2 | Complete; canonical entrypoint and local source-of-truth navigation exist. |
 | Phase 4 US2 | Phase 2 | Complete; APP_REFINEMENT task status is local. |
 | Phase 5 US3 | Phase 2, preferably US1 and US2 | Complete with owner decision; external sources are localized and Project export remainder is explicit. |
-| Phase 6 US4 | US1, US2, US3 | Next; archive actions require classification, task normalization, and external dispositions. |
-| Phase 7 Polish | Desired user stories complete | Decommission happens only after US4, local replacement review, and Project export coverage. |
+| Phase 6 US4 | US1, US2, US3 | Complete; archive actions used classification, task normalization, and external dispositions. |
+| Phase 7 Polish | Desired user stories complete | Decommission happens only after local replacement review and Project export coverage. |
 
 ### User Story Dependencies
 
@@ -177,7 +177,7 @@
 | US1 Find the Current Source of Truth | P1 | Phase 2 | Delivered; navigation MVP verified. |
 | US2 Normalize Tasks and Statuses | P1 | Phase 2 | Delivered; local task board verified. |
 | US3 Localize External GitHub Sources | P2 | Phase 2, then local destinations from US1/US2 | Delivered with owner decision; external provenance/disposition coverage verified. |
-| US4 Archive Without Losing History | P3 | US1, US2, US3 | Next deliverable; source records and classifications now exist. |
+| US4 Archive Without Losing History | P3 | US1, US2, US3 | Delivered; source records and classifications now point to archive records. |
 
 ### Within Each User Story
 
@@ -245,7 +245,8 @@ Task: T043 Record archive and deletion decisions in docs/project-management/deci
 1. Deliver US1 for source-of-truth navigation.
 2. Deliver US2 for local task/status normalization.
 3. Deliver US3 for external source localization and local provenance. (Complete as of 2026-04-26 with `DEC-012` owner decision.)
-4. Deliver US4 for archive cleanup and historical retention. (Next.)
+4. Deliver US4 for archive cleanup and historical retention. (Complete as of
+   2026-04-26 with `VERIFY-US4-2026-04-26`.)
 5. Complete Phase 7 only after US4 and after the local replacement review confirms no active dependency on the GitHub Project.
 
 ### Decommission Gate

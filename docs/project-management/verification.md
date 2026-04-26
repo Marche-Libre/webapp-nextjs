@@ -213,3 +213,61 @@ Observed changed file surface for this execution:
 | `https://github.com/orgs/Marche-Libre/projects/1` anonymous access | `404` |
 | Local active status depends on Project board columns | no |
 | Project decommission action executed in US3 | no (intentionally deferred) |
+
+## VERIFY-US4-2026-04-26 - Archive Boundary and Replacement Review
+
+- Date: 2026-04-26
+- Reviewer: project-maintenance
+- Local document coverage:
+  34/34 in-scope local source documents classified after archive movement:
+  5 active, 8 reference, 19 archived, 0 merged, 0 deleted,
+  2 needs-owner-decision.
+- External source coverage:
+  No new external imports in US4. US3 coverage remains 35/35 source records
+  with one disposition and one local destination.
+- Task status coverage:
+  11/11 normalized APP_REFINEMENT Task Records still carry local active status
+  in `docs/project-management/tasks.md`; archived APP_REFINEMENT files are
+  provenance only.
+- Duplicate canonical topics:
+  Pass. No archived APP_REFINEMENT source is canonical for active task status.
+- Archive reason coverage:
+  Pass. 1/1 archive entries has an archive reason, retention notes, and
+  replacement references; 19/19 archived APP_REFINEMENT files are listed in
+  `ARCH-APPREF-001`.
+- GitHub Project dependency check:
+  Pass with owner decision. No active workflow depends on Project 1 status;
+  `DEC-012` still blocks Phase 7 freeze/delete/decommission execution.
+- Runtime diff check:
+  Pass. US4 changed project-management documentation and moved historical
+  markdown planning files only; no app routes, UI, Supabase files,
+  dependencies, package locks, generated types, tests, or runtime behavior were
+  changed.
+- Quality gate record:
+  `bun run build`: skipped (docs-only)
+  `bun run lint`: skipped (docs-only)
+  `bunx vitest run`: skipped (docs-only)
+- Open owner decisions:
+  DEC-006, DEC-007, DEC-008, DEC-009, DEC-012, DEC-017
+- Result: passed-with-owner-decisions
+
+### Archive Coverage Evidence
+
+| Metric | Value |
+| --- | --- |
+| Archive entries | 1 |
+| Archive entries with reason | 1/1 |
+| Archive entries with retention notes | 1/1 |
+| Archived APP_REFINEMENT files moved | 19 |
+| Archived files with replacement references | 19/19 |
+| Local files deleted in US4 | 0 |
+| Local files renamed in US4 | 0 |
+
+### Active Navigation Boundary Evidence
+
+| Check | Result |
+| --- | --- |
+| Start Here links to archive index | pass |
+| Start Here requires direct archived source files | no |
+| Active task status source | `docs/project-management/tasks.md` |
+| Archive source status | provenance only |
