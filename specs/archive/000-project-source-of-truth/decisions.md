@@ -38,11 +38,12 @@ Project decommission.
   `sponsorship_requests` as canonical sponsor evidence, and keeps
   `invitations` as compatibility/member-referral input.
 - Rationale: The runtime already gates access through `profiles.status`; the
-  committed admission hardening migration constrains sponsorship requests and
-  invitation evidence without adding a third access-request table.
+  skipped admission hardening work showed that sponsor evidence can remain in
+  existing tables without adding a third access-request table, but DB hardening
+  still requires staging validation before production.
 - Source: PRD, `03-questions-equipe.md`, webapp audit.
-- Follow-up: Apply/review the admission RLS migration in staging and validate
-  live Postgres behavior because repo tests remain DB-free.
+- Follow-up: Rework or review admission RLS in staging and validate live
+  Postgres behavior because repo tests remain DB-free.
 
 ## DEC-006 - Refused Member UX
 
