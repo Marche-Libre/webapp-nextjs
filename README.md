@@ -27,7 +27,10 @@ Le cadrage, le PRD et la roadmap importes depuis
 ## Source de verite projet
 
 Le point d'entree canonique pour le pilotage projet est Speckit:
-`specs/000-project-source-of-truth/README.md`.
+`specs/004-release-readiness/tasks.md`.
+
+Les sources importees du cadrage initial sont conservees dans:
+`specs/archive/000-project-source-of-truth/README.md`.
 
 GitHub Project 1 et `Marche-Libre/le-marche-libre` sont des sources importees,
 pas des outils de pilotage actifs.

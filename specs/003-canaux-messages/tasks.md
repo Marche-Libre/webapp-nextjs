@@ -1,6 +1,6 @@
 # Tasks: Canaux et Messages MVP
 
-**Input**: `spec.md`, `plan.md`, sources in `../000-project-source-of-truth/sources.md`  
+**Input**: `spec.md`, `plan.md`, sources in `../archive/000-project-source-of-truth/sources.md`  
 **Prerequisites**: Admission access gating, channel taxonomy decision, forum beta decision
 
 **Tests**: Required for channel access, Jobs write permissions, admin-only pin, retained search, and message actions.

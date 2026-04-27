@@ -1,6 +1,6 @@
 # Tasks: Release Readiness and Backlog Realignment
 
-**Input**: `spec.md`, `plan.md`, `../000-project-source-of-truth/roadmap.md`, `sources.md`, and `decisions.md`  
+**Input**: `spec.md`, `plan.md`, `../archive/000-project-source-of-truth/roadmap.md`, `../archive/000-project-source-of-truth/sources.md`, and `../archive/000-project-source-of-truth/decisions.md`  
 **Prerequisites**: Owner availability for product/technical/schema/access decisions
 
 **Tests**: This is a release-governance feature. Runtime tests are selected or repaired by follow-up implementation tasks.
@@ -15,11 +15,11 @@
 
 ## Phase 2: Re-audit Current State
 
-- [ ] T006 Re-run or update the route/current-state review from `app_flow.md`.
-- [ ] T007 Re-run or update the schema/RLS review from `db_flow.md` and imported audit.
-- [ ] T008 Re-run or update build/lint/vitest status on the current branch.
-- [ ] T009 Confirm whether `profiles_public`, `countries`, `cities`, `specialty_category_ids`, `specialty_categories.sector`, `chat_muted_until`, and `chat_banned` are reproducible or need migration/bootstrap work.
-- [ ] T010 Confirm whether duplicate migration prefixes and channel-proposal trigger assumptions still exist.
+- [X] T006 Re-run or update the route/current-state review from `app_flow.md`. See `phase-2-audit.md`.
+- [X] T007 Re-run or update the schema/RLS review from `db_flow.md` and imported audit. See `phase-2-audit.md`.
+- [X] T008 Re-run or update build/lint/vitest status on the current branch. See `phase-2-audit.md`.
+- [X] T009 Confirm whether `profiles_public`, `countries`, `cities`, `specialty_category_ids`, `specialty_categories.sector`, `chat_muted_until`, and `chat_banned` are reproducible or need migration/bootstrap work. See `phase-2-audit.md`.
+- [X] T010 Confirm whether duplicate migration prefixes and channel-proposal trigger assumptions still exist. See `phase-2-audit.md`.
 
 ## Phase 3: Backlog Realignment
 
@@ -40,7 +40,7 @@
 
 ## Phase 5: GitHub Project Decommission Readiness
 
-- [ ] T022 Verify `../000-project-source-of-truth/sources.md` has 26/26 Project items mapped.
+- [ ] T022 Verify `../archive/000-project-source-of-truth/sources.md` has 26/26 Project items mapped.
 - [ ] T023 Owner confirms `specs/` replaces GitHub Project as active management.
 - [ ] T024 Freeze or delete GitHub Project 1 only after T022 and T023.
 - [ ] T025 Record final GitHub Project state/export after T024.
