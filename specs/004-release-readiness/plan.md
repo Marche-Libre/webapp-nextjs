@@ -40,6 +40,7 @@ specs/004-release-readiness/
 +-- spec.md
 +-- plan.md
 +-- tasks.md
++-- admission-tracking.md
 ```
 
 ### Source Code (repository root)
@@ -75,15 +76,23 @@ the old `docs/project-management` system.
 2. Freeze new feature expansion except blocker fixes and realignment.
 3. Re-run or update app/schema/quality audit if needed.
 4. Classify imported issues as done, partial, missing, parked, or rescoped.
+   Admission has been classified in `admission-tracking.md`; profile/search,
+   channels/messages, and landing remain to classify.
 5. Define minimal quality gate and beta go/no-go criteria.
 6. Prepare GitHub issue closure/rescope recommendations.
 7. Approve GitHub Project deletion only after source coverage review.
+
+## Resolved Decisions
+
+- Admission data model: Beta 1 uses `profiles.status` as the final access
+  gate, `sponsorship_requests` as canonical sponsor evidence, and
+  `invitations` as compatibility/member-referral input. Repo tests stay
+  DB-free; live RLS validation is staged/manual.
 
 ## Open Decisions
 
 - Forum beta status.
 - Channel taxonomy.
-- Admission data model.
 - Refused-member UX.
 - Technical/schema/access owners.
 - Minimal quality gate.
