@@ -30,9 +30,9 @@ are not changed by this update.
 
 ## Open Follow-Ups
 
-- Do not apply `supabase/migrations/20260426192341_admission_profile_status_rls.sql`
-  on production from this branch. Rework or validate admission RLS in staging
-  before any DB hardening is accepted.
+- Do not apply unreviewed admission RLS hardening directly from this branch.
+  Rework or validate admission RLS in staging before any DB hardening is
+  accepted.
 - Manually validate real X OAuth first-login behavior.
 - Replace two-write sponsor approval and invitation acceptance with
   transactional server/RPC paths or add rollback/error handling.

@@ -17,7 +17,7 @@
 
 - [X] T006 Re-run or update the route/current-state review from `app_flow.md`. See `phase-2-audit.md`.
 - [X] T007 Re-run or update the schema/RLS review from `db_flow.md` and imported audit. See `phase-2-audit.md`.
-- [X] T008 Re-run or update build/lint/vitest status on the current branch. See `phase-2-audit.md`.
+- [X] T008 Re-run or update build/lint/vitest status in the release-readiness audit snapshot. See `phase-2-audit.md`.
 - [X] T009 Confirm whether `profiles_public`, `countries`, `cities`, `specialty_category_ids`, `specialty_categories.sector`, `chat_muted_until`, and `chat_banned` are reproducible or need migration/bootstrap work. See `phase-2-audit.md`.
 - [X] T010 Confirm whether duplicate migration prefixes and channel-proposal trigger assumptions still exist. See `phase-2-audit.md`.
 
