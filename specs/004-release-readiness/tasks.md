@@ -24,23 +24,23 @@
 ## Phase 3: Backlog Realignment
 
 - [X] T011 Classify all Admission items from `001-admission-membre` as done, partial, missing, parked, or rescoped after code review. See `admission-tracking.md`.
-- [ ] T012 Classify all Profile/Search items from `002-profil-recherche-membre` as done, partial, missing, parked, or rescoped after code review.
-- [ ] T013 Classify all Channels/Messages items from `003-canaux-messages` as done, partial, missing, parked, or rescoped after code review.
-- [ ] T014 Classify Landing Page from `005-landing-page` as beta-blocking, separate, or parked.
-- [ ] T015 Produce GitHub issue closure/rescope recommendations without using GitHub Project status as source of truth.
+- [X] T012 Classify all Profile/Search items from `002-profil-recherche-membre` as done, partial, missing, parked, or rescoped after code review. See `profile-search-tracking.md`.
+- [X] T013 Classify all Channels/Messages items from `003-canaux-messages` as done, partial, missing, parked, or rescoped after code review. See `channels-tracking.md`.
+- [X] T014 Classify Landing Page from `005-landing-page` as beta-blocking, separate, or parked. See `landing-classification.md`.
+- [X] T015 Produce GitHub issue closure/rescope recommendations without using GitHub Project status as source of truth. See `beta-decisions.md`.
 
 ## Phase 4: Scope and Gate Decisions
 
-- [ ] T016 Resolve forum beta position.
-- [ ] T017 Resolve launch channel taxonomy.
+- [X] T016 Resolve forum beta position. See `beta-decisions.md`.
+- [X] T017 Resolve launch channel taxonomy. See `beta-decisions.md`.
 - [X] T018 Resolve admission data model direction. See `../001-admission-membre/research.md` and `admission-tracking.md`.
-- [ ] T019 Resolve refused-member UX.
-- [ ] T020 Define minimal merge/beta quality gate.
-- [ ] T021 Define closed-beta go/no-go checklist and owner signoff path.
+- [X] T019 Resolve refused-member UX. See `beta-decisions.md`.
+- [X] T020 Define minimal merge/beta quality gate. See `beta-decisions.md`.
+- [X] T021 Define closed-beta go/no-go checklist and owner signoff path. See `beta-decisions.md`.
 
 ## Phase 5: GitHub Project Decommission Readiness
 
-- [ ] T022 Verify `../archive/000-project-source-of-truth/sources.md` has 26/26 Project items mapped.
+- [X] T022 Verify `../archive/000-project-source-of-truth/sources.md` has 26/26 Project items mapped. See `../archive/000-project-source-of-truth/sources.md`.
 - [ ] T023 Owner confirms `specs/` replaces GitHub Project as active management.
 - [ ] T024 Freeze or delete GitHub Project 1 only after T022 and T023.
 - [ ] T025 Record final GitHub Project state/export after T024.

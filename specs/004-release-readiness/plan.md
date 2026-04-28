@@ -91,9 +91,5 @@ the old `docs/project-management` system.
 
 ## Open Decisions
 
-- Forum beta status.
-- Channel taxonomy.
-- Refused-member UX.
 - Technical/schema/access owners.
-- Minimal quality gate.
 - Team capacity over the next 4 weeks.
