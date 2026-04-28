@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatLayout } from "@/components/chat/chat-layout";
-import type { Profile } from "@/lib/types/database";
+import type { Channel, Message, Profile } from "@/lib/types/database";
+
+type MessageWithAuthor = Message & {
+  author: Pick<Profile, "x_handle" | "full_name" | "avatar_url">;
+};
 
 export default async function ChatLayoutPage({
   children,
@@ -25,6 +29,7 @@ export default async function ChatLayoutPage({
     .select("*")
     .eq("is_private", false)
     .order("created_at", { ascending: true });
+  const publicChannels = (channels || []) as Channel[];
 
   // Fetch DM channels for the current user
   const { data: dmMemberships } = await supabase
@@ -90,8 +95,8 @@ export default async function ChatLayoutPage({
     .order("x_handle", { ascending: true });
 
   // Fetch initial messages for the default channel (server-side)
-  const defaultChannel = channels?.find((c: any) => c.slug === "general") || channels?.[0];
-  let initialMessages: any[] = [];
+  const defaultChannel = publicChannels.find((c) => c.slug === "general") || publicChannels[0];
+  let initialMessages: MessageWithAuthor[] = [];
   if (defaultChannel) {
     const { data: msgs } = await supabase
       .from("messages")
@@ -99,17 +104,20 @@ export default async function ChatLayoutPage({
       .eq("channel_id", defaultChannel.id)
       .order("created_at", { ascending: false })
       .limit(50);
-    initialMessages = ((msgs || []) as any[]).reverse();
+    initialMessages = ((msgs || []) as MessageWithAuthor[]).reverse();
   }
 
   return (
     <ChatLayout
-      channels={channels || []}
+      channels={publicChannels}
       dmChannels={dmChannels}
       members={members || []}
       profile={profile as Profile}
       initialMessages={initialMessages}
       initialChannelId={defaultChannel?.id || null}
-    />
+      initialChannelSlug={defaultChannel?.slug || null}
+    >
+      {children}
+    </ChatLayout>
   );
 }

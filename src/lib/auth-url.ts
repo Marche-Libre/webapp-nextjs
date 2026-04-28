@@ -10,7 +10,7 @@ export function getPublicSiteOrigin() {
   if (typeof window !== "undefined") {
     const { hostname, origin } = window.location;
 
-    if (process.env.NODE_ENV === "development" && LOCAL_HOSTNAMES.has(hostname)) {
+    if (LOCAL_HOSTNAMES.has(hostname)) {
       return origin;
     }
   }
