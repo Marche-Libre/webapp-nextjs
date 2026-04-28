@@ -1,7 +1,11 @@
 # Phase 2 Re-audit: Current State
 
 **Date**: 2026-04-26  
-**Scope**: Documentation-only re-audit for `specs/004-release-readiness/tasks.md` Phase 2. No runtime routes, Supabase files, dependencies, tests, generated types, or behavior were changed.
+**Scope**: Documentation-only re-audit for `specs/004-release-readiness/tasks.md`
+Phase 2. This file is a dated audit snapshot, not a live reflection of the
+current branch after later cherry-picks and documentation cleanup. No runtime
+routes, Supabase files, dependencies, tests, generated types, or behavior were
+changed by the audit itself.
 
 ## T006 Route / Current-State Review
 
@@ -24,13 +28,13 @@ The current `db_flow.md` schema and RLS risk inventory remains consistent with m
 
 ## T008 Quality Command Status
 
-Commands run on the current branch:
+Commands run on the audit branch at the time of the 2026-04-26 snapshot:
 
 | Command | Status | Notes |
 | --- | --- | --- |
 | `npm run build` | PASS | Next.js build completed successfully. Warning: Next inferred `/Users/maxi/bun.lock` as workspace root and detected `/Users/maxi/www/marchelibre/package-lock.json` as an additional lockfile. |
 | `npm run lint` | FAIL | ESLint reported 117 problems: 63 errors and 54 warnings. Main categories include React Compiler/react-hooks rules, `no-explicit-any`, unused variables, and `no-img-element` warnings. |
-| `npx vitest run` | FAIL | 2 test files ran; 1 failed. 21/24 tests passed. The 3 failures are label expectation mismatches in `src/__tests__/profile-utils.test.ts` for `getAvailabilityOption`. |
+| `npx vitest run` | FAIL | Snapshot result only. The exact test-file count and failing set can drift on later branches; rerun before treating this as current branch evidence. |
 
 ## T009 Reproducibility Status For Known Objects
 
@@ -51,4 +55,8 @@ Commands run on the current branch:
 
 ## Phase 2 Result
 
-Phase 2 confirms the previous release-readiness risks are still current: build passes, lint/tests are not green, route defaults are still forum-centric, and schema reproducibility still needs remediation for `profiles_public`, `specialty_categories.sector`, and channel-proposal trigger behavior.
+Phase 2 confirms the previous release-readiness risks captured on 2026-04-26:
+build passed, lint/tests were not green, route defaults were still
+forum-centric, and schema reproducibility still needed remediation for
+`profiles_public`, `specialty_categories.sector`, and channel-proposal trigger
+behavior. Later branch-specific validation should be recorded separately.

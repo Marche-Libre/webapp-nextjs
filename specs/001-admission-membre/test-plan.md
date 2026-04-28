@@ -1,8 +1,9 @@
 # Test Plan: Admission Membre MVP
 
 This test plan maps the acceptance criteria to concrete automated, SQL/RLS, and
-manual checks. The first Vitest layer has been added; the remaining layers must
-be implemented or run during admission hardening.
+manual checks. On this MVP-safe branch, admission-specific Vitest coverage is
+still largely to be added; the repo only retains generic baseline tests plus
+the OAuth callback URL regression test.
 
 ## Test Architecture
 
@@ -19,16 +20,21 @@ be implemented or run during admission hardening.
 
 | ID | File | Coverage |
 | --- | --- | --- |
-| ADM-U-001 | `src/__tests__/sponsor-request-form.test.tsx` | Sponsor handle is required, normalized, and checked for self-sponsorship. |
-| ADM-U-003 | `src/__tests__/sponsor-request-form.test.tsx` | Unknown sponsor does not insert a request; visible non-disclosing copy is marked expected-fail because current UI hides it after submit. |
-| ADM-U-004 | `src/__tests__/admin-admission-actions.test.ts` | Admin actions reject unauthenticated and non-admin actors. |
-| ADM-U-005 | `src/__tests__/admin-admission-actions.test.ts` | Admin actions write runtime `approved` and `rejected` statuses and surface update errors. |
+| ADM-I-002a | `src/__tests__/auth-url.test.ts` | OAuth callback URL selection is verified against `NEXT_PUBLIC_SITE_URL`, protocol normalization, and fallback behavior. |
+
+The branch intentionally excludes the admission hardening/test bundle tied to
+`c1b475a`, so sponsor-form, admin-admission, and migration-shape tests listed in
+earlier drafts are not present here.
 
 ## Required Remaining Checks
 
 | ID | Layer | Case | Acceptance Criteria |
 | --- | --- | --- | --- |
+| ADM-U-001 | Unit/component | Sponsor handle is required, normalized, and checked for self-sponsorship. | Candidate sponsor validation. |
 | ADM-U-002 | Unit/component | Existing pending/approved sponsorship requests block duplicate submission; rejected attempts below limit allow the next attempt. | Candidate sponsor validation. |
+| ADM-U-003 | Unit/component | Unknown sponsor does not create a real request and keeps non-disclosing UX copy stable. | Candidate sponsor validation. |
+| ADM-U-004 | Unit/component | Admin actions reject unauthenticated and non-admin actors. | Admin-only review protection. |
+| ADM-U-005 | Unit/component | Admin actions write runtime `approved` and `rejected` statuses and surface update errors. | Admin decision effect. |
 | ADM-U-006 | Unit/component | Approved onboarding finalization sets `onboarding_completed = true`; optional notification/intro failures do not trap the user after profile completion succeeds. | No 500/loop on onboarding finalization. |
 | ADM-I-001 | Integration | `/auth/callback` without code or with exchange failure redirects to `/connexion`. | OAuth failure recovery. |
 | ADM-I-002 | Integration | Approved onboarded callback redirects to app entry; approved not-onboarded redirects to `/onboarding`; stale referral cookie is cleared. | Session reuse and approved access. |
@@ -66,7 +72,7 @@ when Server Actions reject non-admin callers.
   ADM-M-001a; likely surfaces around callback cookie writes, profile creation
   timing, or middleware reading the session/profile before cookies are
   committed.
-- **Unknown sponsor feedback hidden**: expected-fail component test documents
-  that unknown sponsor non-disclosing copy is not visible after submit.
+- **Unknown sponsor feedback hidden**: still verify manually or reintroduce a
+  focused component test before treating the waiting-page UX as stable.
 - **Potential self-approval through RLS**: verify before relying on app-layer
   admin actions.
