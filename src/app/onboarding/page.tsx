@@ -18,7 +18,7 @@ export default async function OnboardingPage() {
 
   if (!profile) redirect("/connexion");
   if (profile.status !== "approved") redirect("/en-attente");
-  if (profile.onboarding_completed) redirect("/forum");
+  if (profile.onboarding_completed) redirect("/chat");
 
   // Fetch specialties grouped by category
   const { data: specialtyCategories } = await supabase
@@ -51,13 +51,6 @@ export default async function OnboardingPage() {
     .neq("id", user.id)
     .limit(50);
 
-  // Get presentations category ID
-  const { data: presentationsCat } = await supabase
-    .from("forum_categories")
-    .select("id")
-    .eq("slug", "presentations")
-    .single();
-
   // Fetch countries from DB (city search is now API-driven)
   const { data: countries } = await supabase
     .from("countries")
@@ -74,7 +67,6 @@ export default async function OnboardingPage() {
           memberCount={memberCount ?? 0}
           sponsor={sponsor}
           members={members ?? []}
-          presentationsCategoryId={presentationsCat?.id ?? null}
           countries={countries ?? []}
         />
       </div>

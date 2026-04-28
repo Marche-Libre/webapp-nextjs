@@ -30,7 +30,7 @@ export function StatusPoller({ userId }: StatusPollerProps) {
 
       if (profile?.status === "approved") {
         setResult("approved");
-        setTimeout(() => router.push("/forum"), 1500);
+        setTimeout(() => router.push("/chat"), 1500);
         return;
       }
 

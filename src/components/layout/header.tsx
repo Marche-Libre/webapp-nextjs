@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Menu, PanelLeftOpen, Search, X, MessageCircle, Users, User, FileText } from "lucide-react";
+import { Menu, PanelLeftOpen, Search, X, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 type SearchResult = {
-  type: "member" | "post" | "message";
+  type: "member" | "message";
   id: string;
   title: string;
   subtitle: string;
@@ -57,19 +57,13 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
       const q = value.trim();
 
       // Members: ILIKE on handles/names (not suited for ts_vector)
-      // Posts & Messages: full-text search with plainto_tsquery (French config)
-      const [membersRes, postsRes, messagesRes] = await Promise.all([
+      // Messages: full-text search with plainto_tsquery (French config)
+      const [membersRes, messagesRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, full_name, x_handle, avatar_url")
           .eq("status", "approved")
           .or(`full_name.ilike.%${q}%,x_handle.ilike.%${q}%`)
-          .limit(5),
-        supabase
-          .from("forum_posts")
-          .select("id, title, author:profiles!forum_posts_author_id_fkey(x_handle), category:forum_categories(name)")
-          .textSearch("title", q, { type: "plain", config: "french" })
-          .order("created_at", { ascending: false })
           .limit(5),
         supabase
           .from("messages")
@@ -87,20 +81,8 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           id: m.id,
           title: `@${m.x_handle}`,
           subtitle: m.full_name || "",
-          href: `/membres`,
+          href: `/membres/${m.id}`,
           avatarUrl: m.avatar_url,
-        });
-      });
-
-      postsRes.data?.forEach((p) => {
-        const author = p.author as unknown as { x_handle: string } | null;
-        const cat = p.category as unknown as { name: string } | null;
-        items.push({
-          type: "post",
-          id: p.id,
-          title: p.title,
-          subtitle: `@${author?.x_handle || "?"} · ${cat?.name || "Forum"}`,
-          href: `/forum/posts/${p.id}`,
         });
       });
 
@@ -112,7 +94,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           id: m.id,
           title: m.content.length > 80 ? m.content.slice(0, 80) + "…" : m.content,
           subtitle: `@${author?.x_handle || "?"} · #${channel?.name || "chat"}`,
-          href: `/chat?channel=${m.channel_id}`,
+          href: channel?.slug ? `/chat/${channel.slug}` : "/chat",
         });
       });
 
@@ -190,30 +172,6 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
                         className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
                       >
                         <Avatar src={r.avatarUrl} name={r.title} size="sm" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
-                          <p className="text-[11px] text-text-muted truncate">{r.subtitle}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </>
-                )}
-                {/* Posts section */}
-                {results.some((r) => r.type === "post") && (
-                  <>
-                    <p className="px-[12px] py-[6px] text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted mt-[4px]">
-                      Posts
-                    </p>
-                    {results.filter((r) => r.type === "post").map((r) => (
-                      <Link
-                        key={r.id}
-                        href={r.href}
-                        onClick={() => setOpen(false)}
-                        className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
-                      >
-                        <div className="h-[32px] w-[32px] rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
-                          <FileText className="h-[16px] w-[16px] text-primary-600" />
-                        </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
                           <p className="text-[11px] text-text-muted truncate">{r.subtitle}</p>

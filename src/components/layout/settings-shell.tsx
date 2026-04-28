@@ -19,7 +19,7 @@ export function SettingsShell({ children }: SettingsShellProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const close = () => router.push("/forum");
+  const close = () => router.push("/chat");
 
   // ESC to close
   useEffect(() => {

@@ -46,3 +46,15 @@ git diff -- supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock
 ```
 
 This command should produce no output for this feature.
+
+## Implementation Validation Results
+
+**Date**: 2026-04-28
+
+- Pre-implementation forbidden-file baseline: PASS. `git diff -- supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock.yaml` produced no output.
+- Tolerated follow-up: `src/components/chat/message-input.tsx` still generates `/chat?channel=${channelId}` for chat mention notifications because only the channel ID is available at that call site. This matches FR-014 and should be corrected only with a later data-shape change.
+- Targeted tests: PASS. `npx vitest run "src/__tests__/mvp-route-cleanup.test.ts"` passed 7 tests.
+- Build: PASS. `npm run build` completed successfully.
+- Changed-scope lint review: PASS with warnings only. `npx eslint` on touched files reported 0 errors and 9 warnings, all pre-existing or unrelated to this cleanup: `no-img-element` in `src/app/(auth)/layout.tsx`, `src/app/page.tsx`, and `src/components/layout/sidebar.tsx`, hook dependency warning in `src/components/layout/settings-shell.tsx`, and unused values in `src/components/onboarding/onboarding-wizard.tsx`.
+- Forbidden-file final check: PASS. `git diff -- supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock.yaml` produced no output.
+- Acceptance scenario review: PASS against the targeted test file, build output, and source inspection. `/forum`, `/membres`, and `/membres/[id]` route files remain present.

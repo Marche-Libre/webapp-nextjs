@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
   }
 
   // We need a response object to write cookies to.
-  // Start with a redirect to /forum (we'll change the destination later if needed).
-  let redirectPath = "/forum";
-  const cookiesToWrite: { name: string; value: string; options?: any }[] = [];
+  // Start with the MVP app destination; profile checks can narrow it below.
+  let redirectPath = "/chat";
+  const cookiesToWrite: { name: string; value: string; options?: CookieOptions }[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       value: "",
       options: { path: "/", maxAge: 0 },
     });
-    redirectPath = profile.onboarding_completed ? "/forum" : "/onboarding";
+    redirectPath = profile.onboarding_completed ? "/chat" : "/onboarding";
   } else {
     // New/pending user — handle referral
     const referralHandle = request.cookies.get("ml-referral")?.value;

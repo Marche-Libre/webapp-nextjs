@@ -36,8 +36,8 @@ export default function AuthLayout({
                 <Users className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-base-content">Annuaire professionnel</p>
-                <p className="text-xs text-base-content/45 mt-0.5">Trouvez des avocats, développeurs, médecins et 300+ métiers</p>
+                <p className="text-sm font-semibold text-base-content">Communauté vérifiée</p>
+                <p className="text-xs text-base-content/45 mt-0.5">Des pairs identifiés pour échanger dans un cadre plus fiable</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -45,7 +45,7 @@ export default function AuthLayout({
                 <MessageSquare className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-base-content">Chat & Forum privé</p>
+                <p className="text-sm font-semibold text-base-content">Chat privé</p>
                 <p className="text-xs text-base-content/45 mt-0.5">Échangez en toute confiance avec des pairs vérifiés</p>
               </div>
             </div>

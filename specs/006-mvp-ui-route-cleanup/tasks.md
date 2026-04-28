@@ -17,9 +17,9 @@
 
 **Purpose**: Confirm the feature context and protect forbidden surfaces before runtime edits.
 
-- [ ] T001 Verify current feature implementation context in specs/006-mvp-ui-route-cleanup/plan.md
-- [ ] T002 Verify user-facing route contract in specs/006-mvp-ui-route-cleanup/contracts/ui-route-contract.md
-- [ ] T003 Record the pre-implementation forbidden-file baseline using git diff for supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock.yaml in specs/006-mvp-ui-route-cleanup/quickstart.md
+- [X] T001 Verify current feature implementation context in specs/006-mvp-ui-route-cleanup/plan.md
+- [X] T002 Verify user-facing route contract in specs/006-mvp-ui-route-cleanup/contracts/ui-route-contract.md
+- [X] T003 Record the pre-implementation forbidden-file baseline using git diff for supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock.yaml in specs/006-mvp-ui-route-cleanup/quickstart.md
 
 ---
 
@@ -29,10 +29,10 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Review current route/default drift inventory in app_flow.md
-- [ ] T005 Review known release-readiness route and quality baseline in specs/004-release-readiness/phase-2-audit.md
-- [ ] T006 Review Next.js redirect and navigation constraints referenced in specs/006-mvp-ui-route-cleanup/research.md
-- [ ] T007 Create focused route-cleanup regression test scaffolding in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T004 Review current route/default drift inventory in app_flow.md
+- [X] T005 Review known release-readiness route and quality baseline in specs/004-release-readiness/phase-2-audit.md
+- [X] T006 Review Next.js redirect and navigation constraints referenced in specs/006-mvp-ui-route-cleanup/research.md
+- [X] T007 Create focused route-cleanup regression test scaffolding in src/__tests__/mvp-route-cleanup.test.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -46,21 +46,21 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [US1] Add redirect expectation coverage for approved/onboarded default app entry in src/__tests__/mvp-route-cleanup.test.ts
-- [ ] T009 [US1] Add redirect expectation coverage for onboarding completion, waiting approval, admin fallback, and settings return in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T008 [US1] Add redirect expectation coverage for approved/onboarded default app entry in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T009 [US1] Add redirect expectation coverage for onboarding completion, waiting approval, admin fallback, and settings return in src/__tests__/mvp-route-cleanup.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Change approved/onboarded public-auth default destination from /forum to /chat in src/lib/supabase/middleware.ts
-- [ ] T011 [US1] Change OAuth callback default and approved/onboarded destination from /forum to /chat in src/app/auth/callback/route.ts
-- [ ] T012 [US1] Change already-onboarded onboarding page destination from /forum to /chat in src/app/onboarding/page.tsx
-- [ ] T013 [US1] Change onboarding completion welcome link and hard redirect from /forum to /chat in src/components/onboarding/onboarding-wizard.tsx
-- [ ] T014 [US1] Change approved waiting-page destination from /forum to /chat in src/app/(auth)/en-attente/page.tsx
-- [ ] T015 [US1] Change approved status poller destination from /forum to /chat in src/components/sponsorship/status-poller.tsx
-- [ ] T016 [US1] Change non-admin admin fallback from /forum to /chat in src/app/(app)/admin/layout.tsx
-- [ ] T017 [US1] Change settings close/back destination from /forum to /chat in src/components/layout/settings-shell.tsx
-- [ ] T018 [US1] Change sidebar logo destination from /forum to /chat in src/components/layout/sidebar.tsx
-- [ ] T019 [US1] Change chat channel-list back destination from /forum to /chat in src/components/chat/channel-list.tsx
+- [X] T010 [US1] Change approved/onboarded public-auth default destination from /forum to /chat in src/lib/supabase/middleware.ts
+- [X] T011 [US1] Change OAuth callback default and approved/onboarded destination from /forum to /chat in src/app/auth/callback/route.ts
+- [X] T012 [US1] Change already-onboarded onboarding page destination from /forum to /chat in src/app/onboarding/page.tsx
+- [X] T013 [US1] Change onboarding completion welcome link and hard redirect from /forum to /chat in src/components/onboarding/onboarding-wizard.tsx
+- [X] T014 [US1] Change approved waiting-page destination from /forum to /chat in src/app/(auth)/en-attente/page.tsx
+- [X] T015 [US1] Change approved status poller destination from /forum to /chat in src/components/sponsorship/status-poller.tsx
+- [X] T016 [US1] Change non-admin admin fallback from /forum to /chat in src/app/(app)/admin/layout.tsx
+- [X] T017 [US1] Change settings close/back destination from /forum to /chat in src/components/layout/settings-shell.tsx
+- [X] T018 [US1] Change sidebar logo destination from /forum to /chat in src/components/layout/sidebar.tsx
+- [X] T019 [US1] Change chat channel-list back destination from /forum to /chat in src/components/chat/channel-list.tsx
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently.
 
@@ -74,15 +74,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T020 [US2] Add navigation visibility expectations for Chat, Forum, and Annuaire in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T020 [US2] Add navigation visibility expectations for Chat, Forum, and Annuaire in src/__tests__/mvp-route-cleanup.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Remove Forum from the main community navigation array while keeping Chat in src/components/layout/sidebar.tsx
-- [ ] T022 [US2] Remove Annuaire from the main network navigation array while keeping retained entries in src/components/layout/sidebar.tsx
-- [ ] T023 [P] [US2] Verify legacy forum route files remain present in src/app/(app)/forum/page.tsx
-- [ ] T024 [P] [US2] Verify legacy member directory route files remain present in src/app/(app)/membres/page.tsx
-- [ ] T025 [P] [US2] Verify legacy member detail route files remain present in src/app/(app)/membres/[id]/page.tsx
+- [X] T021 [US2] Remove Forum from the main community navigation array while keeping Chat in src/components/layout/sidebar.tsx
+- [X] T022 [US2] Remove Annuaire from the main network navigation array while keeping retained entries in src/components/layout/sidebar.tsx
+- [X] T023 [P] [US2] Verify legacy forum route files remain present in src/app/(app)/forum/page.tsx
+- [X] T024 [P] [US2] Verify legacy member directory route files remain present in src/app/(app)/membres/page.tsx
+- [X] T025 [P] [US2] Verify legacy member detail route files remain present in src/app/(app)/membres/[id]/page.tsx
 
 **Checkpoint**: User Story 2 should be fully functional and testable independently.
 
@@ -96,13 +96,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T026 [US3] Add landing copy visibility expectations for Forum, Annuaire, and offers/jobs in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T026 [US3] Add landing copy visibility expectations for Forum, Annuaire, and offers/jobs in src/__tests__/mvp-route-cleanup.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T027 [P] [US3] Remove Forum and Annuaire links from the public platform footer in src/app/page.tsx
-- [ ] T028 [P] [US3] Rewrite public feature cards to avoid Annuaire and offers/jobs promises in src/components/home/animated-features.tsx
-- [ ] T029 [P] [US3] Rewrite public step-three copy to avoid annonces, annuaire, and offres promises in src/components/home/animated-steps.tsx
+- [X] T027 [P] [US3] Remove Forum and Annuaire links from the public platform footer in src/app/page.tsx
+- [X] T028 [P] [US3] Rewrite public feature cards to avoid Annuaire and offers/jobs promises in src/components/home/animated-features.tsx
+- [X] T029 [P] [US3] Rewrite public step-three copy to avoid annonces, annuaire, and offres promises in src/components/home/animated-steps.tsx
 
 **Checkpoint**: User Story 3 should be fully functional and testable independently.
 
@@ -116,12 +116,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T030 [US4] Add chat proposal visibility expectations in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T030 [US4] Add chat proposal visibility expectations in src/__tests__/mvp-route-cleanup.test.ts
 
 ### Implementation for User Story 4
 
-- [ ] T031 [US4] Remove proposal fetch state, vote handlers, proposal form state, and proposal constants from src/components/chat/channel-list.tsx
-- [ ] T032 [US4] Remove proposal list, vote controls, proposal form, and Proposer un salon button from src/components/chat/channel-list.tsx
+- [X] T031 [US4] Remove proposal fetch state, vote handlers, proposal form state, and proposal constants from src/components/chat/channel-list.tsx
+- [X] T032 [US4] Remove proposal list, vote controls, proposal form, and Proposer un salon button from src/components/chat/channel-list.tsx
 
 **Checkpoint**: User Story 4 should be fully functional and testable independently.
 
@@ -135,16 +135,16 @@
 
 ### Tests for User Story 5
 
-- [ ] T033 [US5] Add rejected-user admission-state expectations in src/__tests__/mvp-route-cleanup.test.ts
-- [ ] T034 [US5] Add chat slug-link expectation for message search results in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T033 [US5] Add rejected-user admission-state expectations in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T034 [US5] Add chat slug-link expectation for message search results in src/__tests__/mvp-route-cleanup.test.ts
 
 ### Implementation for User Story 5
 
-- [ ] T035 [US5] Preserve rejected authenticated users on the status boundary instead of silently redirecting to /connexion in src/lib/supabase/middleware.ts
-- [ ] T036 [US5] Render a clear rejected-account state with controlled sign-out or exit copy in src/app/(auth)/en-attente/page.tsx
-- [ ] T037 [US5] Redirect rejected app-shell access to the explicit status boundary instead of /connexion in src/app/(app)/layout.tsx
-- [ ] T038 [US5] Change message search result links from /chat?channel=... to /chat/[slug] where channel slug is already selected in src/components/layout/header.tsx
-- [ ] T039 [US5] Document tolerated remaining /chat?channel=... mention notification link because only channel ID is available in specs/006-mvp-ui-route-cleanup/quickstart.md
+- [X] T035 [US5] Preserve rejected authenticated users on the status boundary instead of silently redirecting to /connexion in src/lib/supabase/middleware.ts
+- [X] T036 [US5] Render a clear rejected-account state with controlled sign-out or exit copy in src/app/(auth)/en-attente/page.tsx
+- [X] T037 [US5] Redirect rejected app-shell access to the explicit status boundary instead of /connexion in src/app/(app)/layout.tsx
+- [X] T038 [US5] Change message search result links from /chat?channel=... to /chat/[slug] where channel slug is already selected in src/components/layout/header.tsx
+- [X] T039 [US5] Document tolerated remaining /chat?channel=... mention notification link because only channel ID is available in specs/006-mvp-ui-route-cleanup/quickstart.md
 
 **Checkpoint**: User Story 5 should be fully functional and testable independently.
 
@@ -154,12 +154,12 @@
 
 **Purpose**: Validate the full feature, update task state, and ensure forbidden surfaces remain untouched.
 
-- [ ] T040 Run targeted route-cleanup tests in src/__tests__/mvp-route-cleanup.test.ts
-- [ ] T041 Run npm run build and record the result in specs/006-mvp-ui-route-cleanup/quickstart.md
-- [ ] T042 Run changed-scope lint review for touched files and record any baseline-vs-regression notes in specs/006-mvp-ui-route-cleanup/quickstart.md
-- [ ] T043 Verify forbidden files were not modified using git diff for supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock.yaml in specs/006-mvp-ui-route-cleanup/quickstart.md
-- [ ] T044 Verify all acceptance scenarios from specs/006-mvp-ui-route-cleanup/spec.md against specs/006-mvp-ui-route-cleanup/quickstart.md
-- [ ] T045 Update completed task checkboxes in specs/006-mvp-ui-route-cleanup/tasks.md
+- [X] T040 Run targeted route-cleanup tests in src/__tests__/mvp-route-cleanup.test.ts
+- [X] T041 Run npm run build and record the result in specs/006-mvp-ui-route-cleanup/quickstart.md
+- [X] T042 Run changed-scope lint review for touched files and record any baseline-vs-regression notes in specs/006-mvp-ui-route-cleanup/quickstart.md
+- [X] T043 Verify forbidden files were not modified using git diff for supabase package.json package-lock.json bun.lock yarn.lock pnpm-lock.yaml in specs/006-mvp-ui-route-cleanup/quickstart.md
+- [X] T044 Verify all acceptance scenarios from specs/006-mvp-ui-route-cleanup/spec.md against specs/006-mvp-ui-route-cleanup/quickstart.md
+- [X] T045 Update completed task checkboxes in specs/006-mvp-ui-route-cleanup/tasks.md
 
 ---
 

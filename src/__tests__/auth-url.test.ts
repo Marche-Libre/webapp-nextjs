@@ -1,9 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getAuthCallbackUrl, getPublicSiteOrigin } from "@/lib/auth-url";
 
 const originalSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
 afterEach(() => {
+  vi.unstubAllEnvs();
+
   if (originalSiteUrl === undefined) {
     delete process.env.NEXT_PUBLIC_SITE_URL;
   } else {
@@ -12,6 +14,14 @@ afterEach(() => {
 });
 
 describe("auth URL helpers", () => {
+  it("prefers the local browser origin in development", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    process.env.NEXT_PUBLIC_SITE_URL = "https://le-marche-libre.vercel.app";
+
+    expect(getPublicSiteOrigin()).toBe(window.location.origin);
+    expect(getAuthCallbackUrl()).toBe(`${window.location.origin}/auth/callback`);
+  });
+
   it("uses NEXT_PUBLIC_SITE_URL for OAuth callbacks", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://app.marchelibre.test/";
 

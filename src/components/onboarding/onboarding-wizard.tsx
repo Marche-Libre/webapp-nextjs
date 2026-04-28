@@ -6,7 +6,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useConfetti } from "@/hooks/use-confetti";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import {
   Sparkles,
   Briefcase,
   Search,
-  MessageSquare,
   User,
   UserPlus,
   MapPin,
@@ -29,8 +27,6 @@ import {
   Pencil,
   X,
   FileText,
-  Eye,
-  EyeOff,
   type LucideIcon,
 } from "lucide-react";
 import type { Profile, ProfileVisibility, SpecialtyCategory } from "@/lib/types/database";
@@ -61,11 +57,10 @@ interface OnboardingWizardProps {
   memberCount: number;
   sponsor: { x_handle: string; full_name: string; avatar_url: string | null } | null;
   members: MemberPreview[];
-  presentationsCategoryId: string | null;
   countries: { id: string; name: string; flag: string; code: string; is_francophone: boolean }[];
 }
 
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 8;
 
 const STEP_META: { icon: LucideIcon; label: string }[] = [
   { icon: Sparkles, label: "Bienvenue" },
@@ -75,7 +70,6 @@ const STEP_META: { icon: LucideIcon; label: string }[] = [
   { icon: FileText, label: "Bio" },
   { icon: Check, label: "Récap" },
   { icon: Search, label: "Recherche" },
-  { icon: MessageSquare, label: "Présentation" },
   { icon: UserPlus, label: "Inviter" },
 ];
 
@@ -85,10 +79,8 @@ export function OnboardingWizard({
   memberCount,
   sponsor,
   members,
-  presentationsCategoryId,
   countries,
 }: OnboardingWizardProps) {
-  const router = useRouter();
   const [step, setStep] = useState(1);
 
   // Confetti on welcome step
@@ -247,13 +239,7 @@ export function OnboardingWizard({
   const selectedCatIds = [...new Set(specialtyIds.map((id) => specToCat.get(id)).filter(Boolean))];
   const specialtyLabel = specialtyIds.map((id) => specNameMap.get(id)).filter(Boolean).join(", ");
 
-  // Intro post
-  const [introText, setIntroText] = useState(
-    `Bonjour ! Je suis ${profile.full_name || profile.x_handle}${specialtyLabel ? `, ${specialtyLabel}` : ""}${location ? ` à ${location}` : ""}. Ravi de rejoindre le réseau !`
-  );
-
   // Invite
-  const [inviteHandle, setInviteHandle] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
 
   const supabase = createClient();
@@ -320,31 +306,6 @@ export function OnboardingWizard({
     next();
   };
 
-  // Create intro post (step 7)
-  const publishIntro = async () => {
-    if (!introText.trim() || !presentationsCategoryId) { next(); return; }
-    setLoading(true);
-    await supabase.from("forum_posts").insert({
-      category_id: presentationsCategoryId,
-      author_id: profile.id,
-      title: `Bonjour, je suis @${profile.x_handle}`,
-      content: introText,
-    });
-    setLoading(false);
-    next();
-  };
-
-  // Send invite (step 8)
-  const sendInvite = async () => {
-    const handle = inviteHandle.replace("@", "").trim();
-    if (!handle) return;
-    setLoading(true);
-    await supabase.from("invitations").insert({ inviter_id: profile.id, invited_x_handle: handle });
-    setInviteSuccess(handle);
-    setInviteHandle("");
-    setLoading(false);
-  };
-
   // Finish
   const finish = async () => {
     setLoading(true);
@@ -358,11 +319,11 @@ export function OnboardingWizard({
       user_id: profile.id,
       type: "welcome",
       title: "Bienvenue sur MarchéLibre !",
-      body: "Votre compte est activé. Explorez l'annuaire, rejoignez une discussion, ou invitez un professionnel.",
-      link: "/forum",
+      body: "Votre compte est activé. Rejoignez le chat et échangez avec les membres vérifiés.",
+      link: "/chat",
     });
     // Hard redirect to bypass middleware cache
-    window.location.href = "/forum";
+    window.location.href = "/chat";
   };
 
   // Member matching
@@ -961,44 +922,8 @@ export function OnboardingWizard({
         </div>
       )}
 
-      {/* ========= STEP 7: PRÉSENTATION ========= */}
+      {/* ========= STEP 8: INVITER (lien de parrainage) ========= */}
       {step === 8 && (
-        <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
-          <div>
-            <h2 className="text-2xl font-bold text-base-content tracking-tight">
-              Présentez-vous au réseau
-            </h2>
-            <p className="text-base text-base-content/45 mt-2">
-              Votre premier message sera publié dans l&apos;espace Présentations.
-            </p>
-          </div>
-
-          <textarea
-            value={introText}
-            onChange={(e) => setIntroText(e.target.value)}
-            rows={5}
-            maxLength={1000}
-            className="w-full rounded-xl border border-base-content/[0.08] bg-base-100 px-5 py-4 text-base text-base-content placeholder:text-base-content/25 focus:border-accent focus:outline-none resize-none leading-relaxed"
-          />
-
-          <div className="flex justify-between pt-4 mt-auto">
-            <Button variant="ghost" onClick={prev}>
-              <ArrowLeft className="h-4 w-4" /> Retour
-            </Button>
-            <div className="flex gap-3">
-              <Button variant="ghost" onClick={next}>
-                Passer <SkipForward className="h-3.5 w-3.5" />
-              </Button>
-              <Button onClick={publishIntro} disabled={loading || !introText.trim()}>
-                {loading ? "Publication…" : "Publier"} <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========= STEP 9: INVITER (lien de parrainage) ========= */}
-      {step === 9 && (
         <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
           <div>
             <h2 className="text-2xl font-bold text-base-content tracking-tight">
