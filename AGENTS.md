@@ -8,9 +8,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the relevant feature plan
-under `specs/`. For release-readiness work, start with
-`specs/004-release-readiness/plan.md`.
+shell commands, and other important information, start with the current feature
+plan at `specs/006-mvp-ui-route-cleanup/plan.md`. For release-readiness work,
+use `specs/004-release-readiness/plan.md`.
 <!-- SPECKIT END -->
 
 <!-- PROJECT-MANAGEMENT START -->
