@@ -43,8 +43,8 @@
 7. **Create BMad planning artifacts**
    Suggested BMad sequence:
    - `bmad-generate-project-context` for brownfield project context - DONE
-   - `bmad-distillator` on `specs/` to preserve useful knowledge - IN PROGRESS
-   - `bmad-create-prd` for the lean MVP PRD
+   - `bmad-distillator` on `specs/` to preserve useful knowledge - DONE
+   - `bmad-create-prd` for the lean MVP PRD - STARTED
    - `bmad-create-ux-design` only for minimal route/nav/copy cleanup
    - `bmad-create-architecture` focused on Supabase/auth/schema decisions
    - `bmad-create-epics-and-stories`
