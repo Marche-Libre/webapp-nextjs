@@ -8,6 +8,8 @@ Notes brutes a reformuler plus tard.
 
 - Ajout IA :
   - Tagger une IA a la maniere de `@grok`.
+  - Commande `/catch-up` pour resumer les fils/messages non lus depuis la derniere lecture d'un groupe et publier le recap dans le feed.
+  - Exemple : utilisateur connecte, derniere lecture de `General` hier 20h, 100+ nouveaux messages interessants -> resume rapide pour rattraper la conversation.
   - Voir quel modele utiliser : Grok Fast, Mistral, ou un modele gratuit/pas cher pour commencer.
   - Lui donner un nom drole, genre un liberal ou libertarien.
   - Idee d'un pendant socialiste, genre `@marx`.
