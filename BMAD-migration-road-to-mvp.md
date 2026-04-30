@@ -44,10 +44,10 @@
    Suggested BMad sequence:
    - `bmad-generate-project-context` for brownfield project context - DONE
    - `bmad-distillator` on `specs/` to preserve useful knowledge - DONE
-   - `bmad-create-prd` for the lean MVP PRD - STARTED
-   - `bmad-create-ux-design` only for minimal route/nav/copy cleanup
-   - `bmad-create-architecture` focused on Supabase/auth/schema decisions
-   - `bmad-create-epics-and-stories`
+   - `bmad-create-prd` for the lean MVP PRD - DONE
+   - `bmad-create-ux-design` only for minimal route/nav/copy cleanup - DONE
+   - `bmad-create-architecture` focused on Supabase/auth/schema decisions - DONE
+   - `bmad-create-epics-and-stories` - STARTED
    - `bmad-check-implementation-readiness`
    - `bmad-sprint-planning`
 
