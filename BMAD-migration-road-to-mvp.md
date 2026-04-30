@@ -47,9 +47,9 @@
    - `bmad-create-prd` for the lean MVP PRD - DONE
    - `bmad-create-ux-design` only for minimal route/nav/copy cleanup - DONE
    - `bmad-create-architecture` focused on Supabase/auth/schema decisions - DONE
-   - `bmad-create-epics-and-stories` - STARTED
-   - `bmad-check-implementation-readiness`
-   - `bmad-sprint-planning`
+   - `bmad-create-epics-and-stories` - DONE
+   - `bmad-check-implementation-readiness` - DONE
+   - `bmad-sprint-planning` - NEXT
 
 8. **Do DB cleanup safely, not emotionally**
    Use Supabase MCP for inspection and verification. Sequence:
