@@ -773,7 +773,7 @@ webapp-nextjs/
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md
-├── BMAD-migration-road-to-mvp.md
+├── BMAD-workflow-helper.md
 ├── app_flow.md
 ├── db_flow.md
 ├── design.md
