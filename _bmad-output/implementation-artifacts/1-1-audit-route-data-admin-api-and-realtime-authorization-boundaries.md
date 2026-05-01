@@ -1,6 +1,6 @@
 # Story 1.1: Audit Route, Data, Admin, API, and Realtime Authorization Boundaries
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -22,48 +22,48 @@ so that beta launch work starts from known security facts instead of assumptions
 
 ## Tasks / Subtasks
 
-- [ ] Create the audit artifact for Story 1.1 (AC: 1, 2, 3, 6, 7)
-  - [ ] Create `_bmad-output/implementation-artifacts/1-1-access-security-audit.md`.
-  - [ ] Include a summary, scope, user-state definitions, route/access matrix, data/RLS matrix, admin-action matrix, API/Server Action matrix, realtime/storage matrix, production-inspection log, findings list, and Story 1.2/1.3 handoff section.
-  - [ ] Do not change app routes, UI, Supabase migrations, generated types, tests, dependencies, package locks, or runtime behavior in this story.
-- [ ] Define the canonical audit states and expected outcomes (AC: 1, 2, 7)
-  - [ ] Cover logged-out, authenticated with no/incomplete profile, pending, refused/rejected, approved-not-onboarded, approved-onboarded, suspended/removed if supported, admin, and non-admin attempting admin access.
-  - [ ] Use `/chat` as the approved/onboarded member center.
-  - [ ] Preserve expected explicit boundaries: pending/refused users route to `/en-attente`, approved-not-onboarded users route to `/onboarding`, non-admin admin access falls back to `/chat`.
-- [ ] Audit app route and layout boundaries from source (AC: 1, 2, 3)
-  - [ ] Inspect middleware/session handling in `middleware.ts` and `src/lib/supabase/middleware.ts`.
-  - [ ] Inspect protected route guards in `src/app/(app)/layout.tsx`, `src/app/onboarding/page.tsx`, `src/app/(auth)/en-attente/page.tsx`, and `src/app/auth/callback/route.ts`.
-  - [ ] Inspect `/chat`, `/chat/[slug]`, admin, settings/profile, forum, members, notifications, dashboard, legal, auth, and referral route surfaces listed in the Dev Notes.
-  - [ ] Record whether each route is public, auth-only/status-boundary, member-only, admin-only, legacy member-only, or unknown.
-- [ ] Audit chat, member data, notification, and legacy private data paths (AC: 1, 2, 3)
-  - [ ] Inspect server-side chat loading in `src/app/(app)/chat/layout.tsx`.
-  - [ ] Inspect client-side chat reads/writes and subscriptions in `src/components/chat/chat-store.tsx`, `src/components/chat/message-input.tsx`, `src/components/chat/chat-layout.tsx`, `src/components/chat/chat-main.tsx`, and `src/components/chat/message-bubble.tsx`.
-  - [ ] Inspect profile/member, sponsorship, notification, forum, report/block, and direct-message paths surfaced by `from(...)` calls.
-  - [ ] Record where security relies on route guards, Server Actions, RLS, storage policy, realtime authorization, or UI hiding.
-- [ ] Audit admin routes/actions and mutation authorization (AC: 1, 2, 3, 6)
-  - [ ] Inspect `src/app/(app)/admin/layout.tsx`, `src/app/(app)/admin/page.tsx`, `src/app/(app)/admin/utilisateurs/page.tsx`, `src/app/(app)/admin/actions.ts`, and `src/components/admin/approve-reject-buttons.tsx`.
-  - [ ] Identify all admin mutations currently available: approve, reject, mute, unmute, chat ban, chat unban, and any channel/user/role mutation paths if present elsewhere.
-  - [ ] Record app-code guard, database/RLS dependency, missing audit attribution if applicable, and whether non-admin execution appears blocked beyond UI.
-- [ ] Audit API, Route Handler, Server Action, storage, and realtime surfaces (AC: 1, 2, 3, 4, 5)
-  - [ ] Inspect `src/app/api/geo/cities/route.ts` and classify whether it is public, middleware-protected, or state-dependent.
-  - [ ] Inspect all Server Actions, starting with `src/app/(app)/admin/actions.ts`.
-  - [ ] Inspect realtime subscriptions in chat, notifications/sidebar, and notification provider components.
-  - [ ] Inspect storage usage for the `chat-images` bucket and record whether local migrations/policies cover it.
-- [ ] Audit Supabase migrations, generated types, and production schema assumptions safely (AC: 1, 2, 3, 4, 5, 6)
-  - [ ] Review migrations under `supabase/migrations` for tables, RLS policies, functions, triggers, views, realtime publication changes, and schema drift.
-  - [ ] Compare app expectations in `src/lib/types/database.ts` with migrations and any read-only production inspection used.
-  - [ ] Focus on `profiles`, `channels`, `channel_members`, `messages`, `message_reactions`, `notifications`, `sponsorship_requests`, `invitations`, `user_reports`, `user_blocks`, forum tables, countries/cities, and storage bucket assumptions.
-  - [ ] Use read-only inspection only unless the owner explicitly authorizes otherwise.
-- [ ] Categorize findings and produce handoff-ready follow-ups (AC: 6, 7)
-  - [ ] Mark known unresolved member-only access bypasses or admin-only action bypasses as `launch blocker`.
-  - [ ] Mark schema/type/auditability uncertainty that does not confirm a bypass as `accepted beta risk candidate` only if rationale and impact are explicit.
-  - [ ] Mark non-blocking cleanup or Story 1.2 expectation work as `follow-up story input`.
-  - [ ] Include minimal recommended next action for each finding without implementing fixes in this story.
-- [ ] Verify and record outcomes (AC: 2, 4, 5, 7)
-  - [ ] Run source-level verification commands that do not mutate production data.
-  - [ ] Run lint if practical: `npm run lint`.
-  - [ ] If running tests, use `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` because `package.json` has no `test` script.
-  - [ ] Record exact commands, outcomes, and whether failures are baseline or new regressions in the audit artifact.
+- [x] Create the audit artifact for Story 1.1 (AC: 1, 2, 3, 6, 7)
+  - [x] Create `_bmad-output/implementation-artifacts/1-1-access-security-audit.md`.
+  - [x] Include a summary, scope, user-state definitions, route/access matrix, data/RLS matrix, admin-action matrix, API/Server Action matrix, realtime/storage matrix, production-inspection log, findings list, and Story 1.2/1.3 handoff section.
+  - [x] Do not change app routes, UI, Supabase migrations, generated types, tests, dependencies, package locks, or runtime behavior in this story.
+- [x] Define the canonical audit states and expected outcomes (AC: 1, 2, 7)
+  - [x] Cover logged-out, authenticated with no/incomplete profile, pending, refused/rejected, approved-not-onboarded, approved-onboarded, suspended/removed if supported, admin, and non-admin attempting admin access.
+  - [x] Use `/chat` as the approved/onboarded member center.
+  - [x] Preserve expected explicit boundaries: pending/refused users route to `/en-attente`, approved-not-onboarded users route to `/onboarding`, non-admin admin access falls back to `/chat`.
+- [x] Audit app route and layout boundaries from source (AC: 1, 2, 3)
+  - [x] Inspect middleware/session handling in `middleware.ts` and `src/lib/supabase/middleware.ts`.
+  - [x] Inspect protected route guards in `src/app/(app)/layout.tsx`, `src/app/onboarding/page.tsx`, `src/app/(auth)/en-attente/page.tsx`, and `src/app/auth/callback/route.ts`.
+  - [x] Inspect `/chat`, `/chat/[slug]`, admin, settings/profile, forum, members, notifications, dashboard, legal, auth, and referral route surfaces listed in the Dev Notes.
+  - [x] Record whether each route is public, auth-only/status-boundary, member-only, admin-only, legacy member-only, or unknown.
+- [x] Audit chat, member data, notification, and legacy private data paths (AC: 1, 2, 3)
+  - [x] Inspect server-side chat loading in `src/app/(app)/chat/layout.tsx`.
+  - [x] Inspect client-side chat reads/writes and subscriptions in `src/components/chat/chat-store.tsx`, `src/components/chat/message-input.tsx`, `src/components/chat/chat-layout.tsx`, `src/components/chat/chat-main.tsx`, and `src/components/chat/message-bubble.tsx`.
+  - [x] Inspect profile/member, sponsorship, notification, forum, report/block, and direct-message paths surfaced by `from(...)` calls.
+  - [x] Record where security relies on route guards, Server Actions, RLS, storage policy, realtime authorization, or UI hiding.
+- [x] Audit admin routes/actions and mutation authorization (AC: 1, 2, 3, 6)
+  - [x] Inspect `src/app/(app)/admin/layout.tsx`, `src/app/(app)/admin/page.tsx`, `src/app/(app)/admin/utilisateurs/page.tsx`, `src/app/(app)/admin/actions.ts`, and `src/components/admin/approve-reject-buttons.tsx`.
+  - [x] Identify all admin mutations currently available: approve, reject, mute, unmute, chat ban, chat unban, and any channel/user/role mutation paths if present elsewhere.
+  - [x] Record app-code guard, database/RLS dependency, missing audit attribution if applicable, and whether non-admin execution appears blocked beyond UI.
+- [x] Audit API, Route Handler, Server Action, storage, and realtime surfaces (AC: 1, 2, 3, 4, 5)
+  - [x] Inspect `src/app/api/geo/cities/route.ts` and classify whether it is public, middleware-protected, or state-dependent.
+  - [x] Inspect all Server Actions, starting with `src/app/(app)/admin/actions.ts`.
+  - [x] Inspect realtime subscriptions in chat, notifications/sidebar, and notification provider components.
+  - [x] Inspect storage usage for the `chat-images` bucket and record whether local migrations/policies cover it.
+- [x] Audit Supabase migrations, generated types, and production schema assumptions safely (AC: 1, 2, 3, 4, 5, 6)
+  - [x] Review migrations under `supabase/migrations` for tables, RLS policies, functions, triggers, views, realtime publication changes, and schema drift.
+  - [x] Compare app expectations in `src/lib/types/database.ts` with migrations and any read-only production inspection used.
+  - [x] Focus on `profiles`, `channels`, `channel_members`, `messages`, `message_reactions`, `notifications`, `sponsorship_requests`, `invitations`, `user_reports`, `user_blocks`, forum tables, countries/cities, and storage bucket assumptions.
+  - [x] Use read-only inspection only unless the owner explicitly authorizes otherwise.
+- [x] Categorize findings and produce handoff-ready follow-ups (AC: 6, 7)
+  - [x] Mark known unresolved member-only access bypasses or admin-only action bypasses as `launch blocker`.
+  - [x] Mark schema/type/auditability uncertainty that does not confirm a bypass as `accepted beta risk candidate` only if rationale and impact are explicit.
+  - [x] Mark non-blocking cleanup or Story 1.2 expectation work as `follow-up story input`.
+  - [x] Include minimal recommended next action for each finding without implementing fixes in this story.
+- [x] Verify and record outcomes (AC: 2, 4, 5, 7)
+  - [x] Run source-level verification commands that do not mutate production data.
+  - [x] Run lint if practical: `npm run lint`.
+  - [x] If running tests, use `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` because `package.json` has no `test` script.
+  - [x] Record exact commands, outcomes, and whether failures are baseline or new regressions in the audit artifact.
 
 ## Dev Notes
 
@@ -287,14 +287,37 @@ Preserve current organization: routes under `src/app`, protected routes under `(
 - `supabase/migrations/00012_dm_system.sql`
 - `supabase/migrations/00020_profiles_schema_alignment.sql`
 
+## Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-05-01 | Implemented Story 1.1 by creating the access/security audit artifact, recording route/data/admin/API/realtime/Supabase findings, and documenting verification outcomes. |
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
-TBD by dev agent
+gpt-5.5
 
 ### Debug Log References
 
+- `2026-05-01T19:52:13Z`: Marked Story 1.1 in progress in sprint status.
+- Ran Supabase read-only production metadata inspection: tables, migrations, security advisors, performance advisors.
+- Ran Supabase docs search for RLS/realtime/storage policy guidance; output was broad/truncated, so the Supabase skill security checklist was applied.
+- Ran `npm run lint`; failed on baseline runtime lint errors unrelated to this documentation-only story.
+- Ran `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts`; passed 2 files and 12 tests.
+- Ran `npx vitest run`; failed on baseline `profile-utils.test.ts` availability-label assertions unrelated to this documentation-only story.
+
 ### Completion Notes List
 
+- Created `_bmad-output/implementation-artifacts/1-1-access-security-audit.md` with required matrices, findings, production-inspection log, and handoff notes for Stories 1.2 and 1.3.
+- No app routes, UI, Supabase migrations, generated types, dependencies, package locks, tests, or runtime behavior were changed.
+- Read-only Supabase production inspection revealed the configured Supabase project does not match the local app schema; documented as launch blocker F-01.
+- Documented local confirmed bypasses for profile self-update, sponsor approval/profile update breadth, private channel membership/message insert gaps, non-admin private channel creation, and missing `chat-images` storage policy coverage.
+- Verification recorded in the audit artifact. Targeted route/auth tests passed. Lint and full Vitest failures are classified as baseline because this story changed documentation/tracking only.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/1-1-access-security-audit.md`
+- `_bmad-output/implementation-artifacts/1-1-audit-route-data-admin-api-and-realtime-authorization-boundaries.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
