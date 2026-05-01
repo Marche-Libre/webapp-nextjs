@@ -32,7 +32,7 @@ export default async function AppLayout({
   }
 
   if (profile.status === "rejected") {
-    redirect("/connexion");
+    redirect("/en-attente");
   }
 
   if (profile.status === "approved" && profile.onboarding_completed !== true) {

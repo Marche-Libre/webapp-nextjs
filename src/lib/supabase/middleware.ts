@@ -62,8 +62,16 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     const isApproved = profile?.status === "approved";
+    const isRejected = profile?.status === "rejected";
     const isOnboarded = profile?.onboarding_completed === true;
-    const isPending = !isApproved;
+    const isPending = !isApproved && !isRejected;
+
+    // Rejected users stay on the status boundary so the app can show a clear refusal state.
+    if (isRejected && pathname !== "/en-attente" && pathname !== "/connexion") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/en-attente";
+      return NextResponse.redirect(url);
+    }
 
     // Pending users can only see /en-attente
     if (isPending && pathname !== "/en-attente") {
@@ -89,7 +97,7 @@ export async function updateSession(request: NextRequest) {
         pathname === "/en-attente")
     ) {
       const url = request.nextUrl.clone();
-      url.pathname = "/forum";
+      url.pathname = "/chat";
       return NextResponse.redirect(url);
     }
   }

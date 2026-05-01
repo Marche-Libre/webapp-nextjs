@@ -28,14 +28,14 @@ export function AnimatedFeatures() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
                       <Megaphone className="w-5 h-5 text-white/70" />
-                      <span className="text-xs font-bold text-white/60 uppercase tracking-wide">Annonces</span>
+                      <span className="text-xs font-bold text-white/60 uppercase tracking-wide">Conversations</span>
                     </div>
                     <h3 className="text-xl sm:text-2xl font-bold tracking-tight">
-                      Publiez. Postulez. Collaborez.
+                      Échangez. Coordonnez. Collaborez.
                     </h3>
                     <p className="text-white/75 mt-2 max-w-md text-sm leading-relaxed">
-                      Annonces de services, recherches de collaboration, offres d&apos;emploi.
-                      Tout est accessible aux membres vérifiés du réseau.
+                      Un espace de discussion simple pour les membres vérifiés du réseau.
+                      La Beta 1 se concentre sur des échanges directs et lisibles.
                     </p>
                   </div>
                   <div className="hidden sm:block shrink-0 rounded-xl overflow-hidden w-[200px] h-[140px]">
@@ -66,27 +66,27 @@ export function AnimatedFeatures() {
               </div>
             </FadeIn>
 
-            {/* Annuaire */}
+            {/* Profils vérifiés */}
             <FadeIn delay={0.14}>
               <div className="rounded-2xl bg-[var(--bento-amber)] text-white shadow-lg h-full cursor-pointer hover:shadow-xl hover:scale-[1.01] transition-all duration-200">
                 <div className="p-7">
                   <Search className="w-6 h-6 text-white/80" />
-                  <h3 className="text-lg font-bold tracking-tight mt-3">Annuaire de profils</h3>
+                  <h3 className="text-lg font-bold tracking-tight mt-3">Profils vérifiés</h3>
                   <p className="text-sm text-white/70 leading-relaxed mt-2">
-                    Trouvez le bon profil en 30 secondes. Filtrez par spécialité et localisation.
+                    Chaque membre rejoint le réseau avec une identité claire et validée.
                   </p>
                 </div>
               </div>
             </FadeIn>
 
-            {/* Offres */}
+            {/* Signal utile */}
             <FadeIn delay={0.18}>
               <div className="rounded-2xl bg-[var(--bento-indigo)] text-white shadow-lg h-full cursor-pointer hover:shadow-xl hover:scale-[1.01] transition-all duration-200">
                 <div className="p-7">
                   <Briefcase className="w-6 h-6 text-white/80" />
-                  <h3 className="text-lg font-bold tracking-tight mt-3">Offres d&apos;emploi</h3>
+                  <h3 className="text-lg font-bold tracking-tight mt-3">Réseau qualifié</h3>
                   <p className="text-sm text-white/70 leading-relaxed mt-2">
-                    Freelance, CDI, CDD, missions. Publiez ou répondez à des offres entre membres vérifiés.
+                    Des professionnels identifiés pour créer des conversations plus fiables.
                   </p>
                 </div>
               </div>

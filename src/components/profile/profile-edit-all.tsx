@@ -1,3 +1,8 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Multi-step profile editor exceeds Beta 1 needs (FR-001/FR-002)
+ * Consider: single inline form in profile page
+ */
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent } from "react";

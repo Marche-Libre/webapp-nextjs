@@ -39,8 +39,6 @@ export default function HomePage() {
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">Plateforme</h3>
               <ul className="space-y-2.5">
-                <li><Link href="/forum" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Forum</Link></li>
-                <li><Link href="/membres" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Annuaire</Link></li>
                 <li><Link href="/chat" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Chat</Link></li>
               </ul>
             </div>

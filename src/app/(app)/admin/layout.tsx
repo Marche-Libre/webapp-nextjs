@@ -20,7 +20,7 @@ export default async function AdminLayout({
     .single();
 
   if (!profile?.is_admin) {
-    redirect("/forum");
+    redirect("/chat");
   }
 
   return <>{children}</>;

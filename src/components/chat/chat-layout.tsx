@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronUp, Hash, LogOut, Menu, Search, Settings, ShieldCheck, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +12,7 @@ import { MemberList } from "./member-list";
 import { MessageArea } from "./message-area";
 import { Avatar } from "@/components/ui/avatar";
 import { ChatChannelProvider, useActiveChannel } from "./chat-channel-context";
-import { useChatStore } from "./chat-store";
+import { useChatStore, type FullMessage } from "./chat-store";
 import { Spinner } from "@/components/ui/spinner";
 
 /* Context to let child pages open the channel drawer on mobile */
@@ -26,13 +26,26 @@ export interface DmChannel {
   other_user: Pick<Profile, "id" | "x_handle" | "full_name" | "avatar_url">;
 }
 
+type SearchResult = {
+  id: string;
+  content: string;
+  created_at: string;
+  author: Pick<Profile, "x_handle"> | null;
+};
+
+type SearchResultRow = Omit<SearchResult, "author"> & {
+  author: Pick<Profile, "x_handle"> | Pick<Profile, "x_handle">[] | null;
+};
+
 interface ChatLayoutProps {
   channels: Channel[];
   dmChannels?: DmChannel[];
   members: Pick<Profile, "id" | "x_handle" | "full_name" | "avatar_url">[];
   profile: Profile;
-  initialMessages?: any[];
+  initialMessages?: FullMessage[];
   initialChannelId?: string | null;
+  initialChannelSlug?: string | null;
+  children?: ReactNode;
 }
 
 /* ── User bar at bottom of channel sidebar ── */
@@ -140,7 +153,7 @@ function ChatArea({
   userId: string;
   userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
   isAdmin?: boolean;
-  initialMessages?: any[];
+  initialMessages?: FullMessage[];
   initialChannelId?: string | null;
 }) {
   const { activeSlug } = useActiveChannel();
@@ -185,7 +198,7 @@ function ChatArea({
   // Search
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<{ id: string; content: string; created_at: string; author: { x_handle: string } }[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<NodeJS.Timeout>(undefined);
@@ -193,7 +206,9 @@ function ChatArea({
   useEffect(() => { if (searchOpen) searchRef.current?.focus(); }, [searchOpen]);
 
   useEffect(() => {
-    if (!searchQuery.trim() || !activeChannel) { setSearchResults([]); return; }
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery || !activeChannel) return;
+
     clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(async () => {
       setSearching(true);
@@ -202,10 +217,14 @@ function ChatArea({
         .from("messages")
         .select("id, content, created_at, author:profiles!messages_author_id_fkey(x_handle)")
         .eq("channel_id", activeChannel.id)
-        .ilike("content", `%${searchQuery}%`)
+        .ilike("content", `%${trimmedQuery}%`)
         .order("created_at", { ascending: false })
         .limit(20);
-      setSearchResults((data || []) as any);
+      const rows = (data || []) as unknown as SearchResultRow[];
+      setSearchResults(rows.map((row) => ({
+        ...row,
+        author: Array.isArray(row.author) ? row.author[0] ?? null : row.author,
+      })));
       setSearching(false);
     }, 300);
   }, [searchQuery, activeChannel]);
@@ -221,8 +240,22 @@ function ChatArea({
 
   if (!activeChannel) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Spinner />
+      <div className="flex h-full items-center justify-center px-6 text-center">
+        <div className="max-w-sm space-y-2">
+          <p className="text-sm font-semibold text-text-primary">
+            {channels.length > 0 ? "Salon introuvable" : "Aucun salon disponible"}
+          </p>
+          <p className="text-xs text-text-muted">
+            {channels.length > 0
+              ? "Ce salon n'existe plus ou n'est pas accessible. Revenez au chat pour ouvrir un salon disponible."
+              : "Aucun salon de discussion n'est disponible pour le moment."}
+          </p>
+          {channels.length > 0 && (
+            <Link href="/chat" className="inline-flex text-xs font-medium text-primary-500 hover:underline">
+              Retour au chat
+            </Link>
+          )}
+        </div>
       </div>
     );
   }
@@ -276,7 +309,11 @@ function ChatArea({
                 <input
                   ref={searchRef}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchQuery(value);
+                    if (!value.trim()) setSearchResults([]);
+                  }}
                   placeholder="Rechercher dans ce salon…"
                   className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none"
                 />
@@ -293,7 +330,7 @@ function ChatArea({
               {searchResults.map((msg) => (
                 <div key={msg.id} className="px-[8px] py-[6px] rounded-md hover:bg-bg-surface transition-colors">
                   <div className="flex items-baseline gap-[6px]">
-                    <span className="text-[12px] font-semibold text-text-primary">@{(msg.author as any)?.x_handle}</span>
+                    <span className="text-[12px] font-semibold text-text-primary">@{msg.author?.x_handle}</span>
                     <span className="text-[10px] text-text-muted">{new Date(msg.created_at).toLocaleDateString("fr-FR")}</span>
                   </div>
                   <p className="text-[12px] text-text-secondary line-clamp-2 mt-[2px]">{msg.content}</p>
@@ -309,7 +346,7 @@ function ChatArea({
 
 /* ── Main layout ── */
 
-export function ChatLayout({ channels, dmChannels, members, profile, initialMessages, initialChannelId }: ChatLayoutProps) {
+export function ChatLayout({ channels, dmChannels, members, profile, initialMessages, initialChannelId, initialChannelSlug, children }: ChatLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const allChannels: Channel[] = [
@@ -325,8 +362,11 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
     } as Channel)),
   ];
 
+  const defaultSlug = initialChannelSlug ?? allChannels[0]?.slug ?? "";
+
   return (
-    <ChatChannelProvider initialSlug="general">
+    <ChatChannelProvider initialSlug={defaultSlug}>
+      {children}
       <ChannelDrawerContext value={{ open: () => setDrawerOpen(true) }}>
         <div className="flex h-full">
           {/* Mobile channel drawer */}

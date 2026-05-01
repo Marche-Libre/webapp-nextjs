@@ -1,3 +1,7 @@
+/**
+ * @ARCHIVED - Potentially unused
+ * Celebration confetti not in Beta 1 roadmap
+ */
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { cn } from "../../lib/utils";

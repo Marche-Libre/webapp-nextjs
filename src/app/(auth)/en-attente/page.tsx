@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Clock, CheckCircle, LogOut } from "lucide-react";
+import { Clock, CheckCircle, LogOut, XCircle } from "lucide-react";
 import Link from "next/link";
 import { InvitationCard } from "@/components/sponsorship/invitation-card";
 import { WaitingPageClient } from "@/components/sponsorship/waiting-page-client";
@@ -29,12 +29,45 @@ export default async function EnAttentePage() {
 
   if (!profile) redirect("/connexion");
 
+  const xHandle =
+    profile.x_handle ||
+    user.user_metadata?.user_name ||
+    user.user_metadata?.preferred_username;
+
   if (profile.status === "rejected") {
-    redirect("/connexion");
+    return (
+      <div className="w-full max-w-[600px] mx-auto">
+        <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
+          <div className="px-8 pt-8 pb-6 text-center border-b border-base-content/[0.06]">
+            <div className="h-14 w-14 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
+              <XCircle className="h-7 w-7 text-error" />
+            </div>
+            <h1 className="text-xl font-bold text-base-content tracking-tight">
+              Votre demande n&apos;a pas ete acceptee
+            </h1>
+            <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
+              {xHandle ? `Le compte @${xHandle} n'a pas ete valide pour la beta.` : "Votre compte n'a pas ete valide pour la beta."}
+              <br />
+              Vous pouvez fermer cette page ou revenir a la connexion.
+            </p>
+          </div>
+
+          <div className="px-8 py-4 flex justify-center">
+            <Link
+              href="/connexion"
+              className="inline-flex items-center gap-1.5 text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Retour connexion
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (profile.status === "approved") {
-    redirect(profile.onboarding_completed ? "/forum" : "/onboarding");
+    redirect(profile.onboarding_completed ? "/chat" : "/onboarding");
   }
 
   const { data: invitations } = profile.x_handle
@@ -54,11 +87,6 @@ export default async function EnAttentePage() {
     .select("*")
     .eq("requester_id", user.id)
     .order("attempt_number", { ascending: false });
-
-  const xHandle =
-    profile.x_handle ||
-    user.user_metadata?.user_name ||
-    user.user_metadata?.preferred_username;
 
   return (
     <div className="w-full max-w-[600px] mx-auto">

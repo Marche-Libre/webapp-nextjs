@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-  MessagesSquare,
-  Users,
   UserPlus,
   User,
   Settings,
@@ -35,12 +33,10 @@ interface SidebarProps {
 import { MessageCircle } from "lucide-react";
 
 const communaute = [
-  { name: "Forum", href: "/forum", icon: MessagesSquare },
   { name: "Chat", href: "/chat", icon: MessageCircle },
 ];
 
 const reseau = [
-  { name: "Annuaire", href: "/membres", icon: Users },
   { name: "Parrainages", href: "/parrainages", icon: UserPlus },
 ];
 
@@ -175,7 +171,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-[20px] h-[64px] border-b border-border-subtle shrink-0">
-          <Link href="/forum" className="flex items-center gap-[10px]">
+          <Link href="/chat" className="flex items-center gap-[10px]">
             <img src="/images/logo.png" alt="MarchéLibre" className="h-[32px] w-[32px] object-contain" />
             <span className="font-display font-semibold text-[17px] text-text-primary tracking-[-0.02em] whitespace-nowrap">
               MarchéLibre

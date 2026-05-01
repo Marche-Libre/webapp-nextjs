@@ -27,7 +27,7 @@ const steps = [
   {
     num: "3",
     title: "Le réseau est à vous",
-    desc: <>Annonces, annuaire, offres — tout est ouvert</>,
+    desc: <>Chat et profils vérifiés — un espace simple pour échanger</>,
   },
 ];
 
