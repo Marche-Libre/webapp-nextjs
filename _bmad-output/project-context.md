@@ -17,9 +17,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ## Brownfield MVP Operating Constraints
 
-- This is a brownfield MVP stabilization and BMad migration effort: the app is buggy/overbuilt, current Speckit specs/docs/tasks are messy, and specs, docs, task management, and MVP roadmap planning are moving to a BMad-centric source of truth. Do not add features, redesign flows, or expand scope unless the product owner explicitly approves the change.
+- This is a brownfield MVP stabilization effort with BMad as the active source of truth. The app is buggy/overbuilt; do not add features, redesign flows, or expand scope unless the product owner explicitly approves the change.
 - Freeze feature expansion: only MVP blockers, security fixes, routing cleanup, Supabase schema/RLS/migration reproducibility work, and launch-readiness work are allowed.
-- Do not delete Speckit yet. Extract useful context from `specs/`, then retire Speckit only after BMad artifacts exist.
+- Speckit has been retired after extraction into BMad artifacts. Use `_bmad-output/` for active planning and implementation tracking.
 - Read relevant installed Next.js 16 docs in `node_modules/next/dist/docs/` before changing Next.js behavior, routes, redirects, links, or middleware/proxy logic.
 - Treat `/chat` as the MVP app center unless the product owner changes the MVP contract. Default redirects, onboarding completion, approved-user routing, sidebar/logo links, and primary app navigation should point to `/chat`.
 - For MVP, forum, annuaire/member discovery, jobs/offers, channel proposals, broad search/discovery, and non-essential admin UX are parked or hidden, not necessarily deleted. Hiding a feature does not authorize deleting routes, tables, migrations, or historical data.
@@ -83,6 +83,6 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - Keep this file lean and focused on agent needs.
 - Update it when the technology stack, MVP contract, or Supabase safety rules change.
-- Remove or rewrite rules that become outdated after the Speckit-to-BMad migration.
+- Remove or rewrite rules that become outdated as BMad artifacts evolve.
 
 Last Updated: 2026-04-28

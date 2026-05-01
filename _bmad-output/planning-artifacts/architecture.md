@@ -794,15 +794,16 @@ webapp-nextjs/
 │   └── *.svg
 ├── docs/
 ├── design-system/
-├── specs/
 ├── _bmad/
 ├── _bmad-output/
 │   ├── project-context.md
-│   └── planning-artifacts/
+│   ├── planning-artifacts/
 │       ├── prd.md
 │       ├── ux-design-specification.md
 │       ├── brownfield-mvp-speckit-distillate.md
 │       └── architecture.md
+│   └── implementation-artifacts/
+│       └── sprint-status.yaml
 ├── supabase/
 │   └── migrations/
 └── src/

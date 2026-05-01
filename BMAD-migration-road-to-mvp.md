@@ -1,14 +1,14 @@
 1. **Freeze the project now**
    Stop feature expansion. Only allow MVP blockers, security fixes, routing cleanup, and launch-readiness work.
 
-2. **Do not delete Speckit yet**
-   First extract useful information from `specs/`, then retire it. Current Speckit still contains decisions, route audits, DB notes, and backlog classification.
+2. **Retire Speckit after extraction - DONE**
+   Useful information from `specs/` was distilled into BMad planning artifacts, and Speckit has been retired as an active workflow.
 
 3. **Stabilize BMad as the new source of truth**
    BMad is already partly installed: `_bmad/`, BMad Method, Builder, and TEA are present. “Setup BMad” should mean validating config, choosing output locations, and making `_bmad-output/` the new planning/implementation source.
 
-4. **Harvest Speckit into a minimal MVP brief**
-   Use Speckit only as input, not as workflow. Extract:
+4. **Harvest Speckit into a minimal MVP brief - DONE**
+   Speckit was used only as input, not as workflow. Extracted:
    - MVP scope decisions
    - parked/non-MVP features
    - known route/auth bugs
@@ -49,7 +49,7 @@
    - `bmad-create-architecture` focused on Supabase/auth/schema decisions - DONE
    - `bmad-create-epics-and-stories` - DONE
    - `bmad-check-implementation-readiness` - DONE
-   - `bmad-sprint-planning` - NEXT
+   - `bmad-sprint-planning` - DONE
 
 8. **Do DB cleanup safely, not emotionally**
    Use Supabase MCP for inspection and verification. Sequence:
@@ -70,10 +70,11 @@
    - DB fixes required for those flows
    - smoke tests/build
 
-10. **Retire Speckit after migration**
-   Only after BMad artifacts exist:
-   - remove `.specify/`
-   - remove `.opencode/command/speckit.*`
-   - remove `speckit-*` skills from `.agents/skills` and `.claude/skills`
-   - remove Speckit blocks from `AGENTS.md`, `CLAUDE.md`, `README.md`
-   - archive or delete `specs/` depending on how much provenance you want
+10. **Retire Speckit after migration - DONE**
+    Completed after BMad artifacts were created:
+
+- removed `.specify/`
+- removed `.opencode/command/speckit.*`
+- removed `speckit-*` skills from `.agents/skills` and `.claude/skills`
+- removed Speckit blocks from `AGENTS.md`, `CLAUDE.md`, `README.md`
+- deleted `specs/` per owner decision

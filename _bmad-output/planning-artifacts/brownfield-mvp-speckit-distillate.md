@@ -1,7 +1,7 @@
 ---
 type: bmad-distillate
 sources:
-  - "../../specs/"
+  - "../../specs/ (deleted after extraction; historical provenance only)"
   - "../../app_flow.md"
   - "../../README.md"
   - "../../BMAD-migration-road-to-mvp.md"
@@ -36,8 +36,8 @@ parts: 1
 - Onboarding currently conflicts with chat-centered MVP where it publishes a forum introduction post, inserts `welcome` notification, and historically redirected to `/forum`.
 
 ## Source Of Truth And Governance
-- Current planning source material comes from local Speckit `specs/`, imported GitHub issues, GitHub Project 1, archived project-management docs, and BMad context.
-- For Brownfield MVP PRD creation, Speckit/GitHub material is provenance and decision input; the BMad PRD and follow-on BMad artifacts should become the active planning source once created.
+- This distillate captured historical local Speckit `specs/`, imported GitHub issues, GitHub Project 1, archived project-management docs, and BMad context before Speckit was deleted.
+- Speckit/GitHub material is provenance only. The BMad PRD and follow-on BMad artifacts are the active planning source.
 - GitHub Project 1 and imported GitHub issues must not be treated as active status; they are historical/provenance inputs only.
 - GitHub Project 1 must not be deleted/frozen/decommissioned until owner verifies imported coverage and explicitly confirms destructive action.
 - Release-readiness work already classified blockers, MVP gaps, parked features, owner decisions, schema risks, quality gates, and go/no-go criteria; unresolved owner confirmations remain.

@@ -22,15 +22,16 @@ Le repo n'est cependant pas encore pleinement aligne avec le scope produit ecrit
 - le schema Supabase utilise en runtime n'est pas entierement reproductible depuis les migrations versionnees
 
 Le cadrage, le PRD et la roadmap importes depuis
-`Marche-Libre/le-marche-libre` sont maintenant centralises dans Speckit.
+`Marche-Libre/le-marche-libre` sont maintenant centralises dans BMad.
 
 ## Source de verite projet
 
-Le point d'entree canonique pour le pilotage projet est Speckit:
-`specs/004-release-readiness/tasks.md`.
+Le point d'entree canonique pour le pilotage projet est BMad:
+`_bmad-output/project-context.md`.
 
-Les sources importees du cadrage initial sont conservees dans:
-`specs/archive/000-project-source-of-truth/README.md`.
+Les artefacts actifs sont conserves dans:
+`_bmad-output/planning-artifacts/` et
+`_bmad-output/implementation-artifacts/sprint-status.yaml`.
 
 GitHub Project 1 et `Marche-Libre/le-marche-libre` sont des sources importees,
 pas des outils de pilotage actifs.
