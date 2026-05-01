@@ -263,7 +263,19 @@ The team can keep the MVP focused on closed-beta launch value while preserving f
 
 **FRs covered:** FR48, FR49, FR50
 
-**Implementation notes:** This epic captures scope governance as an implementable product outcome: parked capabilities remain documented but excluded, public copy avoids future-feature promises, and legacy features/routes are contained without destructive removal unless explicitly approved. Many stories in earlier epics should include scope-containment acceptance criteria where relevant.
+**Implementation notes:** This epic captures product-visible scope containment outcomes: public copy avoids future-feature promises and legacy features/routes are contained without destructive removal unless explicitly approved. Process governance, verification records, dependency blocking, and future-candidate inventory discipline are handled by the global implementation guardrails rather than standalone implementation stories.
+
+## Implementation Guardrails and Definition of Done
+
+These guardrails apply to every implementation story unless a story explicitly says otherwise.
+
+- Verification is part of each functional story's Definition of Done. Build, lint, targeted tests, manual checks, Supabase inspection, or release-readiness checks must be recorded with exact commands/outcomes where relevant, and failures must be classified as baseline failures or new regressions.
+- Verification-only work should not be split into separate implementation stories unless it produces distinct cross-cutting evidence that cannot reasonably belong to a functional story.
+- If existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support a required behavior, the story must document the blocker/risk, affected requirement, and proposed minimal follow-up before adding migrations or accepting beta risk.
+- Any Supabase/database action is production-impacting: inspect before writes, avoid writes by default, and never perform destructive SQL without explicit owner approval and rollback confidence.
+- Scope containment is mandatory: do not add dependencies, change package locks, introduce a design system/global state/backend layer, redesign broadly, promote future integrations, delete legacy routes/data, or expand MVP scope unless explicitly approved by the owner and reflected in planning artifacts.
+- Future-only capabilities remain excluded from MVP unless explicitly promoted by the owner. This includes full 300+ member migration, E2E encryption, private DMs, Nostr, AI, Lightning, media libraries, polls, advanced moderation, self-serve community creation, and platformization.
+- `/chat` remains the approved-member app center. Parked or legacy surfaces may be hidden/deprioritized from navigation, but direct route access, tables, migrations, and historical data must not be removed unless explicitly authorized by a story.
 
 ## Epic 1: Trust, Authorization, and Launch Safety
 
@@ -279,11 +291,13 @@ So that beta launch work starts from known security facts instead of assumptions
 
 **Given** the existing brownfield app and production-connected Supabase project
 **When** the developer audits auth/admission route guards, protected layouts, admin routes/actions, chat/channel/message access paths, API route handlers, Server Actions, realtime paths, migrations, generated types, RLS policies, functions, views, and triggers
-**Then** the audit records which paths are protected, which paths are uncertain, and which paths are confirmed bypass risks
-**And** the audit distinguishes app-code findings from Supabase schema/RLS findings
+**Then** the audit produces a concrete MVP access/security matrix covering user states, routes, data access, admin actions, API/Server Action paths, realtime paths, and Supabase schema/RLS/migration/type assumptions
+**And** each matrix entry states expected behavior, observed behavior where inspected, evidence source, and status: verified, uncertain, confirmed bypass, unsupported by schema, or not applicable
+**And** the audit distinguishes app-code findings from Supabase schema/RLS/generated-type/migration findings
 **And** no destructive Supabase writes or schema changes are performed
 **And** any production-impacting inspection command is documented with outcome and risk
-**And** findings are categorized as blocker, accepted beta risk candidate, or follow-up story input.
+**And** findings are categorized as launch blocker, accepted beta risk candidate, or follow-up story input
+**And** the output is actionable enough for Story 1.2 to define expectations and Story 1.3 to harden confirmed bypasses without reopening open-ended discovery.
 
 ### Story 1.2: Define and Verify the MVP Access Matrix
 
@@ -319,23 +333,7 @@ So that unauthorized users cannot reach private content or perform admin-only ac
 **And** database/RLS enforcement is updated or explicitly recorded as still blocking launch when app-code hardening alone cannot close the bypass
 **And** tests or manual verification confirm the fix without introducing unrelated route changes.
 
-### Story 1.4: Add Targeted Authorization Regression Tests
-
-As the owner,
-I want automated checks for verified and fixed member/admin boundary behavior,
-So that future changes do not silently reopen private-route, data-access, or admin-action bypasses.
-
-**Acceptance Criteria:**
-
-**Given** verified access-matrix expectations and any confirmed bypasses fixed in Story 1.3
-**When** the developer adds targeted tests under the existing `src/__tests__` pattern for route defaults, protected route behavior, refused/pending handling, and non-admin admin restrictions where feasible without live production writes
-**Then** the tests assert the current MVP security contract rather than legacy parked behavior
-**And** tests cover fixed or already-verified boundaries rather than knowingly failing future work
-**And** tests avoid requiring destructive database changes or production mutation side effects
-**And** any behavior that cannot be automated safely is documented as a manual verification item
-**And** test failures are classified as baseline failure or new regression.
-
-### Story 1.5: Document Launch-Blocking Security Risks and Non-Blocking Accepted Beta Risks
+### Story 1.4: Document Launch-Blocking Security Risks and Non-Blocking Accepted Beta Risks
 
 As the owner,
 I want remaining security uncertainty separated into launch blockers and explicitly non-blocking accepted beta risks,
@@ -400,6 +398,7 @@ So that I can submit an access request without unnecessary friction or unclear d
 **And** validation errors are inline where practical and written in user-facing language
 **And** the candidate can submit an access request for manual review
 **And** submitted state maps to the existing admission/status source of truth or records schema uncertainty as an implementation blocker
+**And** if existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support this behavior, the story documents the blocker/risk, affected PRD requirement, user impact, and proposed minimal follow-up before adding migrations or accepting beta risk
 **And** no destructive database changes are made without explicit approval.
 
 ### Story 2.4: Show Explicit Pending and Refused Admission States
@@ -455,21 +454,6 @@ So that pending, refused, logged-out, and non-member users cannot reach private 
 **And** approved not-onboarded users reach onboarding rather than `/chat`
 **And** approved onboarded users reach `/chat`
 **And** verification distinguishes baseline failures from new regressions.
-
-### Story 2.7: Add Admission Flow Regression Coverage
-
-As the owner,
-I want targeted regression checks for X auth entry, admission-state routing, and pending/refused boundaries,
-So that future changes do not reintroduce login loops or private-access leaks.
-
-**Acceptance Criteria:**
-
-**Given** the MVP admission route expectations are defined and implementation behavior is verified
-**When** the developer adds targeted tests under the existing `src/__tests__` pattern where feasible
-**Then** tests cover public access routing, signed-out boundaries, pending/refused explicit states, onboarding routing, and approved `/chat` routing
-**And** tests avoid production writes and do not require destructive Supabase changes
-**And** any behavior unsafe or impractical to automate is listed as manual verification
-**And** test outcomes are recorded as passing, baseline failure, or new regression.
 
 ## Epic 3: Approved Member Chat Home
 
@@ -555,21 +539,6 @@ So that the private group feels alive and easier to follow than the X group.
 **And** parked forum, annuaire, jobs/offers, proposal, or broad discovery surfaces are not promoted as the primary member loop
 **And** the experience remains usable for the initial 10 to 30 approved beta users.
 
-### Story 3.6: Add Chat Flow Regression Coverage
-
-As the owner,
-I want targeted checks for approved-member chat access, channel visibility, message reading, and message sending,
-So that future changes do not break the core beta community loop.
-
-**Acceptance Criteria:**
-
-**Given** approved-member chat behavior is implemented or verified
-**When** the developer adds targeted tests or manual verification records for the chat flow
-**Then** checks cover approved-member `/chat` access, channel list visibility, message list rendering, composer send behavior, and unauthorized access blocking where feasible
-**And** tests avoid production writes unless explicitly approved and safely isolated
-**And** any realtime behavior that cannot be automated safely is documented as manual verification
-**And** results distinguish passing checks, baseline failures, and new regressions.
-
 ## Epic 4: Admin Admission, Access, and Channel Operations
 
 Owner/admin users can review candidates, manage admission and member access, troubleshoot user state, manage beta roles, and control core topic channels without relying on routine direct database edits.
@@ -633,6 +602,7 @@ So that I can resolve beta access problems without guessing or editing Supabase 
 **When** they inspect a user
 **Then** the admin can see current admission state, onboarding/profile completion state, role, access/suspension state where supported, X/profile context where supported, and relevant timestamps
 **And** the view distinguishes product state issues from schema/runtime uncertainty
+**And** if existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support this behavior, the story documents the blocker/risk, affected PRD requirement, user impact, and proposed minimal follow-up before adding migrations or accepting beta risk
 **And** if the app cannot resolve the issue, the limitation is recorded as a beta operational risk
 **And** non-admin users cannot access the troubleshooting view or private user state.
 
@@ -650,6 +620,7 @@ So that the owner can operate the closed beta safely without direct database edi
 **And** access removal/suspension reliably prevents future member-only access for the affected user where supported by the current schema
 **And** the action result is visible as changed, failed, unchanged, or needs technical follow-up
 **And** role/access changes are associated with an admin actor and timestamp where supported
+**And** if existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support this behavior, the story documents the blocker/risk, affected PRD requirement, user impact, and proposed minimal follow-up before adding migrations or accepting beta risk
 **And** unsupported state transitions are blocked or recorded as beta risks rather than silently improvised
 **And** non-admin users cannot perform role or access changes.
 
@@ -667,22 +638,8 @@ So that the community has useful topic separation without relying on manual data
 **And** approved members see the updated available channels in `/chat` where appropriate
 **And** non-admin users cannot create, rename, or manage channels unless a future requirement explicitly allows it
 **And** user-created channel proposal functionality remains outside the MVP member experience
+**And** if existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support this behavior, the story documents the blocker/risk, affected PRD requirement, user impact, and proposed minimal follow-up before adding migrations or accepting beta risk
 **And** unsupported channel operations are blocked or recorded as beta risks rather than silently improvised.
-
-### Story 4.7: Add Admin Operations Regression Coverage
-
-As the owner,
-I want targeted checks for admin review, admission decisions, role/access changes, and channel management,
-So that future changes do not break beta operations or reopen admin-only actions to non-admin users.
-
-**Acceptance Criteria:**
-
-**Given** admin operations are implemented or verified
-**When** the developer adds targeted tests or manual verification records for admin flows
-**Then** checks cover pending-candidate visibility, approve/refuse authorization, member status inspection, role/access mutation restrictions, channel-management restrictions, and non-admin fallback where feasible
-**And** tests avoid destructive production writes unless explicitly approved and safely isolated
-**And** any behavior unsafe or impractical to automate is listed as manual verification
-**And** results distinguish passing checks, baseline failures, and new regressions.
 
 ## Epic 5: Beta Migration Tracking and Product Learning
 
@@ -700,7 +657,7 @@ So that migration progress is measured against the intended invite group.
 **When** the cohort is represented in the app or admin-operational records
 **Then** the owner/admin can distinguish selected beta invitees from other authenticated or pending users
 **And** the representation uses existing profile/admission/admin data where feasible
-**And** any missing schema support for cohort tracking is documented as a beta operational risk or follow-up story
+**And** if existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support this behavior, the story documents the blocker/risk, affected PRD requirement, user impact, and proposed minimal follow-up before adding migrations or accepting beta risk
 **And** no broad analytics platform or public growth-loop feature is introduced.
 
 ### Story 5.2: Track Migration Completion to Approved Chat Access
@@ -731,6 +688,7 @@ So that I can measure early activation and whether members are participating.
 **Then** the owner/admin can determine whether each approved beta member has sent at least one message where supported by message data
 **And** activation counts can support the 7-day activation learning goal
 **And** private message contents are not exposed unnecessarily when only activation status is needed
+**And** if existing schema, RLS, generated types, policies, functions, triggers, views, or migrations do not support this behavior, the story documents the blocker/risk, affected PRD requirement, user impact, and proposed minimal follow-up before adding migrations or accepting beta risk
 **And** any gap in message attribution, privacy boundary, or data availability is documented as beta risk or follow-up.
 
 ### Story 5.4: Summarize Engagement and Viability Signals
@@ -748,41 +706,11 @@ So that I can decide whether the app is viable as the X group replacement.
 **And** unavailable metrics are clearly marked as unavailable or manually tracked rather than silently omitted
 **And** broader 300+ member migration remains explicitly out of MVP scope.
 
-### Story 5.5: Add Beta Learning Verification Records
-
-As the owner,
-I want verification records for migration and activation tracking behavior,
-So that beta learning data is trustworthy enough for launch decisions.
-
-**Acceptance Criteria:**
-
-**Given** migration, activation, and engagement tracking behavior is implemented or defined as manual process
-**When** the developer verifies the beta learning workflow
-**Then** verification records cover selected cohort identification, migration step visibility, activation/message visibility, privacy boundaries, and unavailable-data handling
-**And** checks avoid production writes unless explicitly approved and safely isolated
-**And** any manual tracking process is documented with owner-facing steps
-**And** results distinguish passing checks, baseline failures, and new regressions.
-
 ## Epic 6: MVP Scope Containment and Future Candidate Discipline
 
 The team can keep the MVP focused on closed-beta launch value while preserving future product candidates separately and preventing parked features from leaking into current product promises or navigation priorities.
 
-### Story 6.1: Maintain the MVP vs Future Candidate Inventory
-
-As the owner,
-I want current MVP scope and future candidates separated in planning artifacts,
-So that implementation agents do not accidentally promote parked ideas into launch scope.
-
-**Acceptance Criteria:**
-
-**Given** the PRD, architecture, UX specification, and epics document contain MVP and future-candidate references
-**When** the developer or planning agent reviews scope before implementation
-**Then** future candidates such as full 300+ migration, E2E encryption, private DMs, Nostr, AI agents, AI memory, media libraries, Lightning payments, polls, advanced moderation, and platformization are clearly separated from MVP requirements
-**And** any future candidate promoted to MVP requires explicit owner approval and artifact updates
-**And** legacy Speckit materials are not treated as canonical active scope
-**And** the current BMad planning artifacts remain the source of truth for MVP delivery.
-
-### Story 6.2: Keep Public Product Promises Within MVP Scope
+### Story 6.1: Keep Public Product Promises Within MVP Scope
 
 As a visitor or candidate,
 I want public product copy to describe what Le Marche Libre actually offers in the closed beta,
@@ -797,7 +725,7 @@ So that I am not misled by future-only or parked feature promises.
 **And** legal/terms/privacy access remains coherent with private closed-beta positioning
 **And** copy changes preserve French-first user-facing language where applicable.
 
-### Story 6.3: Contain Parked Legacy Features in Navigation
+### Story 6.2: Contain Parked Legacy Features in Navigation
 
 As an approved member,
 I want the MVP navigation to guide me toward the chat-centered beta experience,
@@ -811,32 +739,3 @@ So that legacy or parked features do not distract from the core community loop.
 **And** parked surfaces such as forum, broad member discovery/annuaire, jobs/offers, channel proposals, broad search/discovery, and non-essential admin UX are hidden or deprioritized where needed
 **And** direct access to legacy routes is preserved unless a story explicitly authorizes route removal or redirection
 **And** scope-containment changes do not delete route files, tables, migrations, or historical data.
-
-### Story 6.4: Block New Dependencies and Redesign Work Unless Explicitly Approved
-
-As the owner,
-I want implementation work to avoid unapproved dependencies, redesigns, or architecture expansion,
-So that MVP stabilization stays focused and low-risk.
-
-**Acceptance Criteria:**
-
-**Given** a developer begins a story during MVP stabilization
-**When** the proposed change would add dependencies, change package locks, introduce a design system, add a global state library, add a backend/API layer, redesign UI broadly, implement future integrations, or change Supabase schema destructively
-**Then** the work is blocked until explicitly approved by the owner and reflected in planning artifacts
-**And** small brownfield-safe changes in existing files remain preferred
-**And** package/dependency, schema, route, UI, and runtime changes are limited to explicit implementation stories
-**And** verification records note any baseline failures versus new regressions.
-
-### Story 6.5: Add Scope Containment Verification Records
-
-As the owner,
-I want explicit verification that MVP scope stayed contained,
-So that launch readiness is not compromised by hidden feature expansion.
-
-**Acceptance Criteria:**
-
-**Given** MVP implementation stories are completed or reviewed
-**When** the developer verifies scope containment
-**Then** verification records confirm that future-only capabilities were not promoted without approval, parked features were not presented as launch promises, `/chat` remained the primary app destination, and legacy direct routes/data were not destructively removed without authorization
-**And** any exception includes owner approval, rationale, affected artifacts, and verification outcome
-**And** results distinguish passing checks, baseline issues, and new regressions.
