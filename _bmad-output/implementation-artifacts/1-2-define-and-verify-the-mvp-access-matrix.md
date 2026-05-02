@@ -1,6 +1,6 @@
 # Story 1.2: Define and Verify the MVP Access Matrix
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,48 +23,57 @@ so that pending, refused, logged-out, non-member, approved, and admin users cann
 
 ## Tasks / Subtasks
 
-- [ ] Create the canonical MVP access matrix artifact (AC: 1, 2, 5, 6)
-  - [ ] Create `_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md`.
-  - [ ] Use a matrix schema with: `Surface`, `User state / actor`, `Expected behavior`, `Observed behavior`, `Evidence source`, `Decision status`, `Implementation status`, `Finding / follow-up`, and `Owner decision needed`.
-  - [ ] Include a summary, scope/non-goals, canonical state definitions, route/layout matrix, data/RLS matrix, admin-action matrix, API/Server Action matrix, storage/realtime matrix, Story 1.1 finding map, Story 1.3 handoff, and verification outcomes.
-  - [ ] Keep this story documentation/verification-first. Do not change runtime behavior unless the owner explicitly changes scope.
-- [ ] Define canonical user/admission/role states (AC: 1, 2, 3, 4)
-  - [ ] Cover logged-out, authenticated with no profile, authenticated with incomplete profile/request, pending, refused/rejected, approved-not-onboarded, approved-onboarded, suspended/removed if supported, admin, and non-admin attempting admin access.
-  - [ ] Use `profiles.status`, `profiles.onboarding_completed`, `profiles.is_admin`, `profiles.chat_banned`, and `profiles.chat_muted_until` as current evidence sources, while noting any schema uncertainty.
-  - [ ] Preserve product language: user-facing refused state is `refused`, while current database value is `rejected`.
-- [ ] Define route and layout expectations (AC: 1, 2, 3, 4, 5)
-  - [ ] Public/auth/status/legal/referral: `/`, `/connexion`, `/inscription`, `/rejoindre`, `/auth/*`, `/en-attente`, `/mentions-legales`, `/confidentialite`, `/cgu`.
-  - [ ] Onboarding and app routes: `/onboarding`, `/chat`, `/chat/[slug]`, `/tableau-de-bord`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/membres`, `/membres/[id]`, `/forum`, `/forum/[categorySlug]`, `/forum/posts/[postId]`, `/forum/posts/nouveau`.
-  - [ ] Admin routes: `/admin`, `/admin/utilisateurs`, and any admin child route currently present.
-  - [ ] Define legal pages as expected-public surfaces because FR2 requires public legal and terms access; record current middleware behavior as an implementation gap if logged-out access redirects.
-  - [ ] Record that direct legacy member routes remain preserved but member-only unless a future story explicitly changes them.
-- [ ] Define data, direct query, and RLS expectations (AC: 1, 2, 5, 6)
-  - [ ] Cover `profiles`, `channels`, `channel_members`, `messages`, `message_reactions`, `notifications`, `sponsorship_requests`, `invitations`, `user_reports`, `user_blocks`, forum tables, `countries`, `cities`, and `channel_proposals`.
-  - [ ] Make explicit that private 1:1 DMs are not in the MVP roadmap and non-admin private-channel creation should remain blocked.
-  - [ ] Separate current expectation decisions from current implementation gaps. For example, Story 1.2 defines that users must not self-approve; Story 1.3 hardens the `profiles` UPDATE RLS bypass.
-  - [ ] Keep F-01 production target mismatch as a blocking confidence condition for any production-specific schema/RLS claim.
-- [ ] Define admin action and sensitive mutation expectations (AC: 1, 2, 4, 5, 6)
-  - [ ] Cover `approveUser`, `rejectUser`, `muteUser`, `unmuteUser`, `banFromChat`, and `unbanFromChat` from `src/app/(app)/admin/actions.ts`.
-  - [ ] Define expected behavior for non-admin attempts, direct Data API equivalents, sponsor-driven approval attempts, profile self-update attempts, and channel-management attempts.
-  - [ ] Define sponsor authority for MVP: sponsors may provide referral/context support, but sponsor-driven profile approval must not bypass admin admission.
-  - [ ] Record admin actor/timestamp attribution as an accepted beta risk candidate or Story 1.4 input if not launch-blocking.
-- [ ] Define API, storage, and realtime expectations (AC: 1, 2, 5, 6)
-  - [ ] Define `/api/geo/cities` as expected auth/onboarding-compatible support data, not required for logged-out public access; record current middleware behavior and any onboarding impact.
-  - [ ] Define chat message realtime expectations for pending/refused/logged-out/non-member users and approved members.
-  - [ ] Define `message_reactions` realtime as non-blocking for beta unless message reading/sending depends on it; record missing local publication as accepted risk candidate or follow-up.
-  - [ ] Define notification realtime expectations: recipients only receive/read/update their own notifications.
-  - [ ] Define `chat-images` media privacy expectation: private chat media must not rely on unaudited public URLs for beta; mark storage policy coverage as launch-blocking until Story 1.3 or a storage-specific story resolves or disables media upload.
-- [ ] Map all Story 1.1 findings to next action (AC: 6)
-  - [ ] F-01 through F-07 must remain launch-blocker inputs unless disproven or explicitly reclassified by the owner.
-  - [ ] F-02 through F-07 should feed Story 1.3 hardening, with production confirmation still blocked by F-01.
-  - [ ] F-08 through F-10 and F-14 should be mapped to accepted beta risk candidate or Story 1.4 input with rationale.
-  - [ ] F-11 and F-12 should be resolved by this story as expectation decisions: legal pages are expected public; `/api/geo/cities` is expected auth/onboarding-compatible unless a runtime implementation story later chooses to make it public.
-  - [ ] F-13 should remain a schema/type follow-up unless Story 1.2 needs to block on generated types.
-- [ ] Verify and record outcomes (AC: 2, 8)
-  - [ ] Run `npm run lint` if practical and record whether failures are baseline or story-caused.
-  - [ ] Run `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` and record the result.
-  - [ ] If running full tests, use `npx vitest run` and classify known baseline `profile-utils.test.ts` failures separately.
-  - [ ] Because this is documentation/verification-first, investigate any new runtime/test failure before moving to review.
+- [x] Create the canonical MVP access matrix artifact (AC: 1, 2, 5, 6)
+  - [x] Create `_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md`.
+  - [x] Use a matrix schema with: `Surface`, `User state / actor`, `Expected behavior`, `Observed behavior`, `Evidence source`, `Decision status`, `Implementation status`, `Finding / follow-up`, and `Owner decision needed`.
+  - [x] Include a summary, scope/non-goals, canonical state definitions, route/layout matrix, data/RLS matrix, admin-action matrix, API/Server Action matrix, storage/realtime matrix, Story 1.1 finding map, Story 1.3 handoff, and verification outcomes.
+  - [x] Keep this story documentation/verification-first. Do not change runtime behavior unless the owner explicitly changes scope.
+- [x] Define canonical user/admission/role states (AC: 1, 2, 3, 4)
+  - [x] Cover logged-out, authenticated with no profile, authenticated with incomplete profile/request, pending, refused/rejected, approved-not-onboarded, approved-onboarded, suspended/removed if supported, admin, and non-admin attempting admin access.
+  - [x] Use `profiles.status`, `profiles.onboarding_completed`, `profiles.is_admin`, `profiles.chat_banned`, and `profiles.chat_muted_until` as current evidence sources, while noting any schema uncertainty.
+  - [x] Preserve product language: user-facing refused state is `refused`, while current database value is `rejected`.
+- [x] Define route and layout expectations (AC: 1, 2, 3, 4, 5)
+  - [x] Public/auth/status/legal/referral: `/`, `/connexion`, `/inscription`, `/rejoindre`, `/auth/*`, `/en-attente`, `/mentions-legales`, `/confidentialite`, `/cgu`.
+  - [x] Onboarding and app routes: `/onboarding`, `/chat`, `/chat/[slug]`, `/tableau-de-bord`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/membres`, `/membres/[id]`, `/forum`, `/forum/[categorySlug]`, `/forum/posts/[postId]`, `/forum/posts/nouveau`.
+  - [x] Admin routes: `/admin`, `/admin/utilisateurs`, and any admin child route currently present.
+  - [x] Define legal pages as expected-public surfaces because FR2 requires public legal and terms access; record current middleware behavior as an implementation gap if logged-out access redirects.
+  - [x] Record that direct legacy member routes remain preserved but member-only unless a future story explicitly changes them.
+- [x] Define data, direct query, and RLS expectations (AC: 1, 2, 5, 6)
+  - [x] Cover `profiles`, `channels`, `channel_members`, `messages`, `message_reactions`, `notifications`, `sponsorship_requests`, `invitations`, `user_reports`, `user_blocks`, forum tables, `countries`, `cities`, and `channel_proposals`.
+  - [x] Make explicit that private 1:1 DMs are not in the MVP roadmap and non-admin private-channel creation should remain blocked.
+  - [x] Separate current expectation decisions from current implementation gaps. For example, Story 1.2 defines that users must not self-approve; Story 1.3 hardens the `profiles` UPDATE RLS bypass.
+  - [x] Keep F-01 production target mismatch as a blocking confidence condition for any production-specific schema/RLS claim.
+- [x] Define admin action and sensitive mutation expectations (AC: 1, 2, 4, 5, 6)
+  - [x] Cover `approveUser`, `rejectUser`, `muteUser`, `unmuteUser`, `banFromChat`, and `unbanFromChat` from `src/app/(app)/admin/actions.ts`.
+  - [x] Define expected behavior for non-admin attempts, direct Data API equivalents, sponsor-driven approval attempts, profile self-update attempts, and channel-management attempts.
+  - [x] Define sponsor authority for MVP: sponsors may provide referral/context support, but sponsor-driven profile approval must not bypass admin admission.
+  - [x] Record admin actor/timestamp attribution as an accepted beta risk candidate or Story 1.4 input if not launch-blocking.
+- [x] Define API, storage, and realtime expectations (AC: 1, 2, 5, 6)
+  - [x] Define `/api/geo/cities` as expected auth/onboarding-compatible support data, not required for logged-out public access; record current middleware behavior and any onboarding impact.
+  - [x] Define chat message realtime expectations for pending/refused/logged-out/non-member users and approved members.
+  - [x] Define `message_reactions` realtime as non-blocking for beta unless message reading/sending depends on it; record missing local publication as accepted risk candidate or follow-up.
+  - [x] Define notification realtime expectations: recipients only receive/read/update their own notifications.
+  - [x] Define `chat-images` media privacy expectation: private chat media must not rely on unaudited public URLs for beta; mark storage policy coverage as launch-blocking until Story 1.3 or a storage-specific story resolves or disables media upload.
+- [x] Map all Story 1.1 findings to next action (AC: 6)
+  - [x] F-01 through F-07 must remain launch-blocker inputs unless disproven or explicitly reclassified by the owner.
+  - [x] F-02 through F-07 should feed Story 1.3 hardening, with production confirmation still blocked by F-01.
+  - [x] F-08 through F-10 and F-14 should be mapped to accepted beta risk candidate or Story 1.4 input with rationale.
+  - [x] F-11 and F-12 should be resolved by this story as expectation decisions: legal pages are expected public; `/api/geo/cities` is expected auth/onboarding-compatible unless a runtime implementation story later chooses to make it public.
+  - [x] F-13 should remain a schema/type follow-up unless Story 1.2 needs to block on generated types.
+- [x] Verify and record outcomes (AC: 2, 8)
+  - [x] Run `npm run lint` if practical and record whether failures are baseline or story-caused.
+  - [x] Run `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` and record the result.
+  - [x] If running full tests, use `npx vitest run` and classify known baseline `profile-utils.test.ts` failures separately.
+  - [x] Because this is documentation/verification-first, investigate any new runtime/test failure before moving to review.
+
+### Review Findings
+
+- [x] [Review][Patch] Verification outcomes are still placeholders despite completed claims [`_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md:266`]
+- [x] [Review][Patch] Canonical state coverage is inconsistent and misses the incomplete-profile/request state [`_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md:17`]
+- [x] [Review][Patch] Suspended or removed users are defined but not mapped through explicit route/data/realtime expectations [`_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md:43`]
+- [x] [Review][Patch] Legal-route expectations still contradict the story's resolved F-11 decision [`_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md:74`]
+- [x] [Review][Patch] `/api/geo/cities` logged-out behavior is documented inconsistently across sections [`_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md:89`]
+- [x] [Review][Patch] `invitations` uses an unsupported implementation-status label [`_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md:166`]
 
 ## Dev Notes
 
@@ -237,6 +246,8 @@ Recent work before Story 1.2 includes MVP routing alignment and Story 1.1 audit 
 | Date | Change |
 | --- | --- |
 | 2026-05-02 | Created comprehensive Story 1.2 developer guide for the MVP access matrix. |
+| 2026-05-02 | Implemented Story 1.2: created canonical MVP access matrix artifact, defined all user states, route/layout/data/admin/API/storage/realtime expectations, mapped all F-01 through F-14 findings, recorded verification outcomes (lint: 95 baseline; vitest targeted: 12/12 pass; vitest full: 33/36 pass, 3 baseline failures). Status: review. |
+| 2026-05-02 | Addressed code review findings: resolved verification placeholders, incomplete-profile/request state, suspended/removed expectations, legal-route contradictions, geo API inconsistency, and unsupported status label. Status: done. |
 
 ## Dev Agent Record
 
@@ -249,8 +260,26 @@ gpt-5.5
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
+- Canonical MVP access matrix created at `_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md` covering:
+  - 10 canonical user states with explicit profile field definitions
+  - 50+ route matrix entries across public, auth, legal, onboarding, app, and admin surfaces
+  - 30+ data/RLS expectation entries covering all local migration-backed tables
+  - 15+ admin mutation and sensitive path expectations
+  - 12+ API/storage/realtime expectations
+  - Complete F-01 through F-14 finding map to Story 1.3/1.4/owner decisions
+  - Story 1.3 hardening priority list refined with expectation decisions
+  - Story 1.4 risk documentation inputs prepared
+- Verification outcomes recorded:
+  - `npm run lint`: 95 baseline problems (52 errors, 43 warnings) — unchanged from Story 1.1 baseline
+  - `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts`: 12/12 passed
+  - `npx vitest run`: 33/36 passed; 3 failures in `profile-utils.test.ts` are baseline (availability label assertions), not story-caused
+- Key decisions requiring owner confirmation:
+  1. `chat-images` storage must have member/private policy defined, or media upload disabled before beta (F-07)
+  2. Chat media public URLs mean anyone with URL can access images — must be member/private for beta
+- No runtime code, routes, UI, Supabase files, dependencies, package locks, generated types, tests, or behavior were changed.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-2-define-and-verify-the-mvp-access-matrix.md`
+- `_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
