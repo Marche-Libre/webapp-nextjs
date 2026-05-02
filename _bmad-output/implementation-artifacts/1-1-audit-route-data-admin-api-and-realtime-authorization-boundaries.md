@@ -1,6 +1,6 @@
 # Story 1.1: Audit Route, Data, Admin, API, and Realtime Authorization Boundaries
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -64,6 +64,19 @@ so that beta launch work starts from known security facts instead of assumptions
   - [x] Run lint if practical: `npm run lint`.
   - [x] If running tests, use `npx vitest run src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` because `package.json` has no `test` script.
   - [x] Record exact commands, outcomes, and whether failures are baseline or new regressions in the audit artifact.
+
+### Review Findings
+
+- [x] [Review][Patch] Remove the conditional framing from F-06 because private DMs are not in the MVP roadmap, so non-admin private-channel creation should be treated as a blocker [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:159-159`]
+- [x] [Review][Patch] Add explicit views and triggers coverage to the audit artifact to satisfy Story 1.1 AC1 [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:17-148`]
+- [x] [Review][Patch] Reshape the schema/type assumptions matrix so each row includes expected behavior, observed behavior, evidence source, and status [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:125-137`]
+- [x] [Review][Patch] Split mixed app-code and Supabase-schema evidence in combined findings so AC3 is satisfied consistently [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:84-85`]
+- [x] [Review][Patch] Replace placeholder production inspection timestamps with concrete values or clearly mark them unavailable [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:143-148`]
+- [x] [Review][Patch] Preserve reproducible evidence for `route glob inspection` and `migration grep` references instead of citing implicit search results [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:66-76`]
+- [x] [Review][Patch] Remove truncated Supabase docs search and skill-checklist items as direct evidence, or demote them to methodology notes [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:123-148`]
+- [x] [Review][Patch] Soften or inventory the executive-summary `schema/type drift` claim so it matches the concrete evidence presented later [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:11-13`]
+- [x] [Review][Patch] Clarify that local-schema launch blockers beyond F-01 remain local confirmed risks pending correct production-target confirmation [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:11-13`]
+- [x] [Review][Patch] Reword F-07 so the finding distinguishes an unverified storage-policy setup from a proven missing deployed policy [`_bmad-output/implementation-artifacts/1-1-access-security-audit.md:160-160`]
 
 ## Dev Notes
 
