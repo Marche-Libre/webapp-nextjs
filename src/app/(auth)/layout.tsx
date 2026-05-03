@@ -19,7 +19,7 @@ export default function AuthLayout({
 
         <div className="space-y-8">
           <h2 className="text-3xl font-extrabold text-base-content tracking-tight leading-tight">
-            Le réseau de confiance des professionnels libéraux
+            Le club privé des professionnels libéraux admis manuellement
           </h2>
           <div className="space-y-5">
             <div className="flex items-start gap-4">
@@ -28,7 +28,7 @@ export default function AuthLayout({
               </div>
               <div>
                 <p className="text-sm font-semibold text-base-content">Membres vérifiés</p>
-                <p className="text-xs text-base-content/45 mt-0.5">Chaque professionnel est parrainé et validé manuellement</p>
+                <p className="text-xs text-base-content/45 mt-0.5">Chaque admission est revue manuellement avant l&apos;accès membre</p>
               </div>
             </div>
             <div className="flex items-start gap-4">

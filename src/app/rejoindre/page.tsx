@@ -30,21 +30,34 @@ function RejoindreContent() {
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-base-content/50 hover:text-base-content transition-colors mb-4"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
           Retour
         </Link>
 
         <h1 className="text-xl font-bold text-base-content tracking-tight text-center">
-          Rejoindre MarchéLibre
+          Rejoindre à MarchéLibre
         </h1>
 
         {ref ? (
           <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
-            Vous avez été invité par <span className="text-accent font-medium">@{ref}</span>
+            Votre demande d’admission mentionnera l’invitation de{" "}
+            <span className="text-accent font-medium">@{ref}</span>
           </p>
         ) : (
           <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
-            Le réseau fermé des professionnels libéraux vérifiés
+            Club privé en bêta privée, avec admission revue manuellement
           </p>
         )}
 
@@ -54,22 +67,27 @@ function RejoindreContent() {
           className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all cursor-pointer"
         >
           <XLogo className="w-4 h-4" />
-          S&apos;inscrire avec X
+          Rejoindre avec X
         </button>
 
         {ref && (
           <p className="text-xs text-accent/60 text-center mt-3 leading-relaxed">
-            Votre compte sera automatiquement rattaché à @{ref} comme parrain.
+            Ce contexte sera joint à votre demande, sans approbation
+            automatique.
           </p>
         )}
 
         <p className="text-xs text-base-content/40 text-center mt-4 leading-relaxed max-w-[300px] mx-auto">
-          Votre identifiant X est votre identité sur le réseau.
+          Votre identifiant X démarre la demande d’admission et sert d’identité
+          pour la revue manuelle.
         </p>
 
         <p className="mt-6 text-center text-sm text-base-content/40">
           Déjà inscrit ?{" "}
-          <Link href="/connexion" className="text-accent hover:text-accent/80 font-medium">
+          <Link
+            href="/connexion"
+            className="text-accent hover:text-accent/80 font-medium"
+          >
             Se connecter
           </Link>
         </p>

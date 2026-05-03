@@ -27,38 +27,93 @@ export default function HomePage() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/images/logo.png" alt="MarchéLibre" className="w-8 h-8 object-contain" />
-                <span className="font-bold text-[17px] tracking-tight">MarchéLibre</span>
+                <img
+                  src="/images/logo.png"
+                  alt="MarchéLibre"
+                  className="w-8 h-8 object-contain"
+                />
+                <span className="font-bold text-[17px] tracking-tight">
+                  MarchéLibre
+                </span>
               </div>
               <p className="text-sm text-neutral-content/50 leading-relaxed">
-                Le réseau fermé des professionnels libéraux vérifiés en France.
+                Club privé en bêta privée pour professionnels libéraux, avec
+                admission manuelle.
               </p>
             </div>
 
-            {/* Plateforme */}
+            {/* Accès */}
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">Plateforme</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">
+                Accès
+              </h3>
               <ul className="space-y-2.5">
-                <li><Link href="/chat" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Chat</Link></li>
+                <li>
+                  <Link
+                    href="/inscription"
+                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
+                  >
+                    Demander l’accès
+                  </Link>
+                </li>
               </ul>
             </div>
 
             {/* Compte */}
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">Compte</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">
+                Compte
+              </h3>
               <ul className="space-y-2.5">
-                <li><Link href="/inscription" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">S&apos;inscrire</Link></li>
-                <li><Link href="/connexion" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Connexion</Link></li>
+                <li>
+                  <Link
+                    href="/inscription"
+                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
+                  >
+                    Rejoindre
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/connexion"
+                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
+                  >
+                    Connexion
+                  </Link>
+                </li>
               </ul>
             </div>
 
             {/* Légal */}
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">Légal</h3>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">
+                Légal
+              </h3>
               <ul className="space-y-2.5">
-                <li><Link href="/mentions-legales" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Mentions légales</Link></li>
-                <li><Link href="/confidentialite" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">Confidentialité</Link></li>
-                <li><Link href="/cgu" className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors">CGU</Link></li>
+                <li>
+                  <Link
+                    href="/mentions-legales"
+                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
+                  >
+                    Mentions légales
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/confidentialite"
+                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
+                  >
+                    Confidentialité
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/cgu"
+                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
+                  >
+                    CGU
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

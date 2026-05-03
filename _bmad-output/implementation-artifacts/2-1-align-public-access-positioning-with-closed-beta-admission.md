@@ -1,6 +1,6 @@
 # Story 2.1: Align Public Access Positioning With Closed-Beta Admission
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -20,36 +20,43 @@ so that I understand what I am applying for before starting sign-in.
 
 ## Tasks / Subtasks
 
-- [ ] Audit current public/access/legal positioning before editing (AC: 1, 2, 3, 4, 5)
-  - [ ] Read every in-scope file listed in `Current State of Files To Audit` and confirm the current copy/CTA behavior still matches this story guide.
-  - [ ] Keep a short implementation note of any copy surfaces intentionally left unchanged and why.
-- [ ] Update public landing copy and CTAs to private closed-beta positioning (AC: 1, 3, 4, 5)
-  - [ ] Replace signup language such as `S'inscrire gratuitement`, `S'inscrire`, `Creer mon compte`, and `Validation sous 24h` where it implies open or guaranteed access.
-  - [ ] Use French-first wording that frames the action as access request/candidacy, for example `Demander l’accès`, `Candidater avec X`, or `Rejoindre la bêta privée`, while preserving the existing route flow unless a concrete link is wrong.
-  - [ ] Reframe landing search/profile-discovery copy so it does not imply a public annuaire or automatic member-profile access in the MVP.
-  - [ ] Review public landing/footer links that point directly to `/chat`; preserve the `/chat` route itself, but do not present public `/chat` links as immediate member access if the intended action is beta admission.
-  - [ ] Preserve the existing Tailwind/component structure and mobile header behavior; do not redesign the landing page.
-- [ ] Update access entry and auth copy without changing OAuth mechanics (AC: 1, 4, 5)
-  - [ ] Update `/inscription` and `/rejoindre` copy to state that X sign-in starts a manual admission request, not automatic membership.
-  - [ ] Preserve the existing Supabase X OAuth calls, `getAuthCallbackUrl()`, referral cookie behavior, and returning-session behavior.
-  - [ ] Soften referral wording that currently sounds automatic; referral/sponsor context should be attached to the admission request, not promised as automatic approval.
-- [ ] Update legal/privacy/terms copy to match MVP scope (AC: 2, 3)
-  - [ ] Keep `/mentions-legales`, `/confidentialite`, and `/cgu` public and linked from public/legal surfaces.
-  - [ ] Reframe claims that forum, annuaire/member discovery, annonces/jobs/offers, broad profile search, signalement/blocking, or notifications are current public/MVP promises. Preserve legally accurate disclosures for implemented, data-retained, or protected legacy surfaces, but do not market parked features as current beta value.
-  - [ ] Align cookie-banner copy with the privacy page if it currently claims traffic analysis while privacy says no advertising/tracking cookies.
-  - [ ] Keep legal language coherent with private club, closed beta, X identity, manual admission, and chat-centered MVP scope.
-- [ ] Update metadata if it still promises parked marketplace/discovery features (AC: 3)
-  - [ ] Replace root metadata description that currently promises missions/services with closed-beta/private-chat positioning.
-  - [ ] Do not introduce SEO expansion, structured data, or new public growth-loop work.
-- [ ] Add or update targeted source-inspection tests (AC: 1, 2, 3, 4)
-  - [ ] Extend `src/__tests__/mvp-route-cleanup.test.ts` or add `src/__tests__/public-access-positioning.test.ts` for closed-beta/manual-review copy and absence of open-signup/current-feature promises.
-  - [ ] Preserve existing route cleanup assertions for legal public access, chat default routing, refused state, and parked forum/annuaire navigation.
-  - [ ] Add negative assertions for specific replaced marketing/current-feature phrases such as `S'inscrire gratuitement`, `Validation sous 24h`, `Creer mon compte`, and concrete forum/annuaire/jobs/offers promise text. Do not add blanket failures for legitimate legal disclosures, imports, route names, comments, or parked protected code references.
+- [x] Audit current public/access/legal positioning before editing (AC: 1, 2, 3, 4, 5)
+  - [x] Read every in-scope file listed in `Current State of Files To Audit` and confirm the current copy/CTA behavior still matches this story guide.
+  - [x] Keep a short implementation note of any copy surfaces intentionally left unchanged and why.
+- [x] Update public landing copy and CTAs to private closed-beta positioning (AC: 1, 3, 4, 5)
+  - [x] Replace signup language such as `S'inscrire gratuitement`, `S'inscrire`, `Creer mon compte`, and `Validation sous 24h` where it implies open or guaranteed access.
+  - [x] Use French-first wording that frames the action as access request/candidacy, for example `Demander l’accès`, `Rejoindre avec X`, or `Rejoindre la bêta privée`, while preserving the existing route flow unless a concrete link is wrong.
+  - [x] Reframe landing search/profile-discovery copy so it does not imply a public annuaire or automatic member-profile access in the MVP.
+  - [x] Review public landing/footer links that point directly to `/chat`; preserve the `/chat` route itself, but do not present public `/chat` links as immediate member access if the intended action is beta admission.
+  - [x] Preserve the existing Tailwind/component structure and mobile header behavior; do not redesign the landing page.
+- [x] Update access entry and auth copy without changing OAuth mechanics (AC: 1, 4, 5)
+  - [x] Update `/inscription` and `/rejoindre` copy to state that X sign-in starts a manual admission request, not automatic membership.
+  - [x] Preserve the existing Supabase X OAuth calls, `getAuthCallbackUrl()`, referral cookie behavior, and returning-session behavior.
+  - [x] Soften referral wording that currently sounds automatic; referral/sponsor context should be attached to the admission request, not promised as automatic approval.
+- [x] Update legal/privacy/terms copy to match MVP scope (AC: 2, 3)
+  - [x] Keep `/mentions-legales`, `/confidentialite`, and `/cgu` public and linked from public/legal surfaces.
+  - [x] Reframe claims that forum, annuaire/member discovery, annonces/jobs/offers, broad profile search, signalement/blocking, or notifications are current public/MVP promises. Preserve legally accurate disclosures for implemented, data-retained, or protected legacy surfaces, but do not market parked features as current beta value.
+  - [x] Align cookie-banner copy with the privacy page if it currently claims traffic analysis while privacy says no advertising/tracking cookies.
+  - [x] Keep legal language coherent with private club, closed beta, X identity, manual admission, and chat-centered MVP scope.
+- [x] Update metadata if it still promises parked marketplace/discovery features (AC: 3)
+  - [x] Replace root metadata description that currently promises missions/services with closed-beta/private-chat positioning.
+  - [x] Do not introduce SEO expansion, structured data, or new public growth-loop work.
+- [x] Add or update targeted source-inspection tests (AC: 1, 2, 3, 4)
+  - [x] Extend `src/__tests__/mvp-route-cleanup.test.ts` or add `src/__tests__/public-access-positioning.test.ts` for closed-beta/manual-review copy and absence of open-signup/current-feature promises.
+  - [x] Preserve existing route cleanup assertions for legal public access, chat default routing, refused state, and parked forum/annuaire navigation.
+  - [x] Add negative assertions for specific replaced marketing/current-feature phrases such as `S'inscrire gratuitement`, `Validation sous 24h`, `Creer mon compte`, and concrete forum/annuaire/jobs/offers promise text. Do not add blanket failures for legitimate legal disclosures, imports, route names, comments, or parked protected code references.
 - [ ] Verify and record baseline/regression status (AC: 1, 2, 3, 4, 5)
-  - [ ] Run targeted Vitest for changed/new tests with `npx vitest run <test-file>`.
-  - [ ] Run `npm run lint` if practical and classify the known lint baseline separately from any new issue.
-  - [ ] If full Vitest is run, classify the known `src/__tests__/profile-utils.test.ts` availability-label failures as baseline unless they changed.
+  - [x] Run targeted Vitest for changed/new tests with `npx vitest run <test-file>`.
+  - [x] Run `npm run lint` if practical and classify the known lint baseline separately from any new issue.
+  - [x] If full Vitest is run, classify the known `src/__tests__/profile-utils.test.ts` availability-label failures as baseline unless they changed.
   - [ ] Perform a concrete 375px mobile-width review for landing, access/auth, and legal/privacy surfaces. Confirm header/menu, primary CTA, X auth button, legal links, and legal/privacy content remain usable with no obvious horizontal overflow; record any unverified responsive risk.
+
+### Review Findings
+
+- [x] [Review][Patch] Cookie banner still presents opt-in consent despite necessary-cookies-only policy [src/components/ui/cookie-banner.tsx:41]
+- [x] [Review][Patch] Auth layout still says every professional is sponsored [src/app/(auth)/layout.tsx:31]
+- [x] [Review][Patch] Hero still markets profile discovery as an active MVP value [src/components/home/animated-hero.tsx:156]
+- [x] [Review][Patch] Story records a concrete 375px review without evidence beyond source inspection [_bmad-output/implementation-artifacts/2-1-align-public-access-positioning-with-closed-beta-admission.md:367]
 
 ## Dev Notes
 
@@ -335,18 +342,57 @@ The established pattern is BMad-guided, minimal, security-aware work with exact 
 
 ## Change Log
 
-| Date | Change |
-| --- | --- |
-| 2026-05-03 | Created comprehensive Story 2.1 developer guide for public closed-beta positioning and manual-admission access copy. |
+| Date       | Change                                                                                                                                    |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-03 | Created comprehensive Story 2.1 developer guide for public closed-beta positioning and manual-admission access copy.                      |
+| 2026-05-03 | Implemented closed-beta public/access/legal positioning, metadata alignment, cookie copy alignment, and targeted source-inspection tests. |
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+gpt-5.5 (OpenCode)
 
 ### Debug Log References
 
+- `npx vitest run src/__tests__/public-access-positioning.test.ts` failed in red phase with 4 expected failures before implementation.
+- `npx vitest run src/__tests__/public-access-positioning.test.ts` passed after implementation: 1 file, 4 tests.
+- `npx vitest run src/__tests__/mvp-route-cleanup.test.ts` passed: 1 file, 9 tests.
+- `npx vitest run` failed only on documented baseline `src/__tests__/profile-utils.test.ts` availability-label assertions: 5 files passed, 1 failed; 46 passed, 3 failed.
+- `npm run lint` failed with documented baseline shape: 94 problems (52 errors, 42 warnings); surfaced issues are outside this story's changed runtime files except pre-existing `<img>` warnings in home/legal components.
+- Source grep confirmed replaced public marketing phrases only remain inside the new negative assertions.
+- `npx vitest run src/__tests__/public-access-positioning.test.ts src/__tests__/mvp-route-cleanup.test.ts` passed after review patches: 2 files, 13 tests.
+- `npx eslint src/components/ui/cookie-banner.tsx src/app/(auth)/layout.tsx src/components/home/animated-hero.tsx src/__tests__/public-access-positioning.test.ts` returned only pre-existing `<img>` warnings in `src/app/(auth)/layout.tsx`.
+
 ### Completion Notes List
 
+- Audited all story-listed public, auth/access, legal, metadata, cookie, middleware, and route-cleanup test files before editing.
+- Left `src/app/mentions-legales/page.tsx`, `src/components/legal/legal-page-layout.tsx`, `src/components/auth/oauth-buttons.tsx`, and `src/lib/supabase/middleware.ts` unchanged because they already preserved public legal access or runtime behavior and did not need copy changes for Story 2.1.
+- Updated landing/header/footer/CTA/search/profession copy to present MarchéLibre as a private closed beta with manual admission, not open signup, guaranteed validation, public directory access, or immediate `/chat` access.
+- Updated `/inscription` and `/rejoindre` copy so X OAuth starts a manual admission request; preserved Supabase X OAuth, `getAuthCallbackUrl()`, referral cookie behavior, and returning-session mechanics.
+- Reframed CGU and privacy copy around closed beta, X identity, manual admission, approved-member chat, and legally accurate protected-surface disclosures without marketing parked forum/annuaire/jobs/offers as current MVP value.
+- Aligned cookie banner with privacy no-tracking posture and replaced metadata marketplace/discovery promises with closed-beta/admission positioning.
+- Added targeted source-inspection coverage in `src/__tests__/public-access-positioning.test.ts` and verified existing MVP route-cleanup tests still pass.
+- 375px responsive source inspection only: existing mobile header/menu, stacked CTA layout, full-width X auth buttons, legal links, and legal/privacy content wrappers were preserved; no new horizontal-overflow-prone structure was introduced. A concrete runtime viewport review at 375px remains to be completed.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/2-1-align-public-access-positioning-with-closed-beta-admission.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `src/__tests__/public-access-positioning.test.ts`
+- `src/app/(auth)/connexion/page.tsx`
+- `src/app/(auth)/inscription/page.tsx`
+- `src/app/(auth)/layout.tsx`
+- `src/app/cgu/page.tsx`
+- `src/app/confidentialite/page.tsx`
+- `src/app/layout.tsx`
+- `src/app/page.tsx`
+- `src/app/rejoindre/page.tsx`
+- `src/components/home/animated-cta.tsx`
+- `src/components/home/animated-features.tsx`
+- `src/components/home/animated-hero.tsx`
+- `src/components/home/animated-professions.tsx`
+- `src/components/home/animated-steps.tsx`
+- `src/components/home/floating-header.tsx`
+- `src/components/home/landing-header.tsx`
+- `src/components/ui/cookie-banner.tsx`

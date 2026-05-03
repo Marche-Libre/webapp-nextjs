@@ -145,15 +145,15 @@ export function AnimatedProfessions() {
         <FadeIn>
           <div className="text-center max-w-xl mx-auto mb-14">
             <p className="text-sm font-bold text-accent tracking-wide uppercase mb-3">
-              Tous les métiers
+              Communauté sélectionnée
             </p>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-base-content tracking-tight">
-              Des centaines de <span className="highlight">professions</span> représentées
+              Des profils variés, <span className="highlight">admis progressivement</span>
             </h2>
             <p className="mt-4 text-base-content/50 text-sm leading-relaxed max-w-lg mx-auto">
               Avocats, développeurs, architectes, médecins, consultants, designers…
               <br />
-              Quel que soit votre métier, vous trouverez des pairs vérifiés.
+              La bêta privée démarre avec des professionnels identifiés et revus manuellement.
             </p>
           </div>
         </FadeIn>

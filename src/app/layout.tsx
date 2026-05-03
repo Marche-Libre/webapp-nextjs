@@ -10,9 +10,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "MarchéLibre | Le réseau des indépendants",
+  title: "MarchéLibre | Club privé en bêta",
   description:
-    "Trouvez des missions, publiez vos services et connectez-vous avec des professionnels libéraux vérifiés.",
+    "MarchéLibre est un club privé en bêta fermée pour professionnels libéraux, avec identité X et admission manuelle.",
   icons: {
     icon: [
       { url: "/icon.png", sizes: "512x512", type: "image/png" },

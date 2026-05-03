@@ -14,13 +14,8 @@ export function CookieBanner() {
     }
   }, []);
 
-  const accept = () => {
-    localStorage.setItem("ml-cookie-consent", "accepted");
-    setVisible(false);
-  };
-
-  const decline = () => {
-    localStorage.setItem("ml-cookie-consent", "declined");
+  const dismiss = () => {
+    localStorage.setItem("ml-cookie-consent", "dismissed");
     setVisible(false);
   };
 
@@ -39,20 +34,18 @@ export function CookieBanner() {
                 Nous utilisons des cookies
               </p>
               <p className="text-xs text-neutral-content/55 mb-4">
-                Pour améliorer votre expérience et analyser le trafic. Aucune
-                donnée n&apos;est partagée avec des tiers.
+                Nous utilisons des cookies nécessaires au fonctionnement du service
+                et à vos préférences. Aucun suivi publicitaire ni consentement
+                facultatif n&apos;est utilisé.
               </p>
               <div className="flex gap-2">
-                <button onClick={accept} className="btn btn-primary btn-sm">
-                  Accepter
-                </button>
-                <button onClick={decline} className="btn btn-ghost btn-sm text-neutral-content/60">
-                  Refuser
+                <button onClick={dismiss} className="btn btn-primary btn-sm">
+                  Compris
                 </button>
               </div>
             </div>
             <button
-              onClick={decline}
+              onClick={dismiss}
               className="btn btn-ghost btn-sm btn-square text-neutral-content/40"
               aria-label="Fermer"
             >

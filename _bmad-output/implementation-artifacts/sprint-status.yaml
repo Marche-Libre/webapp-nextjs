@@ -1,5 +1,5 @@
 # generated: 2026-05-01T19:05:51Z
-# last_updated: 2026-05-03T12:54:55Z
+# last_updated: 2026-05-03T23:30:55Z
 # project: webapp-nextjs
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01T19:05:51Z
-last_updated: 2026-05-03T12:54:55Z
+last_updated: 2026-05-03T23:30:55Z
 project: webapp-nextjs
 project_key: NOKEY
 tracking_system: file-system
@@ -49,7 +49,7 @@ development_status:
   1-4-document-launch-blocking-security-risks-and-non-blocking-accepted-beta-risks: done
   epic-1-retrospective: optional
   epic-2: in-progress
-  2-1-align-public-access-positioning-with-closed-beta-admission: ready-for-dev
+  2-1-align-public-access-positioning-with-closed-beta-admission: in-progress
   2-2-preserve-x-sign-in-and-returning-session-behavior: backlog
   2-3-capture-required-admission-and-profile-information: backlog
   2-4-show-explicit-pending-and-refused-admission-states: backlog

@@ -7,10 +7,10 @@ import Image from "next/image";
 const steps = [
   {
     num: "1",
-    title: "Créez votre compte",
+    title: "Déposez votre demande",
     desc: (
       <>
-        Nom, e-mail et identifiant <XLogo className="w-3 h-3 inline -mt-0.5" />
+        Identité professionnelle et identifiant <XLogo className="w-3 h-3 inline -mt-0.5" />
       </>
     ),
   },
@@ -20,14 +20,14 @@ const steps = [
     desc: (
       <>
         Un admin consulte votre{" "}
-        <XLogo className="w-3 h-3 inline -mt-0.5" /> et active votre compte
+        <XLogo className="w-3 h-3 inline -mt-0.5" /> avant toute admission
       </>
     ),
   },
   {
     num: "3",
-    title: "Le réseau est à vous",
-    desc: <>Chat et profils vérifiés — un espace simple pour échanger</>,
+    title: "Accès si approuvé",
+    desc: <>Chat privé et profils vérifiés pour les membres admis</>,
   },
 ];
 
@@ -42,7 +42,7 @@ export function AnimatedSteps() {
                 Comment ça marche
               </p>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-base-content tracking-tight">
-                Actif en <span className="highlight">3 étapes</span>
+                Une admission en <span className="highlight">3 étapes</span>
               </h2>
             </div>
           </FadeIn>

@@ -138,8 +138,8 @@ export function AnimatedHero() {
 
         <FadeIn delay={0.06}>
           <p className="mt-6 text-lg text-base-content/55 max-w-xl mx-auto leading-relaxed">
-            Le premier réseau fermé de professionnels libéraux en France.
-            Chaque membre est vérifié manuellement.
+            Un club privé en bêta privée pour professionnels libéraux.
+            Chaque demande d’accès est revue manuellement.
           </p>
         </FadeIn>
 
@@ -153,11 +153,11 @@ export function AnimatedHero() {
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setShowResults(true); }}
                 onFocus={() => { if (q.length >= 2) setShowResults(true); }}
-                placeholder="Rechercher un avocat, développeur, expert-comptable…"
+                placeholder="Aperçu flouté de l’espace réservé aux membres admis…"
                 className="flex-1 bg-transparent border-none outline-none text-[15px] text-base-content placeholder:text-base-content/35 px-3"
               />
               <Link href="/inscription" className="btn btn-accent btn-sm rounded-full px-5 cursor-pointer">
-                Rechercher
+                Demander l’accès
               </Link>
             </div>
 
@@ -176,12 +176,10 @@ export function AnimatedHero() {
                         <div className="w-10 h-10 rounded-full bg-base-300 blur-[2px] shrink-0" />
                         <div className="flex-1 text-left min-w-0">
                           <p className="text-[14px] font-semibold text-base-content">
-                            {r.specialty}
+                            Aperçu flouté d&apos;un profil membre
                           </p>
                           <p className="text-[12px] text-base-content/40">
-                            <span className="blur-[3px] select-none">{r.handle}</span>
-                            <span className="mx-1.5">·</span>
-                            {r.location}
+                            Informations visibles après admission
                           </p>
                         </div>
                         <Lock className="w-3.5 h-3.5 text-base-content/20 shrink-0" />
@@ -192,20 +190,20 @@ export function AnimatedHero() {
                       className="flex items-center justify-center gap-2 px-5 py-3 bg-accent/[0.06] text-accent text-[13px] font-medium hover:bg-accent/10 transition-colors"
                     >
                       <Lock className="w-3.5 h-3.5" />
-                      Inscrivez-vous pour voir les profils complets
+                      Demander l’accès à la bêta privée
                     </Link>
                   </>
                 ) : (
-                  <div className="px-5 py-4 text-center">
-                    <p className="text-[13px] text-base-content/40">
-                      Des professionnels correspondent à votre recherche
-                    </p>
+                    <div className="px-5 py-4 text-center">
+                      <p className="text-[13px] text-base-content/40">
+                        Le club privé s&apos;ouvre progressivement aux membres admis
+                      </p>
                     <Link
                       href="/inscription"
                       className="inline-flex items-center gap-1.5 mt-2 text-[13px] font-medium text-accent hover:text-accent/80 transition-colors"
                     >
                       <Lock className="w-3.5 h-3.5" />
-                      Créez un compte pour y accéder
+                      Déposer une demande d’admission
                     </Link>
                   </div>
                 )}
@@ -223,7 +221,7 @@ export function AnimatedHero() {
             </div>
             <div className="flex items-center gap-2 text-sm text-base-content/50">
               <Users className="w-4 h-4 text-accent" />
-              <span>100% profils vérifiés</span>
+              <span>Bêta privée</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-base-content/50">
               <Briefcase className="w-4 h-4 text-accent" />
@@ -241,7 +239,7 @@ export function AnimatedHero() {
               <Image src="/images/person-3.jpg" alt="" width={36} height={36} className="w-9 h-9 rounded-full border-2 border-base-100 object-cover" />
             </div>
             <p className="text-sm text-base-content/45">
-              Rejoints par des professionnels vérifiés
+              Candidatures revues manuellement
             </p>
           </div>
         </FadeIn>
