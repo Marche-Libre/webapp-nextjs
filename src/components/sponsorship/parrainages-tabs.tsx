@@ -54,21 +54,6 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
       .update({ status: action })
       .eq("id", request.id);
 
-    if (action === "approved") {
-      // Update requester profile: set status to approved, sponsored_by to sponsor
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("profiles")
-          .update({
-            status: "approved",
-            sponsored_by: user.id,
-            sponsor_approved: true,
-          })
-          .eq("id", request.requester_id);
-      }
-    }
-
     setLoading(false);
     router.refresh();
   };

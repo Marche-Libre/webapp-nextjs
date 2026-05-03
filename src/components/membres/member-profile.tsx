@@ -4,11 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Mail, Globe, Briefcase, Clock } from "lucide-react";
+import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Globe, Briefcase, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { countryFlag, getSpecialtyDisplay } from "@/lib/profile-utils";
 import type { Profile, SpecialtyCategory, Specialty } from "@/lib/types/database";
 
@@ -82,107 +80,10 @@ function ReportBlockMenu({ memberId, currentUserId }: { memberId: string; curren
   );
 }
 
-function SendDmButton({ memberId, currentUserId, acceptDms }: { memberId: string; currentUserId: string; acceptDms: boolean }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-
-  const handleSendDm = async () => {
-    if (!acceptDms) {
-      setError("Ce membre n\u2019accepte pas les messages priv\u00e9s.");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    const supabase = createClient();
-
-    const { data: myChannels } = await supabase
-      .from("channel_members")
-      .select("channel_id")
-      .eq("user_id", currentUserId);
-
-    let existingChannelId: string | null = null;
-
-    if (myChannels && myChannels.length > 0) {
-      const channelIds = myChannels.map((c) => c.channel_id);
-
-      const { data: sharedMemberships } = await supabase
-        .from("channel_members")
-        .select("channel_id")
-        .eq("user_id", memberId)
-        .in("channel_id", channelIds);
-
-      if (sharedMemberships && sharedMemberships.length > 0) {
-        const sharedIds = sharedMemberships.map((c) => c.channel_id);
-        const { data: privateChannel } = await supabase
-          .from("channels")
-          .select("id")
-          .in("id", sharedIds)
-          .eq("is_private", true)
-          .limit(1)
-          .maybeSingle();
-
-        if (privateChannel) {
-          existingChannelId = privateChannel.id;
-        }
-      }
-    }
-
-    if (existingChannelId) {
-      router.push(`/chat/dm-${existingChannelId}`);
-      return;
-    }
-
-    const slug = `dm-${[currentUserId, memberId].sort().join("-").slice(0, 32)}`;
-    const { data: newChannel, error: insertError } = await supabase
-      .from("channels")
-      .insert({
-        name: `DM-${Date.now()}`,
-        slug,
-        is_private: true,
-        created_by: currentUserId,
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !newChannel) {
-      setLoading(false);
-      return;
-    }
-
-    await supabase.from("channel_members").insert([
-      { channel_id: newChannel.id, user_id: currentUserId },
-      { channel_id: newChannel.id, user_id: memberId },
-    ]);
-
-    setLoading(false);
-    router.push(`/chat/dm-${newChannel.id}`);
-  };
-
-  return (
-    <div className="flex flex-col items-end gap-[4px]">
-      <Button
-        onClick={handleSendDm}
-        disabled={loading}
-        size="sm"
-        variant="outline"
-        className="shrink-0"
-      >
-        <Mail className="h-[14px] w-[14px]" />
-        {loading ? "..." : "Message"}
-      </Button>
-      {error && (
-        <span className="text-[11px] text-error">{error}</span>
-      )}
-    </div>
-  );
-}
-
-export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isBlocked, categories }: MemberProfileProps) {
+export function MemberProfile({ member, sponsor, recentPosts, currentUserId, categories }: MemberProfileProps) {
   const isOwnProfile = member.id === currentUserId;
   const links = member.links as Record<string, string> | null;
   const hasLinks = links && Object.keys(links).length > 0;
-  const canDm = !isOwnProfile && !isBlocked && member.accept_dms;
   const skills = member.skills ?? [];
   const specDisplay = getSpecialtyDisplay(member, categories);
 
@@ -275,9 +176,6 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, isB
           {/* Action buttons */}
           {!isOwnProfile && (
             <div className="flex items-center gap-[6px] shrink-0">
-              {canDm && (
-                <SendDmButton memberId={member.id} currentUserId={currentUserId} acceptDms={!!member.accept_dms} />
-              )}
               <ReportBlockMenu memberId={member.id} currentUserId={currentUserId} />
             </div>
           )}

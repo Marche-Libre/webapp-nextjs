@@ -31,17 +31,6 @@ export function InvitationCard({ invitation, mode }: InvitationCardProps) {
       })
       .eq("id", invitation.id);
 
-    if (action === "accepted" && user) {
-      // Set sponsored_by and sponsor_approved on the profile
-      await supabase
-        .from("profiles")
-        .update({
-          sponsored_by: invitation.inviter_id,
-          sponsor_approved: true,
-        })
-        .eq("id", user.id);
-    }
-
     setLoading(false);
     router.refresh();
   };
