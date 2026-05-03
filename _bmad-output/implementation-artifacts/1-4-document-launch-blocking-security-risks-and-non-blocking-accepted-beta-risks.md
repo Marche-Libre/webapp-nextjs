@@ -1,6 +1,6 @@
 # Story 1.4: Document Launch-Blocking Security Risks and Non-Blocking Accepted Beta Risks
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -22,36 +22,43 @@ so that beta launch decisions are deliberate rather than hidden in implementatio
 
 ## Tasks / Subtasks
 
-- [ ] Create the Epic 1 launch security risk register artifact (AC: 1, 2, 3, 4, 5)
-  - [ ] Create `_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md`.
-  - [ ] Include sections for executive launch posture, risk classification rules, launch blockers, accepted beta risk candidates, post-MVP follow-ups, verification evidence, and owner decisions.
-  - [ ] Do not bury launch blockers in prose; put them in a scannable table with ID, category, severity, current evidence, launch impact, required pre-launch action, and source references.
-- [ ] Reconcile Story 1.1, 1.2, and 1.3 findings without reopening broad discovery (AC: 1, 2, 5)
-  - [ ] Start from Story 1.1 findings F-01 through F-14 and Story 1.2's finding map.
-  - [ ] Apply Story 1.3 final state to each finding: resolved locally, still blocked by production mismatch, accepted-risk candidate, or post-MVP follow-up.
-  - [ ] Do not mark any unresolved member-only route/data bypass or admin-only mutation bypass as an accepted beta risk.
-- [ ] Classify launch blockers (AC: 2, 3, 5)
-  - [ ] Classify F-01 production Supabase target/schema mismatch as the primary remaining launch blocker unless read-only inspection proves the connected target now contains the app schema and migrations.
-  - [ ] If the correct production target is still not connected, state that Story 1.3 local migration hardening is not production hardening.
-  - [ ] If a new unresolved member/admin bypass is discovered during verification, classify it as launch-blocking and stop short of accepting it as beta risk.
-- [ ] Classify non-blocking accepted beta risk candidates (AC: 4)
-  - [ ] Include F-08 admin actor/timestamp attribution as an accepted beta risk candidate only if owner accepts weaker audit trail for the small beta.
-  - [ ] Include F-10 `message_reactions` realtime publication gap as an accepted beta risk candidate if reactions are non-critical to beta chat read/send.
-  - [ ] Include residual F-14 public/exposed `SECURITY DEFINER` function hardening as accepted beta risk or post-MVP follow-up, distinguishing functions already touched by Story 1.3 from older functions still needing review.
-  - [ ] Include partial F-09 chat moderation semantics explicitly: Story 1.3 blocks muted/banned users from send/edit, but message/channel SELECT does not currently block `chat_banned`; owner must decide whether chat ban means no send/edit only or no chat read/access.
-- [ ] Classify post-MVP follow-ups (AC: 1, 4, 5)
-  - [ ] Document private/member-scoped `chat-images` storage as post-MVP only while upload remains disabled and direct `messages.image_url` writes are locally blocked.
-  - [ ] Document generated/database type regeneration after production schema reconciliation, not before.
-  - [ ] Document broader Supabase schema/RLS/function/trigger/view/storage review before migration beyond the initial 10 to 30 member beta.
-- [ ] Record verification evidence (AC: 3, 6)
-  - [ ] Run read-only Supabase inspection: tables, migrations, security advisors, and performance advisors; record exact outcomes and whether production still mismatches app schema.
-  - [ ] Run `npx vitest run src/__tests__/authorization-hardening.test.ts src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` and record the result.
-  - [ ] Run `npm run lint` and classify known baseline failures versus new regressions.
-  - [ ] Run `npx vitest run` if practical and classify the known `profile-utils.test.ts` availability-label baseline separately.
-  - [ ] If any verification is skipped, record the reason and residual confidence gap.
-- [ ] Preserve documentation-only scope and update tracking (AC: 7)
-  - [ ] Update only the Story 1.4 story file, the Story 1.4 risk register artifact, and sprint tracking unless owner explicitly expands scope.
-  - [ ] Move Story 1.4 to `review` only after all tasks are complete and the risk register clearly distinguishes blockers from accepted risks.
+- [x] Create the Epic 1 launch security risk register artifact (AC: 1, 2, 3, 4, 5)
+  - [x] Create `_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md`.
+  - [x] Include sections for executive launch posture, risk classification rules, launch blockers, accepted beta risk candidates, post-MVP follow-ups, verification evidence, and owner decisions.
+  - [x] Do not bury launch blockers in prose; put them in a scannable table with ID, category, severity, current evidence, launch impact, required pre-launch action, and source references.
+- [x] Reconcile Story 1.1, 1.2, and 1.3 findings without reopening broad discovery (AC: 1, 2, 5)
+  - [x] Start from Story 1.1 findings F-01 through F-14 and Story 1.2's finding map.
+  - [x] Apply Story 1.3 final state to each finding: resolved locally, still blocked by production mismatch, accepted-risk candidate, or post-MVP follow-up.
+  - [x] Do not mark any unresolved member-only route/data bypass or admin-only mutation bypass as an accepted beta risk.
+- [x] Classify launch blockers (AC: 2, 3, 5)
+  - [x] Classify F-01 production Supabase target/schema mismatch as the primary remaining launch blocker unless read-only inspection proves the connected target now contains the app schema and migrations.
+  - [x] If the correct production target is still not connected, state that Story 1.3 local migration hardening is not production hardening.
+  - [x] If a new unresolved member/admin bypass is discovered during verification, classify it as launch-blocking and stop short of accepting it as beta risk.
+- [x] Classify non-blocking accepted beta risk candidates (AC: 4)
+  - [x] Include F-08 admin actor/timestamp attribution as an accepted beta risk candidate only if owner accepts weaker audit trail for the small beta.
+  - [x] Include F-10 `message_reactions` realtime publication gap as an accepted beta risk candidate if reactions are non-critical to beta chat read/send.
+  - [x] Include residual F-14 public/exposed `SECURITY DEFINER` function hardening as accepted beta risk or post-MVP follow-up, distinguishing functions already touched by Story 1.3 from older functions still needing review.
+  - [x] Include partial F-09 chat moderation semantics explicitly: Story 1.3 blocks muted/banned users from send/edit, but message/channel SELECT does not currently block `chat_banned`; owner must decide whether chat ban means no send/edit only or no chat read/access.
+- [x] Classify post-MVP follow-ups (AC: 1, 4, 5)
+  - [x] Document private/member-scoped `chat-images` storage as post-MVP only while upload remains disabled and direct `messages.image_url` writes are locally blocked.
+  - [x] Document generated/database type regeneration after production schema reconciliation, not before.
+  - [x] Document broader Supabase schema/RLS/function/trigger/view/storage review before migration beyond the initial 10 to 30 member beta.
+- [x] Record verification evidence (AC: 3, 6)
+  - [x] Run read-only Supabase inspection: tables, migrations, security advisors, and performance advisors; record exact outcomes and whether production still mismatches app schema.
+  - [x] Run `npx vitest run src/__tests__/authorization-hardening.test.ts src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` and record the result.
+  - [x] Run `npm run lint` and classify known baseline failures versus new regressions.
+  - [x] Run `npx vitest run` if practical and classify the known `profile-utils.test.ts` availability-label baseline separately.
+  - [x] If any verification is skipped, record the reason and residual confidence gap.
+- [x] Preserve documentation-only scope and update tracking (AC: 7)
+  - [x] Update only the Story 1.4 story file, the Story 1.4 risk register artifact, and sprint tracking unless owner explicitly expands scope.
+  - [x] Move Story 1.4 to `review` only after all tasks are complete and the risk register clearly distinguishes blockers from accepted risks.
+
+### Review Findings
+
+- [x] [Review][Patch] Add closed/resolved classifications for omitted Story 1.3 outcomes and required risk domains [_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md:23]
+- [x] [Review][Patch] Clarify accepted beta risk candidates as pending owner decisions, especially F-08, F-10, and F-14 [_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md:31]
+- [x] [Review][Patch] Add traceable baseline evidence for failed lint and full Vitest regression claims [_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md:57]
+- [x] [Review][Patch] Align risk register status with the story review state [_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md:5]
 
 ## Dev Notes
 
@@ -231,6 +238,8 @@ Do not update `src/`, `supabase/`, package files, generated types, tests, app ro
 | Date | Change |
 | --- | --- |
 | 2026-05-03 | Created comprehensive Story 1.4 developer guide for Epic 1 launch security risk classification. |
+| 2026-05-03 | Completed Story 1.4 implementation: created launch security risk register, reconciled F-01 to F-14 classifications against Story 1.3 outcomes, recorded verification evidence, and moved status to review. |
+| 2026-05-03 | Addressed code review findings: added explicit closed-outcome coverage, clarified owner-decision status, strengthened baseline evidence, and finalized story status. |
 
 ## Dev Agent Record
 
@@ -240,10 +249,33 @@ gpt-5.5 (OpenCode, openai/gpt-5.5)
 
 ### Debug Log References
 
+- 2026-05-03T11:06:04Z: Story 1.4 activation/context load completed; first `ready-for-dev` entry discovered in `_bmad-output/implementation-artifacts/sprint-status.yaml` as `1-4-document-launch-blocking-security-risks-and-non-blocking-accepted-beta-risks`.
+- 2026-05-03T11:06:04Z: Loaded and reconciled required source artifacts: `_bmad-output/implementation-artifacts/1-1-access-security-audit.md`, `_bmad-output/implementation-artifacts/1-2-mvp-access-matrix.md`, and `_bmad-output/implementation-artifacts/1-3-harden-server-and-database-authorization-for-confirmed-bypasses.md`.
+- 2026-05-03T11:06:04Z: Supabase MCP read-only `list_tables(schemas=["public"], verbose=false)` returned only `public.francophone_pack_members` (RLS enabled, 1 row).
+- 2026-05-03T11:06:04Z: Supabase MCP read-only `list_migrations` returned only migration `001 francophone_pack_members`.
+- 2026-05-03T11:06:04Z: Supabase MCP read-only `get_advisors(type="security")` returned `function_search_path_mutable` for `public.set_updated_at` with remediation `https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable`.
+- 2026-05-03T11:06:04Z: Supabase MCP read-only `get_advisors(type="performance")` returned `auth_rls_initplan` for `public.francophone_pack_members` policy `service role manages francophone pack members` with remediation `https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan`.
+- 2026-05-03T11:06:04Z: F-01 remains launch-blocking; connected target still does not expose app schema tables/policies/migrations. No write-based Supabase operations were performed.
+- 2026-05-03T11:06:04Z: `npx vitest run src/__tests__/authorization-hardening.test.ts src/__tests__/mvp-route-cleanup.test.ts src/__tests__/auth-url.test.ts` passed (3 files, 21 tests).
+- 2026-05-03T11:06:04Z: `npm run lint` failed with known baseline shape (94 problems: 52 errors, 42 warnings); classified as baseline, no Story 1.4 regression.
+- 2026-05-03T11:06:04Z: `npx vitest run` failed only on known baseline `src/__tests__/profile-utils.test.ts` availability-label assertions (3 failed, 42 passed); classified as baseline, no Story 1.4 regression.
+- 2026-05-03T12:35:44Z: Code review patches applied to the risk register and story tracking; review findings marked resolved and story moved to `done`.
+
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
+- Created `_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md` with required sections: executive launch posture, classification rules, launch blockers, accepted beta risk candidates, post-MVP follow-ups, verification evidence, and owner decisions.
+- Reconciled Story 1.1 (F-01 to F-14), Story 1.2 mapping, and Story 1.3 final hardening state without reopening broad discovery.
+- Classified F-01 as the primary launch blocker and explicitly stated local Story 1.3 hardening is not production hardening while connected-target mismatch persists.
+- Documented accepted beta risk candidates for F-08, F-10, partial F-09 semantics, and residual F-14 function hardening boundary with owner decision prompts and follow-ups.
+- Documented post-MVP follow-ups for private/member-scoped `chat-images` storage re-enable path, generated type regeneration timing after production reconciliation, and broader Supabase inventory hardening before scale beyond initial beta.
+- Recorded verification outcomes with baseline/regression distinction for read-only Supabase inspection, targeted vitest checks, lint baseline, and full Vitest baseline.
+- Preserved documentation-only scope: only Story 1.4 story file, Story 1.4 risk register artifact, and sprint tracking were updated.
+- Story moved to `review` after all tasks/subtasks completion and definition-of-done checks.
+- Code review patches resolved: closed-outcome coverage added, accepted-risk candidates clarified as pending owner sign-off, failed-check baselines made traceable, and risk register status finalized.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-4-document-launch-blocking-security-risks-and-non-blocking-accepted-beta-risks.md`
+- `_bmad-output/implementation-artifacts/1-4-launch-security-risk-register.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
