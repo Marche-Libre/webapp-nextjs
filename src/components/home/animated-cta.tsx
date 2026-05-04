@@ -13,7 +13,7 @@ export function AnimatedCTA() {
             <div className="card-body py-12 sm:py-16 px-8 sm:px-12 flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                  Prêt à Rejoindre à la bêta privée ?
+                  Prêt à demander l’accès à la bêta privée ?
                 </h2>
                 <p className="mt-2 text-primary-content/55 text-sm sm:text-base">
                   L’accès au club privé est soumis à une revue manuelle.

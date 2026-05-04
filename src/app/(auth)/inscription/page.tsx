@@ -18,7 +18,7 @@ export default function InscriptionPage() {
   return (
     <div className="animate-[slide-up_0.25s_ease-out]">
       <h1 className="text-2xl font-extrabold text-base-content tracking-tight">
-        Rejoindre à MarchéLibre
+        Demander l’accès à MarchéLibre
       </h1>
       <p className="text-sm text-base-content/45 mt-2 mb-8">
         Club privé en bêta privée, avec admission revue manuellement

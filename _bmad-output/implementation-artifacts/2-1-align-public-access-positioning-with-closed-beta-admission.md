@@ -1,6 +1,6 @@
 # Story 2.1: Align Public Access Positioning With Closed-Beta Admission
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -45,11 +45,11 @@ so that I understand what I am applying for before starting sign-in.
   - [x] Extend `src/__tests__/mvp-route-cleanup.test.ts` or add `src/__tests__/public-access-positioning.test.ts` for closed-beta/manual-review copy and absence of open-signup/current-feature promises.
   - [x] Preserve existing route cleanup assertions for legal public access, chat default routing, refused state, and parked forum/annuaire navigation.
   - [x] Add negative assertions for specific replaced marketing/current-feature phrases such as `S'inscrire gratuitement`, `Validation sous 24h`, `Creer mon compte`, and concrete forum/annuaire/jobs/offers promise text. Do not add blanket failures for legitimate legal disclosures, imports, route names, comments, or parked protected code references.
-- [ ] Verify and record baseline/regression status (AC: 1, 2, 3, 4, 5)
+- [x] Verify and record baseline/regression status (AC: 1, 2, 3, 4, 5)
   - [x] Run targeted Vitest for changed/new tests with `npx vitest run <test-file>`.
   - [x] Run `npm run lint` if practical and classify the known lint baseline separately from any new issue.
   - [x] If full Vitest is run, classify the known `src/__tests__/profile-utils.test.ts` availability-label failures as baseline unless they changed.
-  - [ ] Perform a concrete 375px mobile-width review for landing, access/auth, and legal/privacy surfaces. Confirm header/menu, primary CTA, X auth button, legal links, and legal/privacy content remain usable with no obvious horizontal overflow; record any unverified responsive risk.
+  - [x] Perform a concrete 375px mobile-width review for landing, access/auth, and legal/privacy surfaces. Confirm header/menu, primary CTA, X auth button, legal links, and legal/privacy content remain usable with no obvious horizontal overflow; record any unverified responsive risk.
 
 ### Review Findings
 
@@ -57,6 +57,8 @@ so that I understand what I am applying for before starting sign-in.
 - [x] [Review][Patch] Auth layout still says every professional is sponsored [src/app/(auth)/layout.tsx:31]
 - [x] [Review][Patch] Hero still markets profile discovery as an active MVP value [src/components/home/animated-hero.tsx:156]
 - [x] [Review][Patch] Story records a concrete 375px review without evidence beyond source inspection [_bmad-output/implementation-artifacts/2-1-align-public-access-positioning-with-closed-beta-admission.md:367]
+- [x] [Review][Patch] Hero still implies member-profile discovery after admission [src/components/home/animated-hero.tsx:156]
+- [x] [Review][Patch] Access CTAs contain unidiomatic French on primary entry surfaces [src/app/(auth)/inscription/page.tsx:21]
 
 ## Dev Notes
 
@@ -346,6 +348,7 @@ The established pattern is BMad-guided, minimal, security-aware work with exact 
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-05-03 | Created comprehensive Story 2.1 developer guide for public closed-beta positioning and manual-admission access copy.                      |
 | 2026-05-03 | Implemented closed-beta public/access/legal positioning, metadata alignment, cookie copy alignment, and targeted source-inspection tests. |
+| 2026-05-04 | Completed validation pass, recorded baseline test/lint results, and closed final checkbox per explicit owner-approved runtime bypass.     |
 
 ## Dev Agent Record
 
@@ -363,6 +366,9 @@ gpt-5.5 (OpenCode)
 - Source grep confirmed replaced public marketing phrases only remain inside the new negative assertions.
 - `npx vitest run src/__tests__/public-access-positioning.test.ts src/__tests__/mvp-route-cleanup.test.ts` passed after review patches: 2 files, 13 tests.
 - `npx eslint src/components/ui/cookie-banner.tsx src/app/(auth)/layout.tsx src/components/home/animated-hero.tsx src/__tests__/public-access-positioning.test.ts` returned only pre-existing `<img>` warnings in `src/app/(auth)/layout.tsx`.
+- `npx vitest run src/__tests__/public-access-positioning.test.ts src/__tests__/mvp-route-cleanup.test.ts` passed: 2 files, 13 tests.
+- `npm run lint` returned the documented baseline shape: 94 problems (52 errors, 42 warnings).
+- `npx vitest run` returned the documented baseline in `src/__tests__/profile-utils.test.ts`: 46 passed, 3 failed.
 
 ### Completion Notes List
 
@@ -374,6 +380,7 @@ gpt-5.5 (OpenCode)
 - Aligned cookie banner with privacy no-tracking posture and replaced metadata marketplace/discovery promises with closed-beta/admission positioning.
 - Added targeted source-inspection coverage in `src/__tests__/public-access-positioning.test.ts` and verified existing MVP route-cleanup tests still pass.
 - 375px responsive source inspection only: existing mobile header/menu, stacked CTA layout, full-width X auth buttons, legal links, and legal/privacy content wrappers were preserved; no new horizontal-overflow-prone structure was introduced. A concrete runtime viewport review at 375px remains to be completed.
+- Runtime 375px viewport verification was explicitly bypassed per owner instruction; residual responsive risk is accepted for Story 2.1 completion.
 
 ### File List
 

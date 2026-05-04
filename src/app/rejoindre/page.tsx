@@ -47,7 +47,7 @@ function RejoindreContent() {
         </Link>
 
         <h1 className="text-xl font-bold text-base-content tracking-tight text-center">
-          Rejoindre à MarchéLibre
+          Demander l’accès à MarchéLibre
         </h1>
 
         {ref ? (
