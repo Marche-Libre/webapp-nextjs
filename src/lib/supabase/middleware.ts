@@ -98,6 +98,7 @@ export async function updateSession(request: NextRequest) {
       (pathname === "/" ||
         pathname === "/connexion" ||
         pathname === "/inscription" ||
+        pathname === "/rejoindre" ||
         pathname === "/en-attente")
     ) {
       const url = request.nextUrl.clone();
