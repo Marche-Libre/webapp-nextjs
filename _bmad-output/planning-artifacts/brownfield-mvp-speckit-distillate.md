@@ -4,7 +4,7 @@ sources:
   - "../../specs/ (deleted after extraction; historical provenance only)"
   - "../../app_flow.md"
   - "../../README.md"
-  - "../../BMAD-migration-road-to-mvp.md"
+  - "../../BMAD-migration-road-to-mvp.md (deleted after migration; replaced by BMAD-workflow-helper.md)"
   - "../project-context.md"
 downstream_consumer: "Brownfield MVP PRD creation"
 created: "2026-04-28"

@@ -17,9 +17,9 @@ export default function ConnexionPage() {
 
       <div className="mt-8 pt-6 border-t border-base-content/[0.06]">
         <p className="text-center text-sm text-base-content/40">
-          Pas encore de compte ?{" "}
+          Pas encore membre ?{" "}
           <Link href="/inscription" className="text-accent hover:text-accent/80 font-semibold transition-colors">
-            Rejoindre le réseau
+            Demander l’accès
           </Link>
         </p>
       </div>

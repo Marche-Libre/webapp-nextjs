@@ -25,7 +25,7 @@ export function LandingHeader() {
             Connexion
           </Link>
           <Link href="/inscription" className="btn btn-accent btn-sm text-accent-content cursor-pointer">
-            S&apos;inscrire gratuitement
+            Demander l’accès
           </Link>
         </div>
 
@@ -56,7 +56,7 @@ export function LandingHeader() {
             onClick={() => setMenuOpen(false)}
             className="block w-full text-center btn btn-accent btn-sm text-accent-content cursor-pointer"
           >
-            S&apos;inscrire gratuitement
+            Demander l’accès
           </Link>
         </div>
       )}

@@ -37,9 +37,9 @@ export default function ConfidentialitePage() {
         <h3>3.1 Données fournies directement par l&apos;utilisateur</h3>
         <ul>
           <li><strong>Données d&apos;identification :</strong> nom complet, identifiant X (Twitter), adresse e-mail</li>
-          <li><strong>Données professionnelles :</strong> spécialité/expertise, catégorie professionnelle, sous-spécialité, localisation géographique, biographie, liens professionnels</li>
+          <li><strong>Données professionnelles :</strong> spécialité/expertise, catégorie professionnelle, sous-spécialité, localisation géographique, biographie, liens professionnels utiles à la demande d’admission et au profil membre</li>
           <li><strong>Données de contact :</strong> numéro de téléphone (facultatif)</li>
-          <li><strong>Contenus générés :</strong> messages dans le chat, publications et réponses sur le forum, annonces</li>
+          <li><strong>Contenus générés :</strong> messages dans le chat privé, informations de profil et contenus conservés sur les surfaces protégées existantes</li>
         </ul>
 
         <h3>3.2 Données collectées automatiquement</h3>
@@ -65,31 +65,31 @@ export default function ConfidentialitePage() {
           </thead>
           <tbody>
             <tr>
-              <td>Création et gestion de votre compte</td>
+              <td>Demande d’admission, création et gestion de votre compte</td>
               <td>Exécution du contrat (art. 6.1.b RGPD)</td>
             </tr>
             <tr>
-              <td>Annuaire des membres et mise en relation professionnelle</td>
+              <td>Profil membre visible aux autres membres approuvés</td>
               <td>Exécution du contrat</td>
             </tr>
             <tr>
-              <td>Fonctionnalités de chat et forum</td>
+              <td>Fonctionnement du chat privé et des surfaces protégées existantes</td>
               <td>Exécution du contrat</td>
             </tr>
             <tr>
-              <td>Système de parrainage et validation des membres</td>
+              <td>Parrainage éventuel et revue manuelle des membres</td>
               <td>Exécution du contrat</td>
             </tr>
             <tr>
-              <td>Notifications (mentions, réponses, demandes de parrainage)</td>
+              <td>Notifications liées au compte, au chat privé et à la revue d&apos;admission</td>
               <td>Intérêt légitime (art. 6.1.f RGPD)</td>
             </tr>
             <tr>
-              <td>Modération et lutte contre les abus (signalements, blocages)</td>
+              <td>Modération et lutte contre les abus</td>
               <td>Intérêt légitime</td>
             </tr>
             <tr>
-              <td>Amélioration de la plateforme et statistiques anonymisées</td>
+              <td>Amélioration technique de la plateforme sans pistage publicitaire</td>
               <td>Intérêt légitime</td>
             </tr>
           </tbody>
@@ -100,7 +100,7 @@ export default function ConfidentialitePage() {
         <h2>5. Destinataires des données</h2>
         <p>Vos données personnelles sont accessibles :</p>
         <ul>
-          <li><strong>Aux autres membres approuvés</strong> de la plateforme : votre profil public (identifiant X, spécialité, localisation, biographie) est visible dans l&apos;annuaire</li>
+          <li><strong>Aux autres membres approuvés</strong> de la plateforme : votre profil membre (identifiant X, spécialité, localisation, biographie) peut être visible dans les espaces protégés</li>
           <li><strong>À notre hébergeur et sous-traitant technique :</strong> Supabase Inc. (hébergement des données, authentification), dont les serveurs sont situés dans l&apos;Union européenne (région eu-west-1)</li>
           <li><strong>À nos administrateurs</strong> pour la modération et la gestion de la plateforme</li>
         </ul>
@@ -120,7 +120,7 @@ export default function ConfidentialitePage() {
         <h2>7. Durée de conservation</h2>
         <ul>
           <li><strong>Données de compte :</strong> conservées pendant toute la durée d&apos;existence de votre compte, puis 3 ans après la suppression du compte</li>
-          <li><strong>Messages et contenus du forum :</strong> conservés pendant toute la durée d&apos;existence de votre compte ; pseudonymisés après suppression du compte</li>
+          <li><strong>Messages et contenus protégés :</strong> conservés pendant toute la durée d&apos;existence de votre compte ; pseudonymisés après suppression du compte lorsque nécessaire</li>
           <li><strong>Données de connexion :</strong> 12 mois conformément à la réglementation applicable</li>
           <li><strong>Signalements et blocages :</strong> conservés 2 ans après la résolution</li>
         </ul>

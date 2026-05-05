@@ -1,13 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, ImagePlus, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentions } from "@/lib/notifications";
 import { Avatar } from "@/components/ui/avatar";
-import { Spinner } from "@/components/ui/spinner";
-
-const MAX_IMAGES = 3;
 
 interface MessageInputProps {
   channelId: string;
@@ -27,30 +24,17 @@ type MentionSuggestion = {
 export function MessageInput({ channelId, userId, onOptimisticMessage, onMessageConfirmed, onMessageFailed }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
-  const [uploadingCount, setUploadingCount] = useState(0);
-  const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const sendMessage = async () => {
     const text = content.trim();
-    const images = pendingImages;
-    if (!text && images.length === 0) return;
+    if (!text) return;
 
-    const msgContent = text || (images.length > 0 ? "📷" : "");
-    // Store as JSON array if multiple, single URL if one, null if none
-    const imageUrl = images.length > 1
-      ? JSON.stringify(images)
-      : images.length === 1
-        ? images[0]
-        : null;
-
-    const optimisticId = onOptimisticMessage?.(msgContent, imageUrl || undefined);
+    const optimisticId = onOptimisticMessage?.(text);
     setContent("");
-    setPendingImages([]);
     setSending(true);
 
     const supabase = createClient();
@@ -60,17 +44,13 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       .insert({
         channel_id: channelId,
         author_id: userId,
-        content: msgContent,
-        image_url: imageUrl,
+        content: text,
       });
 
     if (error) {
       if (optimisticId) onMessageFailed?.(optimisticId);
     } else {
       if (optimisticId) onMessageConfirmed?.(optimisticId, null);
-    }
-
-    if (text) {
       notifyMentions(supabase, {
         content: text,
         authorId: userId,
@@ -179,49 +159,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     }
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const remaining = MAX_IMAGES - pendingImages.length;
-    const toUpload = files.slice(0, remaining);
-    if (toUpload.length === 0) return;
-
-    setUploadingCount((c) => c + toUpload.length);
-    const supabase = createClient();
-
-    const uploaded: string[] = [];
-    for (const file of toUpload) {
-      const ext = file.name.split(".").pop();
-      const path = `${channelId}/${crypto.randomUUID()}.${ext}`;
-
-      const { data, error } = await supabase.storage
-        .from("chat-images")
-        .upload(path, file);
-
-      if (!error && data) {
-        const { data: urlData } = supabase.storage
-          .from("chat-images")
-          .getPublicUrl(data.path);
-        uploaded.push(urlData.publicUrl);
-      }
-      setUploadingCount((c) => c - 1);
-    }
-
-    if (uploaded.length > 0) {
-      setPendingImages((prev) => [...prev, ...uploaded].slice(0, MAX_IMAGES));
-    }
-
-    if (fileRef.current) fileRef.current.value = "";
-    textareaRef.current?.focus();
-  };
-
-  const removeImage = (index: number) => {
-    setPendingImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const canSend = content.trim() || pendingImages.length > 0;
-  const canAddImage = pendingImages.length < MAX_IMAGES && uploadingCount === 0;
+  const canSend = content.trim();
 
   return (
     <div className="px-[12px] py-[12px] relative">
@@ -250,48 +188,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
         </div>
       )}
 
-      {/* Pending images preview */}
-      {(pendingImages.length > 0 || uploadingCount > 0) && (
-        <div className="mb-[8px] flex items-start gap-[8px]">
-          {pendingImages.map((url, i) => (
-            <div key={url} className="relative">
-              <img
-                src={url}
-                alt={`Image ${i + 1}`}
-                className="h-[64px] w-[64px] rounded-lg object-cover border border-border-subtle"
-              />
-              <button
-                onClick={() => removeImage(i)}
-                className="absolute -top-[6px] -right-[6px] h-[20px] w-[20px] rounded-full bg-bg-elevated border border-border-default flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-surface cursor-pointer transition-colors shadow-sm"
-              >
-                <X className="h-[12px] w-[12px]" />
-              </button>
-            </div>
-          ))}
-          {Array.from({ length: uploadingCount }).map((_, i) => (
-            <div key={`uploading-${i}`} className="h-[64px] w-[64px] rounded-lg bg-bg-elevated border border-border-subtle flex items-center justify-center">
-              <Spinner size="sm" />
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="flex items-center gap-[8px] bg-bg-base border border-border-subtle rounded-lg px-[12px] py-[8px]">
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={!canAddImage}
-          className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <ImagePlus className="h-[18px] w-[18px]" />
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleImageSelect}
-        />
         <textarea
           ref={textareaRef}
           value={content}
