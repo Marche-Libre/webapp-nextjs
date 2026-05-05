@@ -1,5 +1,5 @@
 # generated: 2026-05-01T19:05:51Z
-# last_updated: 2026-05-05T09:59:11Z
+# last_updated: 2026-05-05T12:45:02Z
 # project: webapp-nextjs
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-05-01T19:05:51Z
-last_updated: 2026-05-05T09:59:11Z
+last_updated: 2026-05-05T12:45:02Z
 project: webapp-nextjs
 project_key: NOKEY
 tracking_system: file-system
@@ -51,7 +51,7 @@ development_status:
   epic-2: in-progress
   2-1-align-public-access-positioning-with-closed-beta-admission: done
   2-2-preserve-x-sign-in-and-returning-session-behavior: done
-  2-3-capture-required-admission-and-profile-information: backlog
+  2-3-capture-required-admission-and-profile-information: done
   2-4-show-explicit-pending-and-refused-admission-states: backlog
   2-5-route-approved-users-through-onboarding-or-into-chat: backlog
   2-6-enforce-admission-state-route-boundaries: backlog
