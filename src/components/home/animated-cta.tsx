@@ -13,14 +13,17 @@ export function AnimatedCTA() {
             <div className="card-body py-12 sm:py-16 px-8 sm:px-12 flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                  Prêt à rejoindre le réseau ?
+                  Prêt à demander l’accès à la bêta privée ?
                 </h2>
                 <p className="mt-2 text-primary-content/55 text-sm sm:text-base">
-                  Inscription gratuite. Validation sous 24h. Aucun engagement.
+                  L’accès au club privé est soumis à une revue manuelle.
                 </p>
               </div>
-              <Link href="/inscription" className="btn bg-base-100 text-base-content border-none hover:bg-base-200 shrink-0 cursor-pointer">
-                Créer mon compte
+              <Link
+                href="/inscription"
+                className="btn bg-base-100 text-base-content border-none hover:bg-base-200 shrink-0 cursor-pointer"
+              >
+                Demander l’accès
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

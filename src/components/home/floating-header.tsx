@@ -37,7 +37,7 @@ export function FloatingHeader() {
             Connexion
           </Link>
           <Link href="/inscription" className="btn btn-accent btn-sm rounded-full text-accent-content cursor-pointer">
-            S&apos;inscrire
+            Demander l’accès
           </Link>
         </nav>
       </header>

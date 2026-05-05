@@ -92,4 +92,20 @@ describe("MVP route cleanup", () => {
     expect(waitingPage).toContain("Votre demande n&apos;a pas ete acceptee");
     expect(waitingPage).not.toContain('if (profile.status === "rejected") {\n    redirect("/connexion");\n  }');
   });
+
+  it("keeps public legal pages outside auth and app-home redirects", () => {
+    const middleware = source("src/lib/supabase/middleware.ts");
+    const fullyOnboardedRedirect = middleware.slice(
+      middleware.indexOf("Fully onboarded users"),
+      middleware.indexOf("// Security headers"),
+    );
+
+    for (const route of ["/mentions-legales", "/confidentialite", "/cgu"]) {
+      expect(middleware).toContain(`"${route}"`);
+      expect(fullyOnboardedRedirect).not.toContain(`"${route}"`);
+    }
+
+    expect(middleware).toContain("const legalRoutes =");
+    expect(middleware).toContain("if (user && !isLegalRoute)");
+  });
 });

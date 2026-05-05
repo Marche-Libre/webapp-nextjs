@@ -99,7 +99,7 @@ export function AnimatedFeatures() {
                   <MapPin className="w-6 h-6 text-white/80" />
                   <h3 className="text-lg font-bold tracking-tight mt-3">Réseau local</h3>
                   <p className="text-sm text-white/70 leading-relaxed mt-2">
-                    Trouvez des professionnels près de chez vous. Chaque membre renseigne sa localisation.
+                    La localisation aide les membres approuvés à situer les échanges, sans annuaire public.
                   </p>
                 </div>
               </div>

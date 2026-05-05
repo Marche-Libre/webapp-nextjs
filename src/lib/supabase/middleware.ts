@@ -35,6 +35,8 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  const legalRoutes = ["/mentions-legales", "/confidentialite", "/cgu"];
+
   // Public routes that don't require auth
   const publicRoutes = [
     "/",
@@ -42,9 +44,11 @@ export async function updateSession(request: NextRequest) {
     "/inscription",
     "/en-attente",
     "/rejoindre",
+    ...legalRoutes,
   ];
   const isPublicRoute =
     publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
+  const isLegalRoute = legalRoutes.includes(pathname);
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute) {
@@ -54,7 +58,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If authenticated, check profile status and redirect accordingly
-  if (user) {
+  if (user && !isLegalRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("status, onboarding_completed")
