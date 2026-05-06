@@ -36,39 +36,57 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const legalRoutes = ["/mentions-legales", "/confidentialite", "/cgu"];
+  const authEntryRoutes = ["/", "/connexion", "/inscription", "/rejoindre"];
+  const publicNonPrivateRouteHandlers = ["/api/geo/cities"];
 
   // Public routes that don't require auth
   const publicRoutes = [
-    "/",
-    "/connexion",
-    "/inscription",
+    ...authEntryRoutes,
     "/en-attente",
-    "/rejoindre",
     ...legalRoutes,
   ];
   const isPublicRoute =
     publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
   const isLegalRoute = legalRoutes.includes(pathname);
+  const isPublicNonPrivateRouteHandler = publicNonPrivateRouteHandlers.includes(
+    pathname,
+  );
 
   // If not authenticated and trying to access protected route
-  if (!user && !isPublicRoute) {
+  if (!user && !isPublicRoute && !isPublicNonPrivateRouteHandler) {
     const url = request.nextUrl.clone();
     url.pathname = "/connexion";
     return NextResponse.redirect(url);
   }
 
   // If authenticated, check profile status and redirect accordingly
-  if (user && !isLegalRoute) {
-    const { data: profile } = await supabase
+  if (user && !isLegalRoute && !isPublicNonPrivateRouteHandler) {
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("status, onboarding_completed")
       .eq("id", user.id)
       .single();
 
+    if (profileError || !profile) {
+      if (pathname !== "/connexion") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/connexion";
+        return NextResponse.redirect(url);
+      }
+      return supabaseResponse;
+    }
+
     const isApproved = profile?.status === "approved";
     const isRejected = profile?.status === "rejected";
+    const isPending = profile?.status === "pending";
     const isOnboarded = profile?.onboarding_completed === true;
-    const isPending = !isApproved && !isRejected;
+    const hasKnownStatus = isApproved || isRejected || isPending;
+
+    if (!hasKnownStatus && pathname !== "/en-attente") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/en-attente";
+      return NextResponse.redirect(url);
+    }
 
     // Rejected users stay on the status boundary so the app can show a clear refusal state.
     if (isRejected && pathname !== "/en-attente" && pathname !== "/connexion") {
@@ -95,11 +113,9 @@ export async function updateSession(request: NextRequest) {
     if (
       isApproved &&
       isOnboarded &&
-      (pathname === "/" ||
-        pathname === "/connexion" ||
-        pathname === "/inscription" ||
-        pathname === "/rejoindre" ||
-        pathname === "/en-attente")
+      (authEntryRoutes.includes(pathname) ||
+        pathname === "/en-attente" ||
+        pathname === "/onboarding")
     ) {
       const url = request.nextUrl.clone();
       url.pathname = "/chat";

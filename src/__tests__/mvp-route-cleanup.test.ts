@@ -142,6 +142,13 @@ describe("MVP route cleanup", () => {
     }
 
     expect(middleware).toContain("const legalRoutes =");
-    expect(middleware).toContain("if (user && !isLegalRoute)");
+    expect(middleware).toContain("if (user && !isLegalRoute && !isPublicNonPrivateRouteHandler)");
+  });
+
+  it("keeps public non-private route handlers outside admission-state redirects", () => {
+    const middleware = source("src/lib/supabase/middleware.ts");
+
+    expect(middleware).toContain('const publicNonPrivateRouteHandlers = ["/api/geo/cities"]');
+    expect(middleware).toContain("!isPublicNonPrivateRouteHandler");
   });
 });

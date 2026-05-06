@@ -5,25 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function approveUser(
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Non authentifié" };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    return { success: false, error: "Accès refusé" };
-  }
+  const { supabase, error: authError } = await verifyAdmin();
+  if (authError) return { success: false, error: authError };
 
   const { error } = await supabase
     .from("profiles")
@@ -40,25 +23,8 @@ export async function approveUser(
 export async function rejectUser(
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Non authentifié" };
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    return { success: false, error: "Accès refusé" };
-  }
+  const { supabase, error: authError } = await verifyAdmin();
+  if (authError) return { success: false, error: authError };
 
   const { error } = await supabase
     .from("profiles")
@@ -76,10 +42,24 @@ export async function rejectUser(
 
 async function verifyAdmin() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { supabase, error: "Non authentifié" } as const;
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-  if (!profile?.is_admin) return { supabase, error: "Accès refusé" } as const;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin, status, onboarding_completed")
+    .eq("id", user.id)
+    .single();
+
+  const hasMemberBoundary =
+    profile?.status === "approved" && profile.onboarding_completed === true;
+
+  if (!profile?.is_admin || !hasMemberBoundary) {
+    return { supabase, error: "Accès refusé" } as const;
+  }
+
   return { supabase, error: undefined } as const;
 }
 

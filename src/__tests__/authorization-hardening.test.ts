@@ -149,6 +149,15 @@ describe("authorization hardening", () => {
     expect(messageInput).not.toContain("ImagePlus");
   });
 
+  it("requires approved and onboarded admin state for server-side admin mutations", () => {
+    const adminActions = source("src/app/(app)/admin/actions.ts");
+
+    expect(adminActions).toContain('select("is_admin, status, onboarding_completed")');
+    expect(adminActions).toContain('profile?.status === "approved"');
+    expect(adminActions).toContain("profile.onboarding_completed === true");
+    expect(adminActions).toContain("if (!profile?.is_admin || !hasMemberBoundary)");
+  });
+
   it("only notifies mentions after a successful message insert", () => {
     const messageInput = source("src/components/chat/message-input.tsx");
     const sendResultBlock = messageInput.slice(

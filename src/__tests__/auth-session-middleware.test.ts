@@ -2,15 +2,16 @@ import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type ProfileState = {
-  status: "approved" | "pending" | "rejected";
+  status: string;
   onboarding_completed: boolean;
 };
 
 let mockUserId: string | null = "user-1";
-let mockProfile: ProfileState = {
+let mockProfile: ProfileState | null = {
   status: "approved",
   onboarding_completed: true,
 };
+let mockProfileError: { message: string } | null = null;
 
 vi.mock("@supabase/ssr", () => ({
   createServerClient: () => ({
@@ -24,7 +25,7 @@ vi.mock("@supabase/ssr", () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
-          single: async () => ({ data: mockProfile }),
+          single: async () => ({ data: mockProfile, error: mockProfileError }),
         }),
       }),
     }),
@@ -40,79 +41,203 @@ function requestFor(pathname: string) {
 async function expectRedirect(pathname: string, location: string) {
   const response = await updateSession(requestFor(pathname));
   expect(response.status).toBe(307);
-  expect(response.headers.get("location")).toBe(location);
+  expect(response.headers.get("location")).toBe(`https://example.test${location}`);
+}
+
+async function expectAllowed(pathname: string) {
+  const response = await updateSession(requestFor(pathname));
+  expect(response.status).toBe(200);
+  expect(response.headers.get("location")).toBeNull();
 }
 
 beforeEach(() => {
   mockUserId = "user-1";
   mockProfile = { status: "approved", onboarding_completed: true };
+  mockProfileError = null;
 });
 
-describe("auth session middleware routing", () => {
-  it("routes approved and onboarded users from /rejoindre to /chat", async () => {
-    await expectRedirect("/rejoindre", "https://example.test/chat");
+const legalRoutes = ["/mentions-legales", "/confidentialite", "/cgu"];
+const memberRoutes = [
+  "/chat",
+  "/chat/general",
+  "/profil",
+  "/notifications",
+  "/membres",
+  "/forum",
+  "/tableau-de-bord",
+  "/parrainages",
+];
+
+describe("auth session middleware routing matrix", () => {
+  it("keeps public routes and public non-private route handlers accessible when logged out", async () => {
+    mockUserId = null;
+
+    const publicRoutes = [
+      "/",
+      "/connexion",
+      "/inscription",
+      "/rejoindre",
+      "/en-attente",
+      "/auth/callback",
+      "/api/geo/cities?q=par",
+      ...legalRoutes,
+    ];
+
+    await Promise.all(publicRoutes.map((route) => expectAllowed(route)));
   });
 
-  it("routes approved and onboarded users from all auth entry routes to /chat", async () => {
-    const entryRoutes = ["/", "/connexion", "/inscription", "/en-attente"];
+  it("redirects logged-out users away from onboarding, member, and admin routes", async () => {
+    mockUserId = null;
+
+    const privateRoutes = ["/onboarding", ...memberRoutes, "/admin"];
     await Promise.all(
-      entryRoutes.map((route) =>
-        expectRedirect(route, "https://example.test/chat"),
-      ),
+      privateRoutes.map((route) => expectRedirect(route, "/connexion")),
     );
   });
 
-  it("routes approved but not onboarded users from /rejoindre to /onboarding", async () => {
-    mockProfile = { status: "approved", onboarding_completed: false };
-    await expectRedirect("/rejoindre", "https://example.test/onboarding");
-  });
+  it("routes authenticated users with no profile rows to /connexion and keeps legal/public handler access", async () => {
+    mockProfile = null;
 
-  it("routes approved but not onboarded users from chat and protected routes to /onboarding", async () => {
-    mockProfile = { status: "approved", onboarding_completed: false };
+    await expectAllowed("/connexion");
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
-    const protectedRoutes = ["/chat", "/chat/general", "/profil"];
+    const blockedRoutes = [
+      "/",
+      "/inscription",
+      "/rejoindre",
+      "/en-attente",
+      "/onboarding",
+      ...memberRoutes,
+      "/admin",
+    ];
+
     await Promise.all(
-      protectedRoutes.map((route) =>
-        expectRedirect(route, "https://example.test/onboarding"),
-      ),
+      blockedRoutes.map((route) => expectRedirect(route, "/connexion")),
     );
   });
 
-  it("routes pending users from /rejoindre to /en-attente", async () => {
+  it("routes profile fetch errors to /connexion and avoids redirect loops", async () => {
+    mockProfile = { status: "approved", onboarding_completed: true };
+    mockProfileError = { message: "boom" };
+
+    await expectAllowed("/connexion");
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
+
+    const blockedRoutes = ["/", "/en-attente", "/onboarding", ...memberRoutes, "/admin"];
+    await Promise.all(
+      blockedRoutes.map((route) => expectRedirect(route, "/connexion")),
+    );
+  });
+
+  it("treats unknown statuses as non-member and routes to /en-attente", async () => {
+    mockProfile = { status: "mystery", onboarding_completed: false };
+
+    await expectAllowed("/en-attente");
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
+
+    const nonMemberRoutes = [
+      "/",
+      "/connexion",
+      "/inscription",
+      "/rejoindre",
+      "/onboarding",
+      ...memberRoutes,
+      "/admin",
+    ];
+    await Promise.all(
+      nonMemberRoutes.map((route) => expectRedirect(route, "/en-attente")),
+    );
+  });
+
+  it("keeps pending users on /en-attente and out of member/admin routes", async () => {
     mockProfile = { status: "pending", onboarding_completed: false };
-    await expectRedirect("/rejoindre", "https://example.test/en-attente");
+
+    await expectAllowed("/en-attente");
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
+
+    const blockedRoutes = [
+      "/",
+      "/connexion",
+      "/inscription",
+      "/rejoindre",
+      "/onboarding",
+      ...memberRoutes,
+      "/admin",
+    ];
+    await Promise.all(
+      blockedRoutes.map((route) => expectRedirect(route, "/en-attente")),
+    );
   });
 
-  it("routes rejected users from /rejoindre to /en-attente", async () => {
+  it("keeps rejected users on explicit status routes while blocking member/admin routes", async () => {
     mockProfile = { status: "rejected", onboarding_completed: false };
-    await expectRedirect("/rejoindre", "https://example.test/en-attente");
+
+    await expectAllowed("/connexion");
+    await expectAllowed("/en-attente");
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
+
+    const blockedRoutes = [
+      "/",
+      "/inscription",
+      "/rejoindre",
+      "/onboarding",
+      ...memberRoutes,
+      "/admin",
+    ];
+    await Promise.all(
+      blockedRoutes.map((route) => expectRedirect(route, "/en-attente")),
+    );
   });
 
-  it("blocks pending users from protected routes", async () => {
-    mockProfile = { status: "pending", onboarding_completed: false };
-    await expectRedirect("/chat", "https://example.test/en-attente");
+  it("routes approved but not onboarded users to /onboarding, including admin attempts", async () => {
+    mockProfile = { status: "approved", onboarding_completed: false };
+
+    await expectAllowed("/onboarding");
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
+
+    const onboardingRedirectRoutes = [
+      "/",
+      "/connexion",
+      "/inscription",
+      "/rejoindre",
+      "/en-attente",
+      ...memberRoutes,
+      "/admin",
+    ];
+    await Promise.all(
+      onboardingRedirectRoutes.map((route) => expectRedirect(route, "/onboarding")),
+    );
   });
 
-  it("blocks rejected users from protected routes", async () => {
-    mockProfile = { status: "rejected", onboarding_completed: false };
-    await expectRedirect("/chat", "https://example.test/en-attente");
+  it("routes approved and onboarded users from entry/status/onboarding routes to /chat", async () => {
+    mockProfile = { status: "approved", onboarding_completed: true };
+
+    const chatEntryRedirectRoutes = [
+      "/",
+      "/connexion",
+      "/inscription",
+      "/rejoindre",
+      "/en-attente",
+      "/onboarding",
+    ];
+    await Promise.all(
+      chatEntryRedirectRoutes.map((route) => expectRedirect(route, "/chat")),
+    );
   });
 
-  it("allows approved and onboarded users on protected routes", async () => {
-    const response = await updateSession(requestFor("/chat"));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("location")).toBeNull();
-  });
+  it("allows approved and onboarded users on member/admin routes and public handlers", async () => {
+    mockProfile = { status: "approved", onboarding_completed: true };
 
-  it("keeps /rejoindre public for signed-out users", async () => {
-    mockUserId = null;
-    const response = await updateSession(requestFor("/rejoindre"));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("location")).toBeNull();
-  });
+    await expectAllowed("/api/geo/cities?q=par");
+    await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
-  it("redirects signed-out users from protected routes to /connexion", async () => {
-    mockUserId = null;
-    await expectRedirect("/chat", "https://example.test/connexion");
+    const allowedRoutes = [...memberRoutes, "/admin"];
+    await Promise.all(allowedRoutes.map((route) => expectAllowed(route)));
   });
 });
