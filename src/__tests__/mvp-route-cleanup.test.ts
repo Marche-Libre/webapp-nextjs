@@ -27,6 +27,27 @@ describe("MVP route cleanup", () => {
     expect(source("src/components/chat/channel-list.tsx")).toContain('href="/chat"');
   });
 
+  it("default-denies protected app rendering unless the profile is approved and onboarded", () => {
+    const appLayout = source("src/app/(app)/layout.tsx");
+    const renderShellBlock = appLayout.slice(
+      appLayout.indexOf('profile.status !== "approved"'),
+      appLayout.indexOf("return <AppShell"),
+    );
+
+    expect(renderShellBlock).toContain('redirect("/en-attente")');
+    expect(renderShellBlock).toContain('profile.onboarding_completed !== true');
+    expect(renderShellBlock).toContain('redirect("/onboarding")');
+  });
+
+  it("explains approved-user onboarding as setup work rather than an access error", () => {
+    const onboardingWizard = source("src/components/onboarding/onboarding-wizard.tsx");
+
+    expect(onboardingWizard).toContain("Finalisez votre profil");
+    expect(onboardingWizard).toContain("identité, expertise, localisation et présentation");
+    expect(onboardingWizard).not.toContain("Acces refuse");
+    expect(onboardingWizard).not.toContain("Demande en cours d&apos;examen");
+  });
+
   it("keeps Chat visible while hiding Forum and Annuaire from primary navigation", () => {
     const sidebar = source("src/components/layout/sidebar.tsx");
 

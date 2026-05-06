@@ -67,6 +67,17 @@ describe("auth session middleware routing", () => {
     await expectRedirect("/rejoindre", "https://example.test/onboarding");
   });
 
+  it("routes approved but not onboarded users from chat and protected routes to /onboarding", async () => {
+    mockProfile = { status: "approved", onboarding_completed: false };
+
+    const protectedRoutes = ["/chat", "/chat/general", "/profil"];
+    await Promise.all(
+      protectedRoutes.map((route) =>
+        expectRedirect(route, "https://example.test/onboarding"),
+      ),
+    );
+  });
+
   it("routes pending users from /rejoindre to /en-attente", async () => {
     mockProfile = { status: "pending", onboarding_completed: false };
     await expectRedirect("/rejoindre", "https://example.test/en-attente");
