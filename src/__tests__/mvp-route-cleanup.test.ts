@@ -89,8 +89,23 @@ describe("MVP route cleanup", () => {
     expect(appLayout).toContain('redirect("/en-attente")');
     expect(middleware).toContain('pathname !== "/connexion"');
     expect(waitingPage).toContain('profile.status === "rejected"');
-    expect(waitingPage).toContain("Votre demande n&apos;a pas ete acceptee");
+    expect(waitingPage).toContain("Votre demande d&apos;acces n&apos;a pas ete retenue");
+    expect(waitingPage).toContain("L&apos;acces aux espaces membres reste indisponible");
     expect(waitingPage).not.toContain('if (profile.status === "rejected") {\n    redirect("/connexion");\n  }');
+  });
+
+  it("shows pending users an explicit manual-review boundary while access stays blocked", () => {
+    const waitingPage = source("src/app/(auth)/en-attente/page.tsx");
+    const invitationBranch = waitingPage.slice(
+      waitingPage.indexOf("Vous avez une invitation !"),
+      waitingPage.indexOf(") : ("),
+    );
+
+    expect(waitingPage).toContain("Demande en cours d&apos;examen");
+    expect(waitingPage).toContain("Validation manuelle");
+    expect(waitingPage).toContain("L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee");
+    expect(invitationBranch).toContain("Validation manuelle");
+    expect(invitationBranch).toContain("L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee");
   });
 
   it("keeps public legal pages outside auth and app-home redirects", () => {

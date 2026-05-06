@@ -44,12 +44,14 @@ export default async function EnAttentePage() {
               <XCircle className="h-7 w-7 text-error" />
             </div>
             <h1 className="text-xl font-bold text-base-content tracking-tight">
-              Votre demande n&apos;a pas ete acceptee
+              Votre demande d&apos;acces n&apos;a pas ete retenue
             </h1>
             <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
-              {xHandle ? `Le compte @${xHandle} n'a pas ete valide pour la beta.` : "Votre compte n'a pas ete valide pour la beta."}
+              {xHandle
+                ? `Le compte @${xHandle} n'a pas ete retenu pour la beta fermee.`
+                : "Votre compte n'a pas ete retenu pour la beta fermee."}
               <br />
-              Vous pouvez fermer cette page ou revenir a la connexion.
+              L&apos;acces aux espaces membres reste indisponible.
             </p>
           </div>
 
@@ -110,6 +112,10 @@ export default async function EnAttentePage() {
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 Acceptez pour poursuivre la validation.
+                <br />
+                Validation manuelle en cours.
+                <br />
+                L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
               </p>
             </>
           ) : (
@@ -118,17 +124,18 @@ export default async function EnAttentePage() {
                 <Clock className="h-7 w-7 text-warning" />
               </div>
               <h1 className="text-xl font-bold text-base-content tracking-tight">
-                Bienvenue
-                {xHandle ? (
-                  <>
-                    , <span className="text-accent">@{xHandle}</span>
-                  </>
-                ) : null}
+                Demande en cours d&apos;examen
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
-                MarchéLibre est un réseau sur invitation.
+                {xHandle ? (
+                  <>
+                    Compte X detecte : <span className="text-accent">@{xHandle}</span>.
+                    <br />
+                  </>
+                ) : null}
+                Validation manuelle en cours.
                 <br />
-                Pour activer votre compte, il vous faut un parrain.
+                L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
               </p>
             </>
           )}
