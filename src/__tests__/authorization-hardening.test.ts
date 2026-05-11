@@ -131,6 +131,25 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain('CREATE POLICY "Admins can create channel memberships"');
   });
 
+  it("replaces recursive channel member visibility with a private RLS helper", () => {
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(migrationText).toContain("private.is_current_user_channel_member");
+    expect(migrationText).toContain("SECURITY DEFINER");
+    expect(migrationText).toContain("GRANT USAGE ON SCHEMA private TO authenticated");
+    expect(migrationText).toContain(
+      "GRANT EXECUTE ON FUNCTION private.is_current_user_channel_member(UUID) TO authenticated",
+    );
+    expect(migrationText).toContain(
+      'DROP POLICY IF EXISTS "Users can view co-members in their channels"',
+    );
+    expect(migrationText).toContain(
+      "USING ((SELECT private.is_current_user_channel_member(channel_id)))",
+    );
+  });
+
   it("does not expose client-side private DM creation from member profiles", () => {
     const memberProfile = source("src/components/membres/member-profile.tsx");
 
