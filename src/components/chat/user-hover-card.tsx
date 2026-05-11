@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { MapPin, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UserHoverCardProps {
   authorId: string;
   x_handle: string;
+  full_name?: string | null;
   avatar_url: string | null;
-  children: React.ReactNode;
+  className?: string;
+  children: ReactNode;
 }
 
 type MiniProfile = {
@@ -24,25 +29,172 @@ type MiniProfile = {
   specialty_category_id: string | null;
 };
 
+type CardPosition = {
+  left: number;
+  top: number;
+  placement: "top" | "bottom";
+};
+
 // Cache profiles to avoid re-fetching
 const profileCache = new Map<string, MiniProfile>();
+const CARD_WIDTH = 260;
+const CARD_GAP = 8;
+const VIEWPORT_PADDING = 12;
+const ESTIMATED_CARD_HEIGHT = 220;
+const SHOW_DELAY_MS = 300;
+const HIDE_DELAY_MS = 200;
 
-export function UserHoverCard({ authorId, x_handle, avatar_url, children }: UserHoverCardProps) {
+function getCardPosition(anchor: HTMLElement): CardPosition {
+  const rect = anchor.getBoundingClientRect();
+  const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - CARD_WIDTH - VIEWPORT_PADDING);
+  const left = Math.min(Math.max(rect.left, VIEWPORT_PADDING), maxLeft);
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  const placement = spaceBelow < ESTIMATED_CARD_HEIGHT && spaceAbove > spaceBelow ? "top" : "bottom";
+  const top = placement === "top"
+    ? Math.max(VIEWPORT_PADDING, rect.top - CARD_GAP)
+    : Math.min(window.innerHeight - VIEWPORT_PADDING, rect.bottom + CARD_GAP);
+
+  return { left, top, placement };
+}
+
+export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, className, children }: UserHoverCardProps) {
   const [show, setShow] = useState(false);
   const [profile, setProfile] = useState<MiniProfile | null>(profileCache.get(authorId) || null);
   const [categoryName, setCategoryName] = useState<string | null>(null);
+  const [cardPosition, setCardPosition] = useState<CardPosition | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>(undefined);
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleEnter = () => {
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setShow(true), 300);
-  };
+  const displayFullName = profile?.full_name ?? full_name;
+  const cardStyle = useMemo<CSSProperties | undefined>(function buildCardStyle() {
+    if (!cardPosition) return undefined;
 
-  const handleLeave = () => {
+    return {
+      left: cardPosition.left,
+      top: cardPosition.top,
+      transform: cardPosition.placement === "top" ? "translateY(-100%)" : undefined,
+    };
+  }, [cardPosition]);
+
+  const handleCardEnter = useCallback(function handleCardEnter() {
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setShow(false), 200);
-  };
+  }, []);
+
+  const updatePosition = useCallback(function updatePosition() {
+    if (ref.current) setCardPosition(getCardPosition(ref.current));
+  }, []);
+
+  const openCard = useCallback(function openCard() {
+    updatePosition();
+    setShow(true);
+  }, [updatePosition]);
+
+  const hideCard = useCallback(function hideCard() {
+    setShow(false);
+  }, []);
+
+  const handleEnter = useCallback(function handleEnter() {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(openCard, SHOW_DELAY_MS);
+  }, [openCard]);
+
+  const handleLeave = useCallback(function handleLeave() {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(hideCard, HIDE_DELAY_MS);
+  }, [hideCard]);
+
+  const card = useMemo(function renderCard() {
+    if (!show || !cardPosition || !cardStyle || typeof document === "undefined") return null;
+
+    const profileLocation = profile?.location;
+    const profileBio = profile?.bio;
+    const resolvedAvatarUrl = profile?.avatar_url ?? avatar_url;
+    const resolvedHandle = profile?.x_handle ?? x_handle;
+
+    const fullNameNode = displayFullName ? (
+      <p className="text-[12px] text-text-secondary truncate">{displayFullName}</p>
+    ) : null;
+    const categoryNode = categoryName ? (
+      <span className="inline-flex items-center rounded-md px-[6px] py-[1px] text-[10px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20 mt-[4px]">
+        {categoryName}
+      </span>
+    ) : null;
+    const locationNode = profileLocation ? (
+      <div className="flex items-center gap-[4px] mt-[10px] text-[11px] text-text-muted">
+        <MapPin className="h-[11px] w-[11px]" />
+        {profileLocation}
+      </div>
+    ) : null;
+    const bioNode = profileBio ? (
+      <p className="text-[11px] text-text-secondary leading-[16px] mt-[8px] line-clamp-3">
+        {profileBio}
+      </p>
+    ) : null;
+
+    return createPortal(
+      <div
+        className="fixed z-[100] w-[260px] bg-bg-elevated border border-border-default rounded-xl shadow-modal p-[16px] animate-in fade-in zoom-in-95 duration-150"
+        style={cardStyle}
+        onMouseEnter={handleCardEnter}
+        onMouseLeave={handleLeave}
+      >
+        <div className="flex items-start gap-[12px]">
+          <Avatar src={resolvedAvatarUrl} name={x_handle} size="lg" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-semibold text-text-primary truncate">
+              @{resolvedHandle}
+            </p>
+            {fullNameNode}
+            {categoryNode}
+          </div>
+        </div>
+
+        {locationNode}
+        {bioNode}
+
+        <Link
+          href={`/membres/${authorId}`}
+          className="flex items-center gap-[6px] mt-[12px] pt-[10px] border-t border-border-subtle text-[12px] font-medium text-primary-500 hover:text-primary-600 transition-colors"
+        >
+          <ExternalLink className="h-[12px] w-[12px]" />
+          Voir le profil
+        </Link>
+      </div>,
+      document.body
+    );
+  }, [
+    authorId,
+    avatar_url,
+    cardPosition,
+    cardStyle,
+    categoryName,
+    displayFullName,
+    handleCardEnter,
+    handleLeave,
+    profile?.avatar_url,
+    profile?.bio,
+    profile?.location,
+    profile?.x_handle,
+    show,
+    x_handle,
+  ]);
+
+  useEffect(() => {
+    return () => clearTimeout(timeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!show) return;
+
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [show, updatePosition]);
 
   useEffect(() => {
     if (!show || profile) return;
@@ -56,74 +208,32 @@ export function UserHoverCard({ authorId, x_handle, avatar_url, children }: User
         if (data) {
           profileCache.set(authorId, data as MiniProfile);
           setProfile(data as MiniProfile);
-          if (data.specialty_category_id) {
-            supabase
-              .from("specialty_categories")
-              .select("name")
-              .eq("id", data.specialty_category_id)
-              .single()
-              .then(({ data: cat }) => {
-                if (cat) setCategoryName(cat.name);
-              });
-          }
         }
       });
   }, [show, profile, authorId]);
 
+  useEffect(() => {
+    if (!show || !profile?.specialty_category_id || categoryName) return;
+    const supabase = createClient();
+    supabase
+      .from("specialty_categories")
+      .select("name")
+      .eq("id", profile.specialty_category_id)
+      .single()
+      .then(({ data: cat }) => {
+        if (cat) setCategoryName(cat.name);
+      });
+  }, [show, profile?.specialty_category_id, categoryName]);
+
   return (
     <div
       ref={ref}
-      className="relative inline-flex"
+      className={cn("relative inline-flex", className)}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
       {children}
-
-      {show && (
-        <div
-          className="absolute left-0 top-full mt-[4px] z-50 w-[260px] bg-bg-elevated border border-border-default rounded-xl shadow-modal p-[16px] animate-in fade-in zoom-in-95 duration-150"
-          onMouseEnter={() => clearTimeout(timeoutRef.current)}
-          onMouseLeave={handleLeave}
-        >
-          <div className="flex items-start gap-[12px]">
-            <Avatar src={profile?.avatar_url ?? avatar_url} name={x_handle} size="lg" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-semibold text-text-primary truncate">
-                @{profile?.x_handle ?? x_handle}
-              </p>
-              {profile?.full_name && (
-                <p className="text-[12px] text-text-secondary truncate">{profile.full_name}</p>
-              )}
-              {categoryName && (
-                <span className="inline-flex items-center rounded-md px-[6px] py-[1px] text-[10px] font-medium bg-primary-50 text-primary-500 border border-primary-500/20 mt-[4px]">
-                  {categoryName}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {profile?.location && (
-            <div className="flex items-center gap-[4px] mt-[10px] text-[11px] text-text-muted">
-              <MapPin className="h-[11px] w-[11px]" />
-              {profile.location}
-            </div>
-          )}
-
-          {profile?.bio && (
-            <p className="text-[11px] text-text-secondary leading-[16px] mt-[8px] line-clamp-3">
-              {profile.bio}
-            </p>
-          )}
-
-          <Link
-            href={`/membres/${authorId}`}
-            className="flex items-center gap-[6px] mt-[12px] pt-[10px] border-t border-border-subtle text-[12px] font-medium text-primary-500 hover:text-primary-600 transition-colors"
-          >
-            <ExternalLink className="h-[12px] w-[12px]" />
-            Voir le profil
-          </Link>
-        </div>
-      )}
+      {card}
     </div>
   );
 }

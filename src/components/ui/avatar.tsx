@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
 import { AVAILABILITY_OPTIONS } from "@/lib/profile-utils";
@@ -24,23 +27,35 @@ const dotSizes = {
   xl: "h-[14px] w-[14px] border-2",
 };
 
+type AvatarImageState = {
+  src: string | null;
+  tryOriginal: boolean;
+  failed: boolean;
+};
+
 // Twitter/X avatar URLs contain _normal (48px). Replace with a bigger variant.
 function getHiResAvatar(url: string): string {
   return url.replace(/_normal\./, "_400x400.");
 }
 
 export function Avatar({ src, name, size = "md", className, availability }: AvatarProps) {
+  const [imageState, setImageState] = useState<AvatarImageState>({
+    src: null,
+    tryOriginal: false,
+    failed: false,
+  });
+  const stateForCurrentSrc = imageState.src === src ? imageState : null;
+  const imageSrc = src
+    ? stateForCurrentSrc?.tryOriginal
+      ? src
+      : getHiResAvatar(src)
+    : null;
+  const imageFailed = stateForCurrentSrc?.failed ?? false;
   const initials = name
     ? name.replace(/^@/, "")[0]?.toUpperCase() || ""
     : "";
 
-  const inner = src ? (
-    <img
-      src={getHiResAvatar(src)}
-      alt={name}
-      className={cn("rounded-xl object-cover", sizes[size], className)}
-    />
-  ) : (
+  const fallback = (
     <div
       className={cn(
         "rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center font-semibold",
@@ -51,6 +66,21 @@ export function Avatar({ src, name, size = "md", className, availability }: Avat
       {initials || <User className="h-1/2 w-1/2" />}
     </div>
   );
+
+  const inner = imageSrc && !imageFailed ? (
+    <img
+      src={imageSrc}
+      alt={name}
+      className={cn("rounded-xl object-cover", sizes[size], className)}
+      onError={() => {
+        if (src && imageSrc !== src) {
+          setImageState({ src, tryOriginal: true, failed: false });
+          return;
+        }
+        setImageState({ src: src ?? null, tryOriginal: false, failed: true });
+      }}
+    />
+  ) : fallback;
 
   if (!availability || availability === "unset") return inner;
 
