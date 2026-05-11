@@ -41,7 +41,6 @@ const CARD_WIDTH = 260;
 const CARD_GAP = 8;
 const VIEWPORT_PADDING = 12;
 const ESTIMATED_CARD_HEIGHT = 220;
-const SHOW_DELAY_MS = 300;
 const HIDE_DELAY_MS = 200;
 
 function getCardPosition(anchor: HTMLElement): CardPosition {
@@ -96,7 +95,7 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
 
   const handleEnter = useCallback(function handleEnter() {
     clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(openCard, SHOW_DELAY_MS);
+    openCard();
   }, [openCard]);
 
   const handleLeave = useCallback(function handleLeave() {
@@ -136,8 +135,8 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
       <div
         className="fixed z-[100] w-[260px] bg-bg-elevated border border-border-default rounded-xl shadow-modal p-[16px] animate-in fade-in zoom-in-95 duration-150"
         style={cardStyle}
-        onMouseEnter={handleCardEnter}
-        onMouseLeave={handleLeave}
+        onPointerEnter={handleCardEnter}
+        onPointerLeave={handleLeave}
       >
         <div className="flex items-start gap-[12px]">
           <Avatar src={resolvedAvatarUrl} name={x_handle} size="lg" />
@@ -229,8 +228,8 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
     <div
       ref={ref}
       className={cn("relative inline-flex", className)}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
+      onPointerEnter={handleEnter}
+      onPointerLeave={handleLeave}
     >
       {children}
       {card}
