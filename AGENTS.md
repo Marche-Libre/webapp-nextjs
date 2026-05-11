@@ -13,6 +13,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 Use these rules for React code reviews and implementation work.
 
 - Do not define inline methods in JSX. Extract event handlers, callbacks, render helpers, and conditional logic into the component logic before JSX usage, then pass named references.
+- Do not define a component inside another component. Extract it below the parent component in the same file, and do not export it unless it is reused outside the file.
 - Event handlers passed to JSX must be named and memoized with `useCallback`, unless they are module-level functions.
 - Callback functions must always use arrow functions assigned to named constants. This includes `useCallback` callbacks, handlers, and callbacks passed to hooks or child components.
 - Use named function declarations for component-local non-callback helpers only. Avoid anonymous inline functions for behavior that belongs to the component.
