@@ -15,7 +15,7 @@ describe("MVP route cleanup", () => {
     expect(source("src/app/auth/callback/route.ts")).toContain('profile.onboarding_completed ? "/chat" : "/onboarding"');
   });
 
-  it("routes onboarding, waiting approval, admin fallback, settings, logo, and chat back to chat", () => {
+  it("routes onboarding, waiting approval, admin fallback, settings, and logo to chat", () => {
     expect(source("src/app/onboarding/page.tsx")).toContain('redirect("/chat")');
     expect(source("src/components/onboarding/onboarding-wizard.tsx")).toContain('link: "/chat"');
     expect(source("src/components/onboarding/onboarding-wizard.tsx")).toContain('window.location.href = "/chat"');
@@ -24,7 +24,14 @@ describe("MVP route cleanup", () => {
     expect(source("src/app/(app)/admin/layout.tsx")).toContain('redirect("/chat")');
     expect(source("src/components/layout/settings-shell.tsx")).toContain('router.push("/chat")');
     expect(source("src/components/layout/sidebar.tsx")).toContain('href="/chat"');
-    expect(source("src/components/chat/channel-list.tsx")).toContain('href="/chat"');
+  });
+
+  it("removes the deprecated channel-list back affordance from chat", () => {
+    const channelList = source("src/components/chat/channel-list.tsx");
+
+    expect(channelList).not.toContain('href="/chat"');
+    expect(channelList).not.toContain("ArrowLeft");
+    expect(channelList).not.toContain('title="Retour"');
   });
 
   it("default-denies protected app rendering unless the profile is approved and onboarded", () => {

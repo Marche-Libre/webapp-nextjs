@@ -5,6 +5,7 @@ import { FadeIn } from "@/components/ui/motion";
 import { ThreeDMarquee } from "@/components/ui/three-d-marquee";
 import Image from "next/image";
 import Link from "next/link";
+import { ACCESS_MODAL_HREF } from "@/lib/auth-entry";
 
 const MARQUEE_IMAGES = [
   { src: "/images/marquee/doctor.jpg", alt: "Médecin" },
@@ -113,7 +114,7 @@ export function AnimatedHero() {
                   X démarre une demande d’admission, puis l’équipe vérifie chaque candidature manuellement.
                 </p>
               </div>
-              <Link href="/inscription" className="btn btn-accent btn-sm rounded-full px-5 cursor-pointer">
+              <Link href={ACCESS_MODAL_HREF} className="btn btn-accent btn-sm rounded-full px-5 cursor-pointer">
                 Demander l’accès
               </Link>
             </div>

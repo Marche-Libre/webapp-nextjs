@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { FadeIn } from "@/components/ui/motion";
+import { ACCESS_MODAL_HREF } from "@/lib/auth-entry";
 
 export function AnimatedCTA() {
   return (
@@ -20,7 +21,7 @@ export function AnimatedCTA() {
                 </p>
               </div>
               <Link
-                href="/inscription"
+                href={ACCESS_MODAL_HREF}
                 className="btn bg-base-100 text-base-content border-none hover:bg-base-200 shrink-0 cursor-pointer"
               >
                 Demander l’accès

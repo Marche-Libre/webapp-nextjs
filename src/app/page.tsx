@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { AccessModal } from "@/components/auth/access-modal";
+import { ACCESS_MODAL_HREF } from "@/lib/auth-entry";
 import { AnimatedHero } from "@/components/home/animated-hero";
 import { AnimatedFeatures } from "@/components/home/animated-features";
 import { AnimatedProfessions } from "@/components/home/animated-professions";
@@ -23,7 +26,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-neutral text-neutral-content">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
@@ -50,35 +53,10 @@ export default function HomePage() {
               <ul className="space-y-2.5">
                 <li>
                   <Link
-                    href="/inscription"
+                    href={ACCESS_MODAL_HREF}
                     className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
                   >
                     Demander l’accès
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Compte */}
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-content/70 mb-4">
-                Compte
-              </h3>
-              <ul className="space-y-2.5">
-                <li>
-                  <Link
-                    href="/inscription"
-                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
-                  >
-                    Rejoindre
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/connexion"
-                    className="text-sm text-neutral-content/50 hover:text-neutral-content transition-colors"
-                  >
-                    Connexion
                   </Link>
                 </li>
               </ul>
@@ -127,6 +105,9 @@ export default function HomePage() {
         </div>
       </footer>
 
+      <Suspense fallback={null}>
+        <AccessModal />
+      </Suspense>
       <CookieBanner />
     </div>
   );

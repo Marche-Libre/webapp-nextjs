@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function redirectToAccessModal(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/";
+  url.search = "";
+  url.searchParams.set("auth", "access");
+  return NextResponse.redirect(url);
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -54,9 +62,7 @@ export async function updateSession(request: NextRequest) {
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute && !isPublicNonPrivateRouteHandler) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/connexion";
-    return NextResponse.redirect(url);
+    return redirectToAccessModal(request);
   }
 
   // If authenticated, check profile status and redirect accordingly
@@ -68,10 +74,8 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     if (profileError || !profile) {
-      if (pathname !== "/connexion") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/connexion";
-        return NextResponse.redirect(url);
+      if (!authEntryRoutes.includes(pathname)) {
+        return redirectToAccessModal(request);
       }
       return supabaseResponse;
     }

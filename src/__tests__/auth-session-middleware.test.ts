@@ -44,6 +44,10 @@ async function expectRedirect(pathname: string, location: string) {
   expect(response.headers.get("location")).toBe(`https://example.test${location}`);
 }
 
+async function expectAccessModalRedirect(pathname: string) {
+  await expectRedirect(pathname, "/?auth=access");
+}
+
 async function expectAllowed(pathname: string) {
   const response = await updateSession(requestFor(pathname));
   expect(response.status).toBe(200);
@@ -90,45 +94,42 @@ describe("auth session middleware routing matrix", () => {
     mockUserId = null;
 
     const privateRoutes = ["/onboarding", ...memberRoutes, "/admin"];
-    await Promise.all(
-      privateRoutes.map((route) => expectRedirect(route, "/connexion")),
-    );
+    await Promise.all(privateRoutes.map((route) => expectAccessModalRedirect(route)));
   });
 
-  it("routes authenticated users with no profile rows to /connexion and keeps legal/public handler access", async () => {
+  it("keeps auth entry routes loop-free when profile rows are missing", async () => {
     mockProfile = null;
 
+    await expectAllowed("/");
     await expectAllowed("/connexion");
+    await expectAllowed("/inscription");
+    await expectAllowed("/rejoindre");
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
     const blockedRoutes = [
-      "/",
-      "/inscription",
-      "/rejoindre",
       "/en-attente",
       "/onboarding",
       ...memberRoutes,
       "/admin",
     ];
 
-    await Promise.all(
-      blockedRoutes.map((route) => expectRedirect(route, "/connexion")),
-    );
+    await Promise.all(blockedRoutes.map((route) => expectAccessModalRedirect(route)));
   });
 
-  it("routes profile fetch errors to /connexion and avoids redirect loops", async () => {
+  it("keeps auth entry routes loop-free on profile fetch errors", async () => {
     mockProfile = { status: "approved", onboarding_completed: true };
     mockProfileError = { message: "boom" };
 
+    await expectAllowed("/");
     await expectAllowed("/connexion");
+    await expectAllowed("/inscription");
+    await expectAllowed("/rejoindre");
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
-    const blockedRoutes = ["/", "/en-attente", "/onboarding", ...memberRoutes, "/admin"];
-    await Promise.all(
-      blockedRoutes.map((route) => expectRedirect(route, "/connexion")),
-    );
+    const blockedRoutes = ["/en-attente", "/onboarding", ...memberRoutes, "/admin"];
+    await Promise.all(blockedRoutes.map((route) => expectAccessModalRedirect(route)));
   });
 
   it("treats unknown statuses as non-member and routes to /en-attente", async () => {

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ChevronDown, EyeOff, Eye, Hash } from "lucide-react";
-import Link from "next/link";
+import { ChevronDown, EyeOff, Eye, Hash } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useActiveChannel } from "./chat-channel-context";
 import { Avatar } from "@/components/ui/avatar";
@@ -42,13 +41,6 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-[10px] px-[20px] h-[64px] border-b border-border-subtle shrink-0">
-        <Link
-          href="/chat"
-          className="p-[6px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors"
-          title="Retour"
-        >
-          <ArrowLeft className="h-[18px] w-[18px]" />
-        </Link>
         <h2 className="font-display font-semibold text-[17px] text-text-primary tracking-[-0.02em] flex-1">
           Salons
         </h2>

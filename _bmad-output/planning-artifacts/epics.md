@@ -455,6 +455,34 @@ So that pending, refused, logged-out, and non-member users cannot reach private 
 **And** approved onboarded users reach `/chat`
 **And** verification distinguishes baseline failures from new regressions.
 
+### Story 2.7: Unify Public Access Entry and Retire Duplicate Auth Pages
+
+As a visitor or returning candidate,
+I want one public access entry point that opens sign-in in context,
+So that I do not choose between redundant connection and registration screens or repeat the same X auth step.
+
+**Acceptance Criteria:**
+
+**Given** a signed-out visitor reaches the public landing page
+**When** they review public entry actions in the header, floating header, hero, CTA, or footer
+**Then** the product presents one primary access action labeled "Demander l’accès"
+**And** the action keeps the visitor on the home page and opens an access modal
+**And** the modal presents the X auth action once with manual-admission copy
+**And** public entry surfaces do not show separate "Connexion", "Inscription", "Rejoindre", or login/signup cross-links as competing primary actions.
+
+**Given** a visitor reaches `/connexion` or `/inscription` directly
+**When** the compatibility route loads
+**Then** it redirects to the home-page access modal rather than rendering a separate auth screen
+**And** the bookmarked route does not 404.
+
+**Given** a signed-out user attempts a protected route
+**When** auth routing blocks access
+**Then** they are sent to the home-page access modal rather than a standalone login/register page.
+
+**Given** a user returns from X OAuth
+**When** the app resolves session, admission, and onboarding state
+**Then** approved onboarded users reach `/chat`, approved not-onboarded users reach onboarding, and pending/refused users reach `/en-attente` without a second "join" auth action.
+
 ## Epic 3: Approved Member Chat Home
 
 Approved members can use `/chat` as the primary app center, view admin-defined channels, read messages, send messages, and return to participate in the beta community.
