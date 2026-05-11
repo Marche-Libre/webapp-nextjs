@@ -188,4 +188,20 @@ describe("authorization hardening", () => {
     expect(errorBranch).not.toContain("notifyMentions");
     expect(successBranch).toContain("notifyMentions");
   });
+
+  it("prevents users from reacting to their own chat messages", () => {
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const chatStore = source("src/components/chat/chat-store.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(messageArea).toContain("msg.author_id === userId");
+    expect(messageArea).toContain("? undefined");
+    expect(chatStore).toContain("message.author_id === userId");
+    expect(chatStore).toContain("messageAuthorIds.get(r.message_id) === r.user_id");
+    expect(chatStore).toContain("newAuthorIds.get(r.message_id) === r.user_id");
+    expect(migrationText).toContain('DROP POLICY IF EXISTS "Users can add reactions"');
+    expect(migrationText).toContain("m.author_id <> (SELECT auth.uid())");
+  });
 });

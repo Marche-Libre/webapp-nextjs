@@ -95,7 +95,11 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
               key={msg.id}
               message={msg}
               reactions={reactions[msg.id]}
-              onReact={(emoji) => store.toggleReaction(channelId, msg.id, emoji)}
+              onReact={
+                msg.author_id === userId
+                  ? undefined
+                  : (emoji) => store.toggleReaction(channelId, msg.id, emoji)
+              }
               currentUserId={userId}
               isAdmin={isAdmin}
               onMessageUpdated={() => store.refreshMessage(channelId, msg.id)}

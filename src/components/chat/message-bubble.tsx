@@ -57,6 +57,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   const [saving, setSaving] = useState(false);
 
   const isOwn = currentUserId === message.author_id;
+  const canReact = Boolean(onReact);
   const isSending = (message as any)._status === "sending";
   const isFailed = (message as any)._status === "failed";
   // Consider edited only if updated_at is more than 2 seconds after created_at
@@ -223,12 +224,14 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
             {reactions.map((r) => (
               <button
                 key={r.emoji}
-                onClick={() => onReact?.(r.emoji)}
-                className={`inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded-full text-[11px] border cursor-pointer transition-all ${
+                type="button"
+                onClick={canReact ? () => onReact?.(r.emoji) : undefined}
+                disabled={!canReact}
+                className={`inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded-full text-[11px] border transition-all ${
                   r.hasReacted
                     ? "bg-primary-50 border-primary-500/30 text-primary-700"
                     : "bg-bg-surface border-border-default text-text-muted hover:border-border-strong"
-                }`}
+                } ${canReact ? "cursor-pointer" : "cursor-default"}`}
               >
                 <span>{r.emoji}</span>
                 <span className="font-medium">{r.count}</span>
@@ -277,8 +280,8 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
             <Flag className="h-[13px] w-[13px]" />
           </button>
         )}
-        {onReact && (
-          <ReactionPicker onSelect={(emoji) => onReact(emoji)} />
+        {canReact && (
+          <ReactionPicker onSelect={(emoji) => onReact?.(emoji)} />
         )}
       </div>
     </div>
