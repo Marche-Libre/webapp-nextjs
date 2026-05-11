@@ -89,7 +89,8 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
           </div>
         )}
 
-        <div className="pt-[8px] pb-[8px] flex flex-col justify-end min-h-full">
+        {/* We want the message to start from top */}
+        <div className="pt-[8px] pb-[8px] flex flex-col min-h-full">
           {messages.map((msg) => (
             <MessageBubble
               key={msg.id}
