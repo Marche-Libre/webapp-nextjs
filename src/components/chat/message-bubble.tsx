@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { timeAgo } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
-import { Pencil, Trash2, Check, X, Flag, Pin } from "lucide-react";
+import { Pencil, Trash2, Check, Flag, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
 import { PostEmbed } from "./post-embed";
@@ -40,6 +40,7 @@ function renderContentWithMentions(content: string) {
 interface MessageBubbleProps {
   message: Message & {
     author: { x_handle: string; full_name: string; avatar_url: string | null };
+    _status?: "sending" | "failed";
   };
   reactions?: { emoji: string; count: number; hasReacted: boolean }[];
   onReact?: (emoji: string) => void;
@@ -49,23 +50,35 @@ interface MessageBubbleProps {
 }
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
+const DELETE_BUTTON_BASE_CLASS = "p-[4px] rounded hover:bg-error-bg cursor-pointer transition-colors disabled:opacity-50";
 
 export function MessageBubble({ message, reactions, onReact, currentUserId, isAdmin, onMessageUpdated }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [deleted, setDeleted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
 
   const isOwn = currentUserId === message.author_id;
   const canReact = Boolean(onReact);
-  const isSending = (message as any)._status === "sending";
-  const isFailed = (message as any)._status === "failed";
+  const isSending = message._status === "sending";
+  const isFailed = message._status === "failed";
   // Consider edited only if updated_at is more than 2 seconds after created_at
   const isEdited = message.updated_at && message.created_at
     && (new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 2000);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
 
   const supabase = createClient();
+
+  useEffect(() => {
+    if (!deleteConfirming) return;
+
+    const timeout = window.setTimeout(() => {
+      setDeleteConfirming(false);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [deleteConfirming]);
 
   const handleSaveEdit = async () => {
     if (!editContent.trim() || editContent === message.content) {
@@ -89,6 +102,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
       .update({ content: "", updated_at: new Date().toISOString() })
       .eq("id", message.id);
     setDeleted(true);
+    setDeleteConfirming(false);
     setSaving(false);
     onMessageUpdated?.();
   };
@@ -126,6 +140,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   };
 
   // Deleted message
+  // TODO: Add revert option / rollback deletion
   if (deleted || (!message.content && !message.image_url)) {
     return (
       <div className="flex items-start gap-[12px] px-[16px] py-[8px]">
@@ -254,6 +269,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
         )}
         {isOwn && !editing && (
           <>
+            {/*TODO : on hover, animation texte apparait et push les autres icones sans saut*/}
             <button
               onClick={() => setEditing(true)}
               className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
@@ -261,14 +277,19 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
             >
               <Pencil className="h-[13px] w-[13px]" />
             </button>
-            <button
-              onClick={handleDelete}
-              disabled={saving}
-              className="p-[4px] rounded hover:bg-error-bg text-text-muted hover:text-error cursor-pointer transition-colors disabled:opacity-50"
-              title="Supprimer"
-            >
-              <Trash2 className="h-[13px] w-[13px]" />
-            </button>
+
+            {deleteConfirming ? (
+              <ConfirmDeleteButton
+                saving={saving}
+                onDelete={handleDelete}
+                onCancel={() => setDeleteConfirming(false)}
+              />
+            ) : (
+              <DeleteButton
+                saving={saving}
+                onConfirm={() => setDeleteConfirming(true)}
+              />
+            )}
           </>
         )}
         {!isOwn && currentUserId && (
@@ -285,5 +306,34 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
         )}
       </div>
     </div>
+  );
+}
+
+function DeleteButton({ saving, onConfirm }: { saving: boolean; onConfirm: () => void }) {
+  return (
+    <button
+      onClick={onConfirm}
+      disabled={saving}
+      className={`${DELETE_BUTTON_BASE_CLASS} text-text-muted hover:text-error`}
+      title="Supprimer"
+      aria-label="Supprimer le message"
+    >
+      <Trash2 className="h-[13px] w-[13px]" />
+    </button>
+  );
+}
+
+function ConfirmDeleteButton({ saving, onDelete, onCancel }: { saving: boolean; onDelete: () => void; onCancel: () => void }) {
+  return (
+    <button
+      onClick={onDelete}
+      onMouseLeave={onCancel}
+      disabled={saving}
+      className={`${DELETE_BUTTON_BASE_CLASS} bg-error-bg text-error`}
+      title="Confirmer la suppression"
+      aria-label="Confirmer la suppression du message"
+    >
+      <Check className="h-[13px] w-[13px]" />
+    </button>
   );
 }
