@@ -251,6 +251,19 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
   useEffect(clearTimeoutOnUnmountEffect, [clearTimeoutOnUnmountEffect]);
   useEffect(syncWindowListenersEffect, [syncWindowListenersEffect]);
 
+  useEffect(() => {
+    if (!show || !profile?.specialty_category_id || categoryName) return;
+    const supabase = createClient();
+    supabase
+      .from("specialty_categories")
+      .select("name")
+      .eq("id", profile.specialty_category_id)
+      .single()
+      .then(({ data: cat }) => {
+        if (cat) setCategoryName(cat.name);
+      });
+  }, [show, profile?.specialty_category_id, categoryName]);
+
   return (
     <div
       ref={ref}

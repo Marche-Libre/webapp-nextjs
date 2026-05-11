@@ -9,7 +9,7 @@ interface MemberListProps {
 
 type MemberListMember = MemberListProps["members"][number];
 
-const renderMember = (member: MemberListMember) => {
+function renderMember(member: MemberListMember) {
   return (
     <UserHoverCard
       key={member.id}
@@ -29,12 +29,10 @@ const renderMember = (member: MemberListMember) => {
       </div>
     </UserHoverCard>
   );
-};
+}
 
 export function MemberList({ members }: MemberListProps) {
-  const memberItems = useMemo(() => {
-    return members.map(renderMember);
-  }, [members]);
+  const memberItems = members.map(renderMember);
 
   return (
     <div className="flex flex-col h-full">
