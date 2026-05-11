@@ -43,13 +43,13 @@ const VIEWPORT_PADDING = 12;
 const ESTIMATED_CARD_HEIGHT = 220;
 const HIDE_DELAY_MS = 200;
 
-function getCardPosition(anchor: HTMLElement): CardPosition {
+function getCardPosition(anchor: HTMLElement) {
   const rect = anchor.getBoundingClientRect();
   const maxLeft = Math.max(VIEWPORT_PADDING, window.innerWidth - CARD_WIDTH - VIEWPORT_PADDING);
   const left = Math.min(Math.max(rect.left, VIEWPORT_PADDING), maxLeft);
   const spaceBelow = window.innerHeight - rect.bottom;
   const spaceAbove = rect.top;
-  const placement = spaceBelow < ESTIMATED_CARD_HEIGHT && spaceAbove > spaceBelow ? "top" : "bottom";
+  const placement: CardPosition["placement"] = spaceBelow < ESTIMATED_CARD_HEIGHT && spaceAbove > spaceBelow ? "top" : "bottom";
   const top = placement === "top"
     ? Math.max(VIEWPORT_PADDING, rect.top - CARD_GAP)
     : Math.min(window.innerHeight - VIEWPORT_PADDING, rect.bottom + CARD_GAP);
@@ -62,11 +62,14 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
   const [profile, setProfile] = useState<MiniProfile | null>(profileCache.get(authorId) || null);
   const [categoryName, setCategoryName] = useState<string | null>(null);
   const [cardPosition, setCardPosition] = useState<CardPosition | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>(undefined);
+  const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
-  const displayFullName = profile?.full_name ?? full_name;
-  const cardStyle = useMemo<CSSProperties | undefined>(function buildCardStyle() {
+  const displayFullName = useMemo(() => {
+    return profile?.full_name ?? full_name;
+  }, [full_name, profile?.full_name]);
+
+  const buildCardStyle = useCallback(() => {
     if (!cardPosition) return undefined;
 
     return {
@@ -76,34 +79,42 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
     };
   }, [cardPosition]);
 
-  const handleCardEnter = useCallback(function handleCardEnter() {
-    clearTimeout(timeoutRef.current);
+  const cardStyle = useMemo<CSSProperties | undefined>(() => buildCardStyle(), [buildCardStyle]);
+
+  const clearHideTimeout = useCallback(() => {
+    if (timeoutRef.current === null) return;
+    window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
   }, []);
 
-  const updatePosition = useCallback(function updatePosition() {
+  const handleCardEnter = useCallback(() => {
+    clearHideTimeout();
+  }, [clearHideTimeout]);
+
+  const updatePosition = useCallback(() => {
     if (ref.current) setCardPosition(getCardPosition(ref.current));
   }, []);
 
-  const openCard = useCallback(function openCard() {
+  const openCard = useCallback(() => {
     updatePosition();
     setShow(true);
   }, [updatePosition]);
 
-  const hideCard = useCallback(function hideCard() {
+  const hideCard = useCallback(() => {
     setShow(false);
   }, []);
 
-  const handleEnter = useCallback(function handleEnter() {
-    clearTimeout(timeoutRef.current);
+  const handleEnter = useCallback(() => {
+    clearHideTimeout();
     openCard();
-  }, [openCard]);
+  }, [clearHideTimeout, openCard]);
 
-  const handleLeave = useCallback(function handleLeave() {
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(hideCard, HIDE_DELAY_MS);
-  }, [hideCard]);
+  const handleLeave = useCallback(() => {
+    clearHideTimeout();
+    timeoutRef.current = window.setTimeout(hideCard, HIDE_DELAY_MS);
+  }, [clearHideTimeout, hideCard]);
 
-  const card = useMemo(function renderCard() {
+  const buildCard = useCallback(() => {
     if (!show || !cardPosition || !cardStyle || typeof document === "undefined") return null;
 
     const profileLocation = profile?.location;
@@ -179,21 +190,36 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
     x_handle,
   ]);
 
-  useEffect(() => {
-    return () => clearTimeout(timeoutRef.current);
-  }, []);
+  const card = useMemo(() => buildCard(), [buildCard]);
 
-  useEffect(() => {
+  const clearTimeoutOnUnmountEffect = useCallback(() => {
+    return clearHideTimeout;
+  }, [clearHideTimeout]);
+
+  const removeWindowListeners = useCallback(() => {
+    window.removeEventListener("resize", updatePosition);
+    window.removeEventListener("scroll", updatePosition, true);
+  }, [updatePosition]);
+
+  const syncWindowListenersEffect = useCallback(() => {
     if (!show) return;
 
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
 
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [show, updatePosition]);
+    return removeWindowListeners;
+  }, [removeWindowListeners, show, updatePosition]);
+
+  const applyFetchedProfile = useCallback((fetchedProfile: MiniProfile | null) => {
+    if (!fetchedProfile) return;
+    profileCache.set(authorId, fetchedProfile);
+    setProfile(fetchedProfile);
+  }, [authorId]);
+
+  const applyFetchedCategory = useCallback((fetchedCategory: { name: string } | null) => {
+    if (!fetchedCategory) return;
+    setCategoryName(fetchedCategory.name);
+  }, []);
 
   useEffect(() => {
     if (!show || profile) return;
@@ -204,25 +230,26 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
       .eq("id", authorId)
       .single()
       .then(({ data }) => {
-        if (data) {
-          profileCache.set(authorId, data as MiniProfile);
-          setProfile(data as MiniProfile);
-        }
+        applyFetchedProfile(data as MiniProfile | null);
       });
-  }, [show, profile, authorId]);
+  }, [applyFetchedProfile, authorId, profile, show]);
 
   useEffect(() => {
-    if (!show || !profile?.specialty_category_id || categoryName) return;
+    const categoryId = profile?.specialty_category_id;
+    if (!show || !categoryId || categoryName) return;
     const supabase = createClient();
     supabase
       .from("specialty_categories")
       .select("name")
-      .eq("id", profile.specialty_category_id)
+      .eq("id", categoryId)
       .single()
-      .then(({ data: cat }) => {
-        if (cat) setCategoryName(cat.name);
+      .then(({ data }) => {
+        applyFetchedCategory(data as { name: string } | null);
       });
-  }, [show, profile?.specialty_category_id, categoryName]);
+  }, [applyFetchedCategory, categoryName, profile?.specialty_category_id, show]);
+
+  useEffect(clearTimeoutOnUnmountEffect, [clearTimeoutOnUnmountEffect]);
+  useEffect(syncWindowListenersEffect, [syncWindowListenersEffect]);
 
   return (
     <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn, timeAgo } from "@/lib/utils";
@@ -53,10 +53,9 @@ interface MessageBubbleProps {
 type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean };
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
-const DELETE_BUTTON_BASE_CLASS = "p-[4px] rounded hover:bg-error-bg cursor-pointer transition-colors disabled:opacity-50";
 const EMPTY_IMAGE_URLS: string[] = [];
 
-function parseImageUrls(imageUrl: string | null): string[] {
+function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
 
   try {
@@ -90,15 +89,7 @@ function MessageReactionButton({
   canReact: boolean;
   onReact?: (emoji: string) => void;
 }) {
-  const buttonClassName = cn(
-    "inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded-full text-[11px] border transition-all",
-    reaction.hasReacted
-      ? "bg-primary-50 border-primary-500/30 text-primary-700"
-      : "bg-bg-surface border-border-default text-text-muted hover:border-border-strong",
-    canReact ? "cursor-pointer" : "cursor-default"
-  );
-
-  const handleClick = useCallback(function handleClick() {
+  const handleClick = useCallback(() => {
     onReact?.(reaction.emoji);
   }, [onReact, reaction.emoji]);
 
@@ -109,7 +100,13 @@ function MessageReactionButton({
       type="button"
       onClick={clickHandler}
       disabled={!canReact}
-      className={buttonClassName}
+      className={cn(
+        "inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded-full text-[11px] border transition-all",
+        reaction.hasReacted
+          ? "bg-primary-50 border-primary-500/30 text-primary-700"
+          : "bg-bg-surface border-border-default text-text-muted hover:border-border-strong",
+        canReact ? "cursor-pointer" : "cursor-default"
+      )}
     >
       <span>{reaction.emoji}</span>
       <span className="font-medium">{reaction.count}</span>
@@ -123,26 +120,29 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   const [deleted, setDeleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
-  const supabase = useMemo(function createSupabaseClient() {
-    return createClient();
-  }, []);
+  const [supabase] = useState(createClient);
+  const deleteConfirmTimeoutRef = useRef<number | null>(null);
 
   const isOwn = currentUserId === message.author_id;
-  const canReact = Boolean(onReact);
+  const canReact = useMemo(() => {
+    return Boolean(onReact);
+  }, [onReact]);
   const isSending = message._status === "sending";
   const isFailed = message._status === "failed";
   // Consider edited only if updated_at is more than 2 seconds after created_at
   const isEdited = message.updated_at && message.created_at
     && (new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 2000);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
-  const contentParts = useMemo(function buildContentParts() {
+  const resolveContentParts = useCallback(() => {
     return renderContentWithMentions(message.content);
   }, [message.content]);
-  const imageUrls = useMemo(function buildImageUrls() {
+  const resolveImageUrls = useCallback(() => {
     return parseImageUrls(message.image_url);
   }, [message.image_url]);
+  const contentParts = useMemo(() => resolveContentParts(), [resolveContentParts]);
+  const imageUrls = useMemo(() => resolveImageUrls(), [resolveImageUrls]);
 
-  const handleSaveEdit = useCallback(async function handleSaveEdit() {
+  const handleSaveEdit = useCallback(async () => {
     if (!editContent.trim() || editContent === message.content) {
       setEditing(false);
       return;
@@ -157,7 +157,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     onMessageUpdated?.();
   }, [editContent, message.content, message.id, onMessageUpdated, supabase]);
 
-  const handleDelete = useCallback(async function handleDelete() {
+  const handleDelete = useCallback(async () => {
     setSaving(true);
     await supabase
       .from("messages")
@@ -169,7 +169,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     onMessageUpdated?.();
   }, [message.id, onMessageUpdated, supabase]);
 
-  const handleTogglePin = useCallback(async function handleTogglePin() {
+  const handleTogglePin = useCallback(async () => {
     await supabase
       .from("messages")
       .update({ is_pinned: !message.is_pinned })
@@ -177,7 +177,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     onMessageUpdated?.();
   }, [message.id, message.is_pinned, onMessageUpdated, supabase]);
 
-  const handleReport = useCallback(async function handleReport() {
+  const handleReport = useCallback(async () => {
     const reason = prompt("Raison du signalement :");
     if (!reason) return;
     await supabase.from("user_reports").insert({
@@ -189,11 +189,11 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     alert("Signalement envoyé. Un administrateur examinera ce message.");
   }, [currentUserId, message.author_id, message.id, supabase]);
 
-  const handleEditContentChange = useCallback(function handleEditContentChange(e: ChangeEvent<HTMLTextAreaElement>) {
+  const handleEditContentChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     setEditContent(e.target.value);
   }, []);
 
-  const handleKeyDown = useCallback(function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void handleSaveEdit();
@@ -204,35 +204,40 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     }
   }, [handleSaveEdit, message.content]);
 
-  const handleStartEditing = useCallback(function handleStartEditing() {
+  const handleStartEditing = useCallback(() => {
     setEditing(true);
   }, []);
 
-  const handleStartDeleteConfirming = useCallback(function handleStartDeleteConfirming() {
+  const handleStartDeleteConfirming = useCallback(() => {
     setDeleteConfirming(true);
   }, []);
 
-  const handleCancelDeleteConfirming = useCallback(function handleCancelDeleteConfirming() {
+  const handleCancelDeleteConfirming = useCallback(() => {
     setDeleteConfirming(false);
   }, []);
 
-  const handleReactionSelect = useCallback(function handleReactionSelect(emoji: string) {
+  const handleReactionSelect = useCallback((emoji: string) => {
     onReact?.(emoji);
   }, [onReact]);
 
-  const imageItems = useMemo(function renderImageItems() {
+  const buildImageItems = useCallback(() => {
     if (imageUrls.length === 0) return null;
 
-    return imageUrls.map(function renderImage(url: string, index: number) {
-      return <MessageImage key={`${url}-${index}`} url={url} index={index} />;
+    const items: ReactNode[] = [];
+    imageUrls.forEach((url: string, index: number) => {
+      items.push(<MessageImage key={`${url}-${index}`} url={url} index={index} />);
     });
+    return items;
   }, [imageUrls]);
 
-  const reactionItems = useMemo(function renderReactionItems() {
+  const imageItems = useMemo(() => buildImageItems(), [buildImageItems]);
+
+  const buildReactionItems = useCallback(() => {
     if (!reactions || reactions.length === 0) return null;
 
-    return reactions.map(function renderReactionButton(reaction: MessageReactionEntry) {
-      return (
+    const items: ReactNode[] = [];
+    for (const reaction of reactions) {
+      items.push(
         <MessageReactionButton
           key={reaction.emoji}
           reaction={reaction}
@@ -240,8 +245,11 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
           onReact={handleReactionSelect}
         />
       );
-    });
+    }
+    return items;
   }, [canReact, handleReactionSelect, reactions]);
+
+  const reactionItems = useMemo(() => buildReactionItems(), [buildReactionItems]);
 
   const pinnedIcon = message.is_pinned ? (
     <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
@@ -356,13 +364,22 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     </>
   );
 
-  useEffect(() => {
+  const clearDeleteConfirmTimeout = useCallback(() => {
+    if (deleteConfirmTimeoutRef.current === null) return;
+    window.clearTimeout(deleteConfirmTimeoutRef.current);
+    deleteConfirmTimeoutRef.current = null;
+  }, []);
+
+  const manageDeleteConfirmTimeoutEffect = useCallback(() => {
+    clearDeleteConfirmTimeout();
     if (!deleteConfirming) return;
 
-    const timeout = window.setTimeout(handleCancelDeleteConfirming, 3000);
+    deleteConfirmTimeoutRef.current = window.setTimeout(handleCancelDeleteConfirming, 3000);
 
-    return () => window.clearTimeout(timeout);
-  }, [deleteConfirming, handleCancelDeleteConfirming]);
+    return clearDeleteConfirmTimeout;
+  }, [clearDeleteConfirmTimeout, deleteConfirming, handleCancelDeleteConfirming]);
+
+  useEffect(manageDeleteConfirmTimeoutEffect, [manageDeleteConfirmTimeoutEffect]);
 
   // Deleted message
   // TODO: Add revert option / rollback deletion
@@ -465,7 +482,7 @@ function DeleteButton({ saving, onConfirm }: { saving: boolean; onConfirm: () =>
     <button
       onClick={onConfirm}
       disabled={saving}
-      className={`${DELETE_BUTTON_BASE_CLASS} text-text-muted hover:text-error`}
+      className="p-[4px] rounded hover:bg-error-bg cursor-pointer transition-colors disabled:opacity-50 text-text-muted hover:text-error"
       title="Supprimer"
       aria-label="Supprimer le message"
     >
@@ -480,7 +497,7 @@ function ConfirmDeleteButton({ saving, onDelete, onCancel }: { saving: boolean; 
       onClick={onDelete}
       onMouseLeave={onCancel}
       disabled={saving}
-      className={`${DELETE_BUTTON_BASE_CLASS} bg-error-bg text-error`}
+      className="p-[4px] rounded hover:bg-error-bg cursor-pointer transition-colors disabled:opacity-50 bg-error-bg text-error"
       title="Confirmer la suppression"
       aria-label="Confirmer la suppression du message"
     >

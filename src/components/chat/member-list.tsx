@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import type { Profile } from "@/lib/types/database";
 import { UserHoverCard } from "./user-hover-card";
@@ -8,7 +9,7 @@ interface MemberListProps {
 
 type MemberListMember = MemberListProps["members"][number];
 
-function renderMember(member: MemberListMember) {
+const renderMember = (member: MemberListMember) => {
   return (
     <UserHoverCard
       key={member.id}
@@ -28,10 +29,12 @@ function renderMember(member: MemberListMember) {
       </div>
     </UserHoverCard>
   );
-}
+};
 
 export function MemberList({ members }: MemberListProps) {
-  const memberItems = members.map(renderMember);
+  const memberItems = useMemo(() => {
+    return members.map(renderMember);
+  }, [members]);
 
   return (
     <div className="flex flex-col h-full">
