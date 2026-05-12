@@ -62,7 +62,7 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
   const [profile, setProfile] = useState<MiniProfile | null>(profileCache.get(authorId) || null);
   const [categoryName, setCategoryName] = useState<string | null>(null);
   const [cardPosition, setCardPosition] = useState<CardPosition | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   const displayFullName = useMemo(() => {

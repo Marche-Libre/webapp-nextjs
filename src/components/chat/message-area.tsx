@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useEffect, useRef, useCallback, useMemo, type ReactElement } from "react";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
@@ -83,7 +83,7 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   }, [hasMore, loadMore]);
 
   const messageItems = useMemo(() => {
-    const items: JSX.Element[] = [];
+    const items: ReactElement[] = [];
 
     for (const msg of messages) {
       items.push(
