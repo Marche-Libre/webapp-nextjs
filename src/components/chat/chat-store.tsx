@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useRef, useEffect, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
@@ -28,6 +28,13 @@ type StoreState = {
   activePanel: { isOpen: boolean; slug: string };
 };
 
+const EMPTY_CHANNEL_STATE: ChannelState = {
+  messages: [],
+  reactions: {},
+  hasMore: true,
+  loaded: false,
+};
+
 // ─── Store (singleton, lives outside React) ───
 
 function createChatStore(userId: string) {
@@ -37,6 +44,7 @@ function createChatStore(userId: string) {
   };
 
   const listeners = new Set<() => void>();
+  const channelListeners = new Map<string, Set<() => void>>();
   const subscriptions = new Map<string, ReturnType<ReturnType<typeof createClient>["channel"]>>();
   const supabase = createClient();
 
@@ -55,8 +63,25 @@ function createChatStore(userId: string) {
     return () => listeners.delete(listener);
   }
 
+  function subscribeChannel(channelId: string, listener: () => void) {
+    const channelSet = channelListeners.get(channelId) ?? new Set<() => void>();
+    channelSet.add(listener);
+    channelListeners.set(channelId, channelSet);
+
+    return () => {
+      channelSet.delete(listener);
+      if (channelSet.size === 0) channelListeners.delete(channelId);
+    };
+  }
+
+  function emitChannel(channelId: string) {
+    const channelSet = channelListeners.get(channelId);
+    if (!channelSet) return;
+    channelSet.forEach((listener) => listener());
+  }
+
   function getChannel(channelId: string): ChannelState {
-    return state.channels[channelId] || { messages: [], reactions: {}, hasMore: true, loaded: false };
+    return state.channels[channelId] || EMPTY_CHANNEL_STATE;
   }
 
   function setChannel(channelId: string, updater: (prev: ChannelState) => ChannelState) {
@@ -67,6 +92,7 @@ function createChatStore(userId: string) {
         [channelId]: updater(getChannel(channelId)),
       },
     };
+    emitChannel(channelId);
     emit();
   }
 
@@ -154,8 +180,12 @@ function createChatStore(userId: string) {
     // Reactions subscription
     const reactChannel = supabase
       .channel(`reactions:${channelId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
-        fetchReactions(channelId);
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, (payload) => {
+        const messageId = getReactionMessageId(payload);
+        if (!messageId) return;
+        const hasMessage = getChannel(channelId).messages.some((message) => message.id === messageId);
+        if (!hasMessage) return;
+        void fetchReactions(channelId);
       })
       .subscribe();
 
@@ -183,7 +213,7 @@ function createChatStore(userId: string) {
     const ch = getChannel(channelId);
     if (ch.loaded && !forceRefresh) return; // Already cached
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("messages")
       .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
       .eq("channel_id", channelId)
@@ -368,9 +398,19 @@ function createChatStore(userId: string) {
     emit();
   }
 
+  function destroy() {
+    for (const channel of subscriptions.values()) {
+      void supabase.removeChannel(channel);
+    }
+    subscriptions.clear();
+    listeners.clear();
+    channelListeners.clear();
+  }
+
   return {
     getState,
     subscribe,
+    subscribeChannel,
     getChannel,
     seedChannel,
     loadChannel,
@@ -385,7 +425,13 @@ function createChatStore(userId: string) {
     openPanel,
     closePanel,
     togglePanel,
+    destroy,
   };
+}
+
+function getReactionMessageId(payload: { new?: { message_id?: unknown }; old?: { message_id?: unknown } }) {
+  const messageId = payload.new?.message_id ?? payload.old?.message_id;
+  return typeof messageId === "string" ? messageId : null;
 }
 
 // ─── React Context ───
@@ -395,13 +441,14 @@ type ChatStoreType = ReturnType<typeof createChatStore>;
 const ChatStoreContext = createContext<ChatStoreType | null>(null);
 
 export function ChatStoreProvider({ userId, children }: { userId: string; children: ReactNode }) {
-  const storeRef = useRef<ChatStoreType | null>(null);
-  if (!storeRef.current) {
-    storeRef.current = createChatStore(userId);
-  }
+  const [store] = useState(() => createChatStore(userId));
+
+  useEffect(() => {
+    return store.destroy;
+  }, [store]);
 
   return (
-    <ChatStoreContext.Provider value={storeRef.current}>
+    <ChatStoreContext.Provider value={store}>
       {children}
     </ChatStoreContext.Provider>
   );
@@ -422,8 +469,14 @@ export function useChatState() {
 // Hook to get a channel's state reactively
 export function useChannelState(channelId: string) {
   const store = useChatStore();
-  const state = useSyncExternalStore(store.subscribe, store.getState, store.getState);
-  return state.channels[channelId] || { messages: [], reactions: {}, hasMore: true, loaded: false };
+  const subscribe = useCallback((listener: () => void) => {
+    return store.subscribeChannel(channelId, listener);
+  }, [channelId, store]);
+  const getSnapshot = useCallback(() => {
+    return store.getChannel(channelId);
+  }, [channelId, store]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 // Hook for panel state
