@@ -253,119 +253,6 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
 
   const reactionItems = useMemo(() => buildReactionItems(), [buildReactionItems]);
 
-  const pinnedIcon = message.is_pinned ? (
-    <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
-  ) : null;
-  const editedLabel = isEdited && !editing ? (
-    <span className="text-[10px] text-text-muted italic">(modifié)</span>
-  ) : null;
-  const contentNode = message.content ? (
-    <div
-      className={cn(
-        "text-[13px] mt-[2px] whitespace-pre-wrap break-words",
-        isOwn && "rounded-lg border px-[12px] py-[8px] text-left shadow-sm",
-        !isOwn && (isSending ? "text-text-secondary opacity-50" : isFailed ? "text-error/70" : "text-text-secondary"),
-        isOwn && (isSending
-          ? "bg-primary-50/70 border-primary-500/15 text-text-secondary opacity-70"
-          : isFailed
-            ? "bg-error-bg border-error/20 text-error"
-            : "bg-primary-50 border-primary-500/15 text-text-primary")
-      )}
-    >
-      {contentParts}
-    </div>
-  ) : null;
-  const failedNode = isFailed ? (
-    <p className="text-[11px] text-error mt-[2px]">
-      Échec de l&apos;envoi — vérifiez votre connexion
-    </p>
-  ) : null;
-  const imageNode = imageItems ? (
-    <div
-      className={cn(
-        "mt-[8px]",
-        (imageUrls.length > 1 || isOwn) && "flex",
-        imageUrls.length > 1 && "gap-[6px] flex-wrap",
-        isOwn && "justify-end"
-      )}
-    >
-      {imageItems}
-    </div>
-  ) : null;
-  const forumEmbedNode = forumMatch ? <PostEmbed postId={forumMatch[1]} /> : null;
-  const reactionsNode = reactionItems ? (
-    <div className={cn("flex gap-[4px] mt-[6px] flex-wrap", isOwn && "justify-end")}>
-      {reactionItems}
-    </div>
-  ) : null;
-  const adminPinButton = isAdmin ? (
-    <button
-      onClick={handleTogglePin}
-      className={`p-[4px] rounded hover:bg-bg-surface cursor-pointer transition-colors ${message.is_pinned ? "text-primary-500" : "text-text-muted hover:text-text-secondary"}`}
-      title={message.is_pinned ? "Désépingler" : "Épingler"}
-    >
-      <Pin className="h-[13px] w-[13px]" />
-    </button>
-  ) : null;
-  const deleteButton = deleteConfirming ? (
-    <ConfirmDeleteButton
-      saving={saving}
-      onDelete={handleDelete}
-      onCancel={handleCancelDeleteConfirming}
-    />
-  ) : (
-    <DeleteButton
-      saving={saving}
-      onConfirm={handleStartDeleteConfirming}
-    />
-  );
-  const ownerActions = isOwn && !editing ? (
-    <>
-      {/*TODO : on hover, animation texte apparait et push les autres icones sans saut*/}
-      <button
-        onClick={handleStartEditing}
-        className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
-        title="Modifier"
-      >
-        <Pencil className="h-[13px] w-[13px]" />
-      </button>
-      {deleteButton}
-    </>
-  ) : null;
-  const reportButton = !isOwn && currentUserId ? (
-    <button
-      onClick={handleReport}
-      className="p-[4px] rounded hover:bg-error-bg text-text-muted hover:text-error cursor-pointer transition-colors"
-      title="Signaler"
-    >
-      <Flag className="h-[13px] w-[13px]" />
-    </button>
-  ) : null;
-  const reactionPicker = canReact ? (
-    <ReactionPicker onSelect={handleReactionSelect} />
-  ) : null;
-  const editContentNode = editing ? (
-    <div className="mt-[4px] w-full space-y-[6px]">
-      <textarea
-        value={editContent}
-        onChange={handleEditContentChange}
-        onKeyDown={handleKeyDown}
-        rows={2}
-        className="w-full bg-bg-elevated border border-border-default rounded-lg px-[12px] py-[8px] text-[13px] text-text-primary focus:border-primary-500 focus:outline-none resize-none"
-        autoFocus
-      />
-      <p className="text-[10px] text-text-muted mt-[2px]">Échap pour annuler · Entrée pour sauvegarder</p>
-    </div>
-  ) : null;
-  const messageContentNode = editing ? editContentNode : (
-    <>
-      {contentNode}
-      {failedNode}
-      {imageNode}
-      {forumEmbedNode}
-    </>
-  );
-
   const clearDeleteConfirmTimeout = useCallback(() => {
     if (deleteConfirmTimeoutRef.current === null) return;
     window.clearTimeout(deleteConfirmTimeoutRef.current);
@@ -387,7 +274,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   // TODO: Add revert option / rollback deletion
   if (deleted || (!message.content && !message.image_url)) {
     return (
-      <div className={cn("flex items-start gap-[12px] px-[16px] py-[8px]", isOwn && "flex-row-reverse")}>
+      <article className={cn("flex items-start gap-[12px] px-[16px] py-[8px]", isOwn && "flex-row-reverse")}>
         <UserHoverCard
           authorId={message.author_id}
           x_handle={message.author.x_handle}
@@ -397,26 +284,26 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
           <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
         </UserHoverCard>
         <div className={cn("min-w-0", isOwn ? "max-w-[75%] sm:max-w-[620px] flex flex-col items-end" : "flex-1")}>
-          <div className={cn("flex items-baseline gap-[8px]", isOwn && "justify-end text-right")}>
+          <header className={cn("flex items-baseline gap-[8px]", isOwn && "justify-end text-right")}>
             <span className="text-[13px] font-semibold text-text-primary">
               @{message.author.x_handle}
             </span>
             <span className="text-[10px] text-text-muted">
               {timeAgo(message.created_at)}
             </span>
-          </div>
+          </header>
           <p className={cn("text-[13px] text-text-muted italic mt-[2px]", isOwn && "text-right")}>
             Ce message a été supprimé
           </p>
         </div>
-      </div>
+      </article>
     );
   }
 
   return (
-    <div
+    <article
       className={cn(
-        "flex items-start gap-[12px] px-[16px] py-[8px] transition-colors group relative",
+        "flex items-start gap-[12px] px-[16px] py-[8px] transition-colors group",
         isOwn ? "flex-row-reverse hover:bg-primary-50/20" : "hover:bg-bg-surface/50",
         message.is_pinned && (isOwn
           ? "bg-primary-50/30 border-r-2 border-primary-500"
@@ -431,15 +318,36 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
       >
         <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" className="cursor-pointer" />
       </UserHoverCard>
-      <div
+      <section
         className={cn(
           "min-w-0",
           isOwn ? "max-w-[75%] sm:max-w-[620px] flex flex-col items-end" : "flex-1",
           isOwn && editing && "w-[75%]"
         )}
       >
-        <div className={cn("flex items-baseline gap-[8px]", isOwn && "justify-end text-right")}>
-          {pinnedIcon}
+        <header className={cn("flex items-center gap-[8px]", isOwn && "justify-end text-right")}>
+          {isOwn && (
+            <MessageHeaderActions
+              canReact={canReact}
+              currentUserId={currentUserId}
+              deleteConfirming={deleteConfirming}
+              isAdmin={isAdmin}
+              isEditing={editing}
+              isOwn={isOwn}
+              isPinned={Boolean(message.is_pinned)}
+              saving={saving}
+              onCancelDelete={handleCancelDeleteConfirming}
+              onConfirmDelete={handleStartDeleteConfirming}
+              onDelete={handleDelete}
+              onEdit={handleStartEditing}
+              onPin={handleTogglePin}
+              onReact={handleReactionSelect}
+              onReport={handleReport}
+            />
+          )}
+          {message.is_pinned && (
+            <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
+          )}
           <UserHoverCard
             authorId={message.author_id}
             x_handle={message.author.x_handle}
@@ -453,28 +361,162 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
           <span className="text-[10px] text-text-muted">
             {timeAgo(message.created_at)}
           </span>
-          {editedLabel}
-        </div>
+          {isEdited && !editing && (
+            <span className="text-[10px] text-text-muted italic">(modifié)</span>
+          )}
+          {!isOwn && (
+            <MessageHeaderActions
+              canReact={canReact}
+              currentUserId={currentUserId}
+              deleteConfirming={deleteConfirming}
+              isAdmin={isAdmin}
+              isEditing={editing}
+              isOwn={isOwn}
+              isPinned={Boolean(message.is_pinned)}
+              saving={saving}
+              onCancelDelete={handleCancelDeleteConfirming}
+              onConfirmDelete={handleStartDeleteConfirming}
+              onDelete={handleDelete}
+              onEdit={handleStartEditing}
+              onPin={handleTogglePin}
+              onReact={handleReactionSelect}
+              onReport={handleReport}
+            />
+          )}
+        </header>
 
-        {/* Content or edit form */}
-        {messageContentNode}
-
-        {/* Reactions */}
-        {reactionsNode}
-      </div>
-
-      {/* Hover actions */}
-      <div
-        className={cn(
-          "absolute top-[4px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-[2px]",
-          isOwn ? "left-[12px]" : "right-[12px]"
+        {editing ? (
+          <div className="mt-[4px] w-full space-y-[6px]">
+            <textarea
+              value={editContent}
+              onChange={handleEditContentChange}
+              onKeyDown={handleKeyDown}
+              rows={2}
+              className="w-full bg-bg-elevated border border-border-default rounded-lg px-[12px] py-[8px] text-[13px] text-text-primary focus:border-primary-500 focus:outline-none resize-none"
+              autoFocus
+            />
+            <p className="text-[10px] text-text-muted mt-[2px]">Échap pour annuler · Entrée pour sauvegarder</p>
+          </div>
+        ) : (
+          <>
+            {message.content && (
+              <div
+                className={cn(
+                  "text-[13px] mt-[2px] whitespace-pre-wrap break-words",
+                  isSending ? "text-text-secondary opacity-50" : isFailed ? "text-error/70" : "text-text-secondary"
+                )}
+              >
+                {contentParts}
+              </div>
+            )}
+            {isFailed && (
+              <p className="text-[11px] text-error mt-[2px]">
+                Échec de l&apos;envoi — vérifiez votre connexion
+              </p>
+            )}
+            {imageItems && (
+              <div
+                className={cn(
+                  "mt-[8px]",
+                  (imageUrls.length > 1 || isOwn) && "flex",
+                  imageUrls.length > 1 && "gap-[6px] flex-wrap",
+                  isOwn && "justify-end"
+                )}
+              >
+                {imageItems}
+              </div>
+            )}
+            {forumMatch && <PostEmbed postId={forumMatch[1]} />}
+          </>
         )}
-      >
-        {adminPinButton}
-        {ownerActions}
-        {reportButton}
-        {reactionPicker}
-      </div>
+
+        {reactionItems && (
+          <div className={cn("flex gap-[4px] mt-[6px] flex-wrap", isOwn && "justify-end")}>
+            {reactionItems}
+          </div>
+        )}
+      </section>
+    </article>
+  );
+}
+
+function MessageHeaderActions({
+  canReact,
+  currentUserId,
+  deleteConfirming,
+  isAdmin,
+  isEditing,
+  isOwn,
+  isPinned,
+  saving,
+  onCancelDelete,
+  onConfirmDelete,
+  onDelete,
+  onEdit,
+  onPin,
+  onReact,
+  onReport,
+}: {
+  canReact: boolean;
+  currentUserId?: string;
+  deleteConfirming: boolean;
+  isAdmin?: boolean;
+  isEditing: boolean;
+  isOwn: boolean;
+  isPinned: boolean;
+  saving: boolean;
+  onCancelDelete: () => void;
+  onConfirmDelete: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  onPin: () => void;
+  onReact: (emoji: string) => void;
+  onReport: () => void;
+}) {
+  return (
+    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-[2px]">
+      {isAdmin && (
+        <button
+          onClick={onPin}
+          className={`p-[4px] rounded hover:bg-bg-surface cursor-pointer transition-colors ${isPinned ? "text-primary-500" : "text-text-muted hover:text-text-secondary"}`}
+          title={isPinned ? "Désépingler" : "Épingler"}
+        >
+          <Pin className="h-[13px] w-[13px]" />
+        </button>
+      )}
+      {isOwn && !isEditing && (
+        <>
+          <button
+            onClick={onEdit}
+            className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
+            title="Modifier"
+          >
+            <Pencil className="h-[13px] w-[13px]" />
+          </button>
+          {deleteConfirming ? (
+            <ConfirmDeleteButton
+              saving={saving}
+              onDelete={onDelete}
+              onCancel={onCancelDelete}
+            />
+          ) : (
+            <DeleteButton
+              saving={saving}
+              onConfirm={onConfirmDelete}
+            />
+          )}
+        </>
+      )}
+      {!isOwn && currentUserId && (
+        <button
+          onClick={onReport}
+          className="p-[4px] rounded hover:bg-error-bg text-text-muted hover:text-error cursor-pointer transition-colors"
+          title="Signaler"
+        >
+          <Flag className="h-[13px] w-[13px]" />
+        </button>
+      )}
+      {canReact && <ReactionPicker onSelect={onReact} />}
     </div>
   );
 }
