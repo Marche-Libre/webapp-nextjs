@@ -27,15 +27,11 @@ export default async function AppLayout({
     redirect("/connexion");
   }
 
-  if (profile.status === "pending") {
+  if (profile.status !== "approved") {
     redirect("/en-attente");
   }
 
-  if (profile.status === "rejected") {
-    redirect("/en-attente");
-  }
-
-  if (profile.status === "approved" && profile.onboarding_completed !== true) {
+  if (profile.onboarding_completed !== true) {
     redirect("/onboarding");
   }
 

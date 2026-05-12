@@ -26,24 +26,32 @@ describe("public access positioning", () => {
     expect(publicCopy).not.toContain("S&apos;inscrire gratuitement");
     expect(publicCopy).not.toContain("Validation sous 24h");
     expect(publicCopy).not.toContain("Créer mon compte");
+    expect(publicCopy).not.toContain('href="/connexion"');
+    expect(publicCopy).not.toContain('href="/inscription"');
     expect(footer).not.toContain('href="/chat"');
   });
 
   it("keeps access entry OAuth copy clear about admission requests", () => {
     const rejoindre = source("src/app/rejoindre/page.tsx");
+    const accessModal = source("src/components/auth/access-modal.tsx");
     const inscription = source("src/app/(auth)/inscription/page.tsx");
+    const connexion = source("src/app/(auth)/connexion/page.tsx");
     const authLayout = source("src/app/(auth)/layout.tsx");
-    const authCopy = `${rejoindre}\n${inscription}\n${authLayout}`;
+    const authCopy = `${rejoindre}\n${accessModal}\n${inscription}\n${connexion}\n${authLayout}`;
 
-    expect(authCopy).toContain("Rejoindre avec X");
+    expect(authCopy).toContain("Continuer avec X");
     expect(authCopy).toContain("demande d’admission");
     expect(authCopy).toContain("revue manuellement");
+    expect(accessModal).toContain("Un seul point d’entrée");
     expect(authCopy).not.toContain("Chaque professionnel est parrainé");
     expect(authCopy).not.toContain("S&apos;inscrire avec X");
     expect(authCopy).not.toContain("automatiquement rattaché");
+    expect(authCopy).not.toContain("Pas encore membre");
+    expect(authCopy).not.toContain("Déjà inscrit");
     expect(rejoindre).toContain("ml-referral");
     expect(rejoindre).toContain("getAuthCallbackUrl()");
-    expect(inscription).toContain("getAuthCallbackUrl()");
+    expect(inscription).toContain('redirect("/?auth=access")');
+    expect(connexion).toContain('redirect("/?auth=access")');
   });
 
   it("does not market parked discovery or marketplace features as current public promises", () => {

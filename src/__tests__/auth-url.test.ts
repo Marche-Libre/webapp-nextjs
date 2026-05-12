@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe("auth URL helpers", () => {
-  it("prefers the local browser origin on local hosts", () => {
+  it("prefers the browser origin when running in the browser", () => {
     vi.stubEnv("NODE_ENV", "production");
     process.env.NEXT_PUBLIC_SITE_URL = "https://le-marche-libre.vercel.app";
 

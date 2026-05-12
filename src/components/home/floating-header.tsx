@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ACCESS_MODAL_HREF } from "@/lib/auth-entry";
 
 export function FloatingHeader() {
   const [visible, setVisible] = useState(false);
@@ -33,10 +34,7 @@ export function FloatingHeader() {
 
           <div className="w-px h-5 bg-base-300" />
 
-          <Link href="/connexion" className="btn btn-outline btn-sm rounded-full border-base-300 text-base-content cursor-pointer">
-            Connexion
-          </Link>
-          <Link href="/inscription" className="btn btn-accent btn-sm rounded-full text-accent-content cursor-pointer">
+          <Link href={ACCESS_MODAL_HREF} className="btn btn-accent btn-sm rounded-full text-accent-content cursor-pointer">
             Demander l’accès
           </Link>
         </nav>

@@ -3,7 +3,7 @@
 import { createContext, useContext, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Message, MessageReaction } from "@/lib/types/database";
+import type { Message } from "@/lib/types/database";
 
 // ─── Types ───
 
@@ -76,6 +76,7 @@ function createChatStore(userId: string) {
     const ch = getChannel(channelId);
     const ids = ch.messages.filter((m) => !m.id.startsWith("optimistic-")).map((m) => m.id);
     if (ids.length === 0) return;
+    const messageAuthorIds = new Map(ch.messages.map((m) => [m.id, m.author_id]));
 
     const { data } = await supabase
       .from("message_reactions")
@@ -86,6 +87,7 @@ function createChatStore(userId: string) {
 
     const map: ReactionMap = {};
     for (const r of data) {
+      if (messageAuthorIds.get(r.message_id) === r.user_id) continue;
       if (!map[r.message_id]) map[r.message_id] = [];
       const existing = map[r.message_id].find((e) => e.emoji === r.emoji);
       if (existing) {
@@ -223,6 +225,7 @@ function createChatStore(userId: string) {
       }));
       // Fetch reactions for new messages
       const newIds = data.map((m) => m.id);
+      const newAuthorIds = new Map((data as FullMessage[]).map((m) => [m.id, m.author_id]));
       const { data: rxData } = await supabase
         .from("message_reactions")
         .select("message_id, user_id, emoji")
@@ -231,6 +234,7 @@ function createChatStore(userId: string) {
         setChannel(channelId, (prev) => {
           const updatedReactions = { ...prev.reactions };
           for (const r of rxData) {
+            if (newAuthorIds.get(r.message_id) === r.user_id) continue;
             if (!updatedReactions[r.message_id]) updatedReactions[r.message_id] = [];
             const existing = updatedReactions[r.message_id].find((e) => e.emoji === r.emoji);
             if (existing) { existing.count++; if (r.user_id === userId) existing.hasReacted = true; }
@@ -296,6 +300,9 @@ function createChatStore(userId: string) {
   }
 
   async function toggleReaction(channelId: string, messageId: string, emoji: string) {
+    const message = getChannel(channelId).messages.find((m) => m.id === messageId);
+    if (!message || message.author_id === userId || message.id.startsWith("optimistic-")) return;
+
     // Optimistic
     setChannel(channelId, (prev) => {
       const reactions = { ...prev.reactions };

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { ToggleTheme } from "@/components/lightswind/toggle-theme";
+import { ACCESS_MODAL_HREF } from "@/lib/auth-entry";
 
 export function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,10 +22,7 @@ export function LandingHeader() {
         {/* Desktop */}
         <div className="hidden sm:flex items-center gap-1.5">
           <ToggleTheme animationType="circle-spread" className="text-base-content/50" />
-          <Link href="/connexion" className="btn btn-outline btn-sm border-base-300 text-base-content cursor-pointer">
-            Connexion
-          </Link>
-          <Link href="/inscription" className="btn btn-accent btn-sm text-accent-content cursor-pointer">
+          <Link href={ACCESS_MODAL_HREF} className="btn btn-accent btn-sm text-accent-content cursor-pointer">
             Demander l’accès
           </Link>
         </div>
@@ -45,14 +43,7 @@ export function LandingHeader() {
       {menuOpen && (
         <div className="sm:hidden border-t border-base-300 bg-base-100 px-4 py-4 space-y-3">
           <Link
-            href="/connexion"
-            onClick={() => setMenuOpen(false)}
-            className="block w-full text-center btn btn-outline btn-sm border-base-300 text-base-content cursor-pointer"
-          >
-            Connexion
-          </Link>
-          <Link
-            href="/inscription"
+            href={ACCESS_MODAL_HREF}
             onClick={() => setMenuOpen(false)}
             className="block w-full text-center btn btn-accent btn-sm text-accent-content cursor-pointer"
           >

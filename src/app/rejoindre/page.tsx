@@ -67,7 +67,7 @@ function RejoindreContent() {
           className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all cursor-pointer"
         >
           <XLogo className="w-4 h-4" />
-          Rejoindre avec X
+          Continuer avec X
         </button>
 
         {ref && (
@@ -82,15 +82,6 @@ function RejoindreContent() {
           pour la revue manuelle.
         </p>
 
-        <p className="mt-6 text-center text-sm text-base-content/40">
-          Déjà inscrit ?{" "}
-          <Link
-            href="/connexion"
-            className="text-accent hover:text-accent/80 font-medium"
-          >
-            Se connecter
-          </Link>
-        </p>
       </div>
     </div>
   );

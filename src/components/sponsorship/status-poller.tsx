@@ -12,7 +12,9 @@ interface StatusPollerProps {
 export function StatusPoller({ userId }: StatusPollerProps) {
   const router = useRouter();
   const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState<"approved" | "still-pending" | null>(null);
+  const [result, setResult] = useState<
+    "approved" | "still-pending" | "status-updated" | null
+  >(null);
 
   const checkStatus = useCallback(async () => {
     setChecking(true);
@@ -31,6 +33,13 @@ export function StatusPoller({ userId }: StatusPollerProps) {
       if (profile?.status === "approved") {
         setResult("approved");
         setTimeout(() => router.push("/chat"), 1500);
+        return;
+      }
+
+      if (profile?.status === "rejected") {
+        router.refresh();
+        setResult("status-updated");
+        setTimeout(() => setResult(null), 4000);
         return;
       }
 
@@ -59,6 +68,15 @@ export function StatusPoller({ userId }: StatusPollerProps) {
       <div className="inline-flex items-center gap-1.5 text-xs text-base-content/35">
         <Clock className="h-3 w-3" />
         Toujours en attente
+      </div>
+    );
+  }
+
+  if (result === "status-updated") {
+    return (
+      <div className="inline-flex items-center gap-1.5 text-xs text-base-content/35">
+        <Clock className="h-3 w-3" />
+        Statut mis a jour
       </div>
     );
   }

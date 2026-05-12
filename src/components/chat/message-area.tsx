@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo, type ReactElement } from "react";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
-import { useChatStore, useChannelState } from "./chat-store";
+import { useChatStore, useChannelState, type FullMessage, type ReactionMap } from "./chat-store";
 
 interface MessageAreaProps {
   channelId: string;
@@ -12,6 +12,9 @@ interface MessageAreaProps {
   userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
   isAdmin?: boolean;
 }
+
+type ChatStore = ReturnType<typeof useChatStore>;
+type MessageReactions = ReactionMap[string] | undefined;
 
 export function MessageArea({ channelId, userId, userProfile, isAdmin }: MessageAreaProps) {
   const store = useChatStore();
@@ -21,28 +24,11 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   const isAtBottom = useRef(true);
   const loadingMore = useRef(false);
 
-  // Load initial messages + subscribe to realtime
-  useEffect(() => {
-    store.loadChannel(channelId);
-  }, [channelId, store]);
-
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    if (isAtBottom.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
-  // Initial scroll to bottom
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView();
-  }, [channelId]);
-
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     isAtBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-  };
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loadingMore.current) return;
@@ -51,17 +37,74 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
     loadingMore.current = false;
   }, [channelId, store]);
 
-  const addOptimisticMessage = useCallback((content: string, imageUrl?: string): string => {
+  const addOptimisticMessage = useCallback((content: string, imageUrl?: string) => {
     return store.addOptimisticMessage(channelId, content, userProfile, imageUrl);
   }, [channelId, store, userProfile]);
 
-  const handleMessageConfirmed = useCallback((optimisticId: string, realMessage: any) => {
+  const handleMessageConfirmed = useCallback((optimisticId: string, realMessage: FullMessage | null) => {
     store.confirmMessage(channelId, optimisticId, realMessage);
   }, [channelId, store]);
 
   const handleMessageFailed = useCallback((optimisticId: string) => {
     store.markMessageFailed(channelId, optimisticId);
   }, [channelId, store]);
+
+  const messageCount = messages.length;
+
+  const loadChannelEffect = useCallback(() => {
+    void store.loadChannel(channelId);
+  }, [channelId, store]);
+
+  const autoScrollEffect = useCallback(() => {
+    void messageCount;
+    if (isAtBottom.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messageCount]);
+
+  const initialScrollEffect = useCallback(() => {
+    if (!channelId) return;
+    bottomRef.current?.scrollIntoView();
+  }, [channelId]);
+
+  const hasMoreNode = useMemo(() => {
+    if (!hasMore) return null;
+
+    return (
+      <div className="flex justify-center py-[12px]">
+        <button
+          onClick={loadMore}
+          className="text-[12px] text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+        >
+          Charger les messages précédents
+        </button>
+      </div>
+    );
+  }, [hasMore, loadMore]);
+
+  const messageItems = useMemo(() => {
+    const items: ReactElement[] = [];
+
+    for (const msg of messages) {
+      items.push(
+        <MessageBubbleRow
+          key={msg.id}
+          channelId={channelId}
+          currentUserId={userId}
+          isAdmin={isAdmin}
+          message={msg}
+          reactions={reactions[msg.id]}
+          store={store}
+        />
+      );
+    }
+
+    return items;
+  }, [channelId, isAdmin, messages, reactions, store, userId]);
+
+  useEffect(loadChannelEffect, [loadChannelEffect]);
+  useEffect(autoScrollEffect, [autoScrollEffect]);
+  useEffect(initialScrollEffect, [initialScrollEffect]);
 
   if (!loaded) {
     return (
@@ -78,29 +121,11 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
-        {hasMore && (
-          <div className="flex justify-center py-[12px]">
-            <button
-              onClick={loadMore}
-              className="text-[12px] text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
-            >
-              Charger les messages précédents
-            </button>
-          </div>
-        )}
+        {hasMoreNode}
 
-        <div className="pt-[8px] pb-[8px] flex flex-col justify-end min-h-full">
-          {messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              message={msg}
-              reactions={reactions[msg.id]}
-              onReact={(emoji) => store.toggleReaction(channelId, msg.id, emoji)}
-              currentUserId={userId}
-              isAdmin={isAdmin}
-              onMessageUpdated={() => store.refreshMessage(channelId, msg.id)}
-            />
-          ))}
+        {/* We want the message to start from top */}
+        <div className="pt-[8px] pb-[8px] flex flex-col min-h-full">
+          {messageItems}
         </div>
         <div ref={bottomRef} />
       </div>
@@ -113,5 +138,39 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
         onMessageFailed={handleMessageFailed}
       />
     </div>
+  );
+}
+
+interface MessageBubbleRowProps {
+  channelId: string;
+  currentUserId: string;
+  isAdmin?: boolean;
+  message: FullMessage;
+  reactions?: MessageReactions;
+  store: ChatStore;
+}
+
+function MessageBubbleRow({ channelId, currentUserId, isAdmin, message, reactions, store }: MessageBubbleRowProps) {
+  const isOwnMessage = message.author_id === currentUserId;
+
+  const handleReact = useCallback((emoji: string) => {
+    void store.toggleReaction(channelId, message.id, emoji);
+  }, [channelId, message.id, store]);
+
+  const handleMessageUpdated = useCallback(() => {
+    void store.refreshMessage(channelId, message.id);
+  }, [channelId, message.id, store]);
+
+  const reactionHandler = isOwnMessage ? undefined : handleReact;
+
+  return (
+    <MessageBubble
+      message={message}
+      reactions={reactions}
+      onReact={reactionHandler}
+      currentUserId={currentUserId}
+      isAdmin={isAdmin}
+      onMessageUpdated={handleMessageUpdated}
+    />
   );
 }

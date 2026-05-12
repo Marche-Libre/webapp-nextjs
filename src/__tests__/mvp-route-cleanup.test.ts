@@ -15,7 +15,7 @@ describe("MVP route cleanup", () => {
     expect(source("src/app/auth/callback/route.ts")).toContain('profile.onboarding_completed ? "/chat" : "/onboarding"');
   });
 
-  it("routes onboarding, waiting approval, admin fallback, settings, logo, and chat back to chat", () => {
+  it("routes onboarding, waiting approval, admin fallback, settings, and logo to chat", () => {
     expect(source("src/app/onboarding/page.tsx")).toContain('redirect("/chat")');
     expect(source("src/components/onboarding/onboarding-wizard.tsx")).toContain('link: "/chat"');
     expect(source("src/components/onboarding/onboarding-wizard.tsx")).toContain('window.location.href = "/chat"');
@@ -24,7 +24,35 @@ describe("MVP route cleanup", () => {
     expect(source("src/app/(app)/admin/layout.tsx")).toContain('redirect("/chat")');
     expect(source("src/components/layout/settings-shell.tsx")).toContain('router.push("/chat")');
     expect(source("src/components/layout/sidebar.tsx")).toContain('href="/chat"');
-    expect(source("src/components/chat/channel-list.tsx")).toContain('href="/chat"');
+  });
+
+  it("removes the deprecated channel-list back affordance from chat", () => {
+    const channelList = source("src/components/chat/channel-list.tsx");
+
+    expect(channelList).not.toContain('href="/chat"');
+    expect(channelList).not.toContain("ArrowLeft");
+    expect(channelList).not.toContain('title="Retour"');
+  });
+
+  it("default-denies protected app rendering unless the profile is approved and onboarded", () => {
+    const appLayout = source("src/app/(app)/layout.tsx");
+    const renderShellBlock = appLayout.slice(
+      appLayout.indexOf('profile.status !== "approved"'),
+      appLayout.indexOf("return <AppShell"),
+    );
+
+    expect(renderShellBlock).toContain('redirect("/en-attente")');
+    expect(renderShellBlock).toContain('profile.onboarding_completed !== true');
+    expect(renderShellBlock).toContain('redirect("/onboarding")');
+  });
+
+  it("explains approved-user onboarding as setup work rather than an access error", () => {
+    const onboardingWizard = source("src/components/onboarding/onboarding-wizard.tsx");
+
+    expect(onboardingWizard).toContain("Finalisez votre profil");
+    expect(onboardingWizard).toContain("identité, expertise, localisation et présentation");
+    expect(onboardingWizard).not.toContain("Acces refuse");
+    expect(onboardingWizard).not.toContain("Demande en cours d&apos;examen");
   });
 
   it("keeps Chat visible while hiding Forum and Annuaire from primary navigation", () => {
@@ -89,8 +117,23 @@ describe("MVP route cleanup", () => {
     expect(appLayout).toContain('redirect("/en-attente")');
     expect(middleware).toContain('pathname !== "/connexion"');
     expect(waitingPage).toContain('profile.status === "rejected"');
-    expect(waitingPage).toContain("Votre demande n&apos;a pas ete acceptee");
+    expect(waitingPage).toContain("Votre demande d&apos;acces n&apos;a pas ete retenue");
+    expect(waitingPage).toContain("L&apos;acces aux espaces membres reste indisponible");
     expect(waitingPage).not.toContain('if (profile.status === "rejected") {\n    redirect("/connexion");\n  }');
+  });
+
+  it("shows pending users an explicit manual-review boundary while access stays blocked", () => {
+    const waitingPage = source("src/app/(auth)/en-attente/page.tsx");
+    const invitationBranch = waitingPage.slice(
+      waitingPage.indexOf("Vous avez une invitation !"),
+      waitingPage.indexOf(") : ("),
+    );
+
+    expect(waitingPage).toContain("Demande en cours d&apos;examen");
+    expect(waitingPage).toContain("Validation manuelle");
+    expect(waitingPage).toContain("L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee");
+    expect(invitationBranch).toContain("Validation manuelle");
+    expect(invitationBranch).toContain("L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee");
   });
 
   it("keeps public legal pages outside auth and app-home redirects", () => {
@@ -106,6 +149,13 @@ describe("MVP route cleanup", () => {
     }
 
     expect(middleware).toContain("const legalRoutes =");
-    expect(middleware).toContain("if (user && !isLegalRoute)");
+    expect(middleware).toContain("if (user && !isLegalRoute && !isPublicNonPrivateRouteHandler)");
+  });
+
+  it("keeps public non-private route handlers outside admission-state redirects", () => {
+    const middleware = source("src/lib/supabase/middleware.ts");
+
+    expect(middleware).toContain('const publicNonPrivateRouteHandlers = ["/api/geo/cities"]');
+    expect(middleware).toContain("!isPublicNonPrivateRouteHandler");
   });
 });

@@ -371,7 +371,8 @@ export function OnboardingWizard({
           </div>
 
           <p className="text-base text-base-content/50 leading-relaxed max-w-md mx-auto">
-            Configurez votre profil en quelques étapes pour rejoindre la communauté.
+            Finalisez votre profil : identité, expertise, localisation et présentation.
+            Une fois ces étapes terminées, vous accéderez directement au chat privé.
           </p>
 
           <Button onClick={next} size="lg" className="mx-auto">

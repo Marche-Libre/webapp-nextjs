@@ -24,11 +24,14 @@ export default async function ChatLayoutPage({
     .single();
 
   // Fetch public channels
-  const { data: channels } = await supabase
+  const { data: channels, error: channelsError } = await supabase
     .from("channels")
     .select("*")
     .eq("is_private", false)
     .order("created_at", { ascending: true });
+  if (channelsError) {
+    console.error("Failed to load public chat channels", channelsError);
+  }
   const publicChannels = (channels || []) as Channel[];
 
   // Fetch DM channels for the current user

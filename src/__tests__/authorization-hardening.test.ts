@@ -131,6 +131,25 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain('CREATE POLICY "Admins can create channel memberships"');
   });
 
+  it("replaces recursive channel member visibility with a private RLS helper", () => {
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(migrationText).toContain("private.is_current_user_channel_member");
+    expect(migrationText).toContain("SECURITY DEFINER");
+    expect(migrationText).toContain("GRANT USAGE ON SCHEMA private TO authenticated");
+    expect(migrationText).toContain(
+      "GRANT EXECUTE ON FUNCTION private.is_current_user_channel_member(UUID) TO authenticated",
+    );
+    expect(migrationText).toContain(
+      'DROP POLICY IF EXISTS "Users can view co-members in their channels"',
+    );
+    expect(migrationText).toContain(
+      "USING ((SELECT private.is_current_user_channel_member(channel_id)))",
+    );
+  });
+
   it("does not expose client-side private DM creation from member profiles", () => {
     const memberProfile = source("src/components/membres/member-profile.tsx");
 
@@ -149,6 +168,15 @@ describe("authorization hardening", () => {
     expect(messageInput).not.toContain("ImagePlus");
   });
 
+  it("requires approved and onboarded admin state for server-side admin mutations", () => {
+    const adminActions = source("src/app/(app)/admin/actions.ts");
+
+    expect(adminActions).toContain('select("is_admin, status, onboarding_completed")');
+    expect(adminActions).toContain('profile?.status === "approved"');
+    expect(adminActions).toContain("profile.onboarding_completed === true");
+    expect(adminActions).toContain("if (!profile?.is_admin || !hasMemberBoundary)");
+  });
+
   it("only notifies mentions after a successful message insert", () => {
     const messageInput = source("src/components/chat/message-input.tsx");
     const sendResultBlock = messageInput.slice(
@@ -159,5 +187,21 @@ describe("authorization hardening", () => {
 
     expect(errorBranch).not.toContain("notifyMentions");
     expect(successBranch).toContain("notifyMentions");
+  });
+
+  it("prevents users from reacting to their own chat messages", () => {
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const chatStore = source("src/components/chat/chat-store.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(messageArea).toContain("msg.author_id === userId");
+    expect(messageArea).toContain("? undefined");
+    expect(chatStore).toContain("message.author_id === userId");
+    expect(chatStore).toContain("messageAuthorIds.get(r.message_id) === r.user_id");
+    expect(chatStore).toContain("newAuthorIds.get(r.message_id) === r.user_id");
+    expect(migrationText).toContain('DROP POLICY IF EXISTS "Users can add reactions"');
+    expect(migrationText).toContain("m.author_id <> (SELECT auth.uid())");
   });
 });

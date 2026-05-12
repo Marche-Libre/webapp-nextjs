@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Clock, CheckCircle, LogOut, XCircle } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle, LogOut, XCircle } from "lucide-react";
 import Link from "next/link";
 import { InvitationCard } from "@/components/sponsorship/invitation-card";
 import { WaitingPageClient } from "@/components/sponsorship/waiting-page-client";
 import { StatusPoller } from "@/components/sponsorship/status-poller";
+import { AdmissionProfileForm } from "@/components/auth/admission-profile-form";
 import type { Invitation, SponsorshipRequest } from "@/lib/types/database";
 
 export default async function EnAttentePage() {
@@ -18,7 +19,7 @@ export default async function EnAttentePage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, status, onboarding_completed, x_handle, sponsor_approved")
+    .select("id, status, onboarding_completed, x_handle, sponsor_approved, first_name, last_name, full_name, specialty_ids, specialty_category_id, location, bio")
     .eq("id", user.id)
     .single();
 
@@ -43,12 +44,14 @@ export default async function EnAttentePage() {
               <XCircle className="h-7 w-7 text-error" />
             </div>
             <h1 className="text-xl font-bold text-base-content tracking-tight">
-              Votre demande n&apos;a pas ete acceptee
+              Votre demande d&apos;acces n&apos;a pas ete retenue
             </h1>
             <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
-              {xHandle ? `Le compte @${xHandle} n'a pas ete valide pour la beta.` : "Votre compte n'a pas ete valide pour la beta."}
+              {xHandle
+                ? `Le compte @${xHandle} n'a pas ete retenu pour la beta fermee.`
+                : "Votre compte n'a pas ete retenu pour la beta fermee."}
               <br />
-              Vous pouvez fermer cette page ou revenir a la connexion.
+              L&apos;acces aux espaces membres reste indisponible.
             </p>
           </div>
 
@@ -88,6 +91,13 @@ export default async function EnAttentePage() {
     .eq("requester_id", user.id)
     .order("attempt_number", { ascending: false });
 
+  const { data: specialtyCategories, error: specialtyCategoriesError } = await supabase
+    .from("specialty_categories")
+    .select("*, specialties(*)")
+    .order("sort_order", { ascending: true });
+  const canShowAdmissionForm =
+    !specialtyCategoriesError && !!specialtyCategories?.length;
+
   return (
     <div className="w-full max-w-[600px] mx-auto">
       <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
@@ -102,6 +112,10 @@ export default async function EnAttentePage() {
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 Acceptez pour poursuivre la validation.
+                <br />
+                Validation manuelle en cours.
+                <br />
+                L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
               </p>
             </>
           ) : (
@@ -110,24 +124,39 @@ export default async function EnAttentePage() {
                 <Clock className="h-7 w-7 text-warning" />
               </div>
               <h1 className="text-xl font-bold text-base-content tracking-tight">
-                Bienvenue
-                {xHandle ? (
-                  <>
-                    , <span className="text-accent">@{xHandle}</span>
-                  </>
-                ) : null}
+                Demande en cours d&apos;examen
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
-                MarchéLibre est un réseau sur invitation.
+                {xHandle ? (
+                  <>
+                    Compte X detecte : <span className="text-accent">@{xHandle}</span>.
+                    <br />
+                  </>
+                ) : null}
+                Validation manuelle en cours.
                 <br />
-                Pour activer votre compte, il vous faut un parrain.
+                L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
               </p>
             </>
           )}
         </div>
 
         {/* Content */}
-        <div className="px-8 py-6">
+        <div className="space-y-5 px-8 py-6">
+          {!hasInvitations && !canShowAdmissionForm ? (
+            <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-semibold text-warning">
+                  Formulaire indisponible
+                </p>
+                <p className="leading-relaxed text-warning/80">
+                  Impossible de charger le formulaire pour le moment. Reessayez plus tard.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {hasInvitations ? (
             <div className="space-y-2">
               {invitations.map(
@@ -148,19 +177,29 @@ export default async function EnAttentePage() {
                 ),
               )}
             </div>
-          ) : profile.sponsor_approved ? (
-            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-success/10 text-sm text-success">
-              <CheckCircle className="h-4 w-4 shrink-0" />
-              Parrainage confirmé. Un admin finalisera bientôt votre accès.
-            </div>
-          ) : (
-            <WaitingPageClient
-              existingRequests={
-                (sponsorshipRequests as SponsorshipRequest[]) || []
-              }
-              requesterId={user.id}
-            />
-          )}
+          ) : canShowAdmissionForm ? (
+            <>
+              <AdmissionProfileForm
+                profile={profile}
+                xHandle={xHandle ?? null}
+                specialtyCategories={specialtyCategories}
+              />
+
+              {profile.sponsor_approved ? (
+                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-success/10 text-sm text-success">
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                  Parrainage confirmé. Un admin finalisera bientôt votre accès.
+                </div>
+              ) : (
+                <WaitingPageClient
+                  existingRequests={
+                    (sponsorshipRequests as SponsorshipRequest[]) || []
+                  }
+                  requesterId={user.id}
+                />
+              )}
+            </>
+          ) : null}
         </div>
 
         {/* Footer */}

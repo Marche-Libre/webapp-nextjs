@@ -1,5 +1,4 @@
 const DEFAULT_PUBLIC_SITE_URL = "https://le-marche-libre.vercel.app";
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
 
 function withProtocol(url: string) {
   if (/^https?:\/\//i.test(url)) return url;
@@ -8,11 +7,7 @@ function withProtocol(url: string) {
 
 export function getPublicSiteOrigin() {
   if (typeof window !== "undefined") {
-    const { hostname, origin } = window.location;
-
-    if (LOCAL_HOSTNAMES.has(hostname)) {
-      return origin;
-    }
+    return window.location.origin;
   }
 
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
