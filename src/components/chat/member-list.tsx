@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import type { Profile } from "@/lib/types/database";
 import { UserHoverCard } from "./user-hover-card";

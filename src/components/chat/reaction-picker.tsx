@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SmilePlus } from "lucide-react";
 
 // X-style limited emoji set
@@ -12,6 +12,27 @@ const EMOJIS = ["👍", "❤️", "🔥", "😂", "🙏", "😢"];
 
 interface ReactionPickerProps {
   onSelect: (emoji: string) => void;
+}
+
+interface EmojiButtonProps {
+  emoji: string;
+  onSelect: (emoji: string) => void;
+}
+
+function EmojiButton({ emoji, onSelect }: EmojiButtonProps) {
+  const handleClick = useCallback(() => {
+    onSelect(emoji);
+  }, [emoji, onSelect]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-bg-surface cursor-pointer text-[16px] transition-colors"
+    >
+      {emoji}
+    </button>
+  );
 }
 
 export function ReactionPicker({ onSelect }: ReactionPickerProps) {
@@ -29,10 +50,24 @@ export function ReactionPicker({ onSelect }: ReactionPickerProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  const handleToggleOpen = useCallback(() => {
+    setOpen((current) => !current);
+  }, []);
+
+  const handleSelect = useCallback((emoji: string) => {
+    onSelect(emoji);
+    setOpen(false);
+  }, [onSelect]);
+
+  const emojiButtons = EMOJIS.map((emoji) => (
+    <EmojiButton key={emoji} emoji={emoji} onSelect={handleSelect} />
+  ));
+
   return (
     <div className="relative" ref={pickerRef}>
       <button
-        onClick={() => setOpen(!open)}
+        type="button"
+        onClick={handleToggleOpen}
         className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
         title="Réagir"
       >
@@ -40,18 +75,7 @@ export function ReactionPicker({ onSelect }: ReactionPickerProps) {
       </button>
       {open && (
         <div className="absolute top-full right-0 mt-[4px] z-50 bg-bg-elevated border border-border-default rounded-full shadow-modal px-[4px] py-[2px] flex gap-[2px]">
-          {EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => {
-                onSelect(emoji);
-                setOpen(false);
-              }}
-              className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-bg-surface cursor-pointer text-[16px] transition-colors"
-            >
-              {emoji}
-            </button>
-          ))}
+          {emojiButtons}
         </div>
       )}
     </div>
