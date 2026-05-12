@@ -35,6 +35,9 @@ const EMPTY_CHANNEL_STATE: ChannelState = {
   loaded: false,
 };
 
+const MESSAGE_WITH_AUTHOR_SELECT = "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
+const CHANNEL_SYNC_INTERVAL_MS = 5000;
+
 // ─── Store (singleton, lives outside React) ───
 
 function createChatStore(userId: string) {
@@ -46,6 +49,8 @@ function createChatStore(userId: string) {
   const listeners = new Set<() => void>();
   const channelListeners = new Map<string, Set<() => void>>();
   const subscriptions = new Map<string, ReturnType<ReturnType<typeof createClient>["channel"]>>();
+  const channelWatchCounts = new Map<string, number>();
+  const channelSyncIntervals = new Map<string, ReturnType<typeof setInterval>>();
   const supabase = createClient();
 
   function emit() {
@@ -127,6 +132,44 @@ function createChatStore(userId: string) {
     setChannel(channelId, (prev) => ({ ...prev, reactions: map }));
   }
 
+  async function fetchMessage(messageId: string) {
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("id", messageId)
+      .single();
+
+    return data as FullMessage | null;
+  }
+
+  async function syncLatestMessages(channelId: string) {
+    const ch = getChannel(channelId);
+    if (!ch.loaded) return;
+
+    const latestMessage = getLatestPersistedMessage(ch.messages);
+    if (!latestMessage) {
+      if (hasPendingOptimisticMessage(ch.messages)) return;
+      await loadChannel(channelId, true);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("channel_id", channelId)
+      .gt("created_at", latestMessage.created_at)
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (!data || data.length === 0) return;
+
+    setChannel(channelId, (prev) => ({
+      ...prev,
+      messages: mergeMessages(prev.messages, data as FullMessage[]),
+    }));
+    void fetchReactions(channelId);
+  }
+
   // ─── Subscribe to realtime for a channel ───
 
   function subscribeToChannel(channelId: string) {
@@ -139,20 +182,13 @@ function createChatStore(userId: string) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const { data } = await supabase
-            .from("messages")
-            .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
-            .eq("id", payload.new.id)
-            .single();
+          const messageId = typeof payload.new.id === "string" ? payload.new.id : null;
+          if (!messageId) return;
+          const data = await fetchMessage(messageId);
 
           if (data) {
             setChannel(channelId, (prev) => {
-              const withoutOptimistic = prev.messages.filter((m) => {
-                if (!m.id.startsWith("optimistic-")) return true;
-                return !(m.content === (data as FullMessage).content && m.author_id === (data as FullMessage).author_id);
-              });
-              if (withoutOptimistic.find((m) => m.id === (data as FullMessage).id)) return { ...prev, messages: withoutOptimistic };
-              return { ...prev, messages: [...withoutOptimistic, data as FullMessage] };
+              return { ...prev, messages: mergeMessages(prev.messages, [data]) };
             });
           }
         }
@@ -161,21 +197,29 @@ function createChatStore(userId: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const { data } = await supabase
-            .from("messages")
-            .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
-            .eq("id", payload.new.id)
-            .single();
+          const messageId = typeof payload.new.id === "string" ? payload.new.id : null;
+          if (!messageId) return;
+          const data = await fetchMessage(messageId);
 
           if (data) {
             setChannel(channelId, (prev) => ({
               ...prev,
-              messages: prev.messages.map((m) => m.id === (data as FullMessage).id ? data as FullMessage : m),
+              messages: prev.messages.map((m) => m.id === data.id ? data : m),
             }));
           }
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          void syncLatestMessages(channelId);
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn("Chat realtime subscription issue", { channelId, status, error });
+          void syncLatestMessages(channelId);
+        }
+      });
 
     // Reactions subscription
     const reactChannel = supabase
@@ -187,10 +231,50 @@ function createChatStore(userId: string) {
         if (!hasMessage) return;
         void fetchReactions(channelId);
       })
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn("Chat reactions realtime subscription issue", { channelId, status, error });
+        }
+      });
 
     subscriptions.set(channelId, msgChannel);
     subscriptions.set(`reactions:${channelId}`, reactChannel);
+  }
+
+  function watchChannel(channelId: string) {
+    const watchCount = channelWatchCounts.get(channelId) ?? 0;
+    channelWatchCounts.set(channelId, watchCount + 1);
+    subscribeToChannel(channelId);
+    startChannelSync(channelId);
+    void syncLatestMessages(channelId);
+
+    return () => {
+      const nextCount = (channelWatchCounts.get(channelId) ?? 1) - 1;
+      if (nextCount > 0) {
+        channelWatchCounts.set(channelId, nextCount);
+        return;
+      }
+
+      channelWatchCounts.delete(channelId);
+      stopChannelSync(channelId);
+    };
+  }
+
+  function startChannelSync(channelId: string) {
+    if (channelSyncIntervals.has(channelId)) return;
+
+    const interval = setInterval(() => {
+      void syncLatestMessages(channelId);
+    }, CHANNEL_SYNC_INTERVAL_MS);
+    channelSyncIntervals.set(channelId, interval);
+  }
+
+  function stopChannelSync(channelId: string) {
+    const interval = channelSyncIntervals.get(channelId);
+    if (!interval) return;
+
+    clearInterval(interval);
+    channelSyncIntervals.delete(channelId);
   }
 
   // ─── Public actions ───
@@ -215,7 +299,7 @@ function createChatStore(userId: string) {
 
     const { data } = await supabase
       .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .eq("channel_id", channelId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -241,7 +325,7 @@ function createChatStore(userId: string) {
     const oldest = ch.messages[0];
     const { data } = await supabase
       .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .eq("channel_id", channelId)
       .lt("created_at", oldest.created_at)
       .order("created_at", { ascending: false })
@@ -368,16 +452,12 @@ function createChatStore(userId: string) {
   }
 
   async function refreshMessage(channelId: string, messageId: string) {
-    const { data } = await supabase
-      .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
-      .eq("id", messageId)
-      .single();
+    const data = await fetchMessage(messageId);
 
     if (data) {
       setChannel(channelId, (prev) => ({
         ...prev,
-        messages: prev.messages.map((m) => m.id === messageId ? data as FullMessage : m),
+        messages: prev.messages.map((m) => m.id === messageId ? data : m),
       }));
     }
   }
@@ -402,7 +482,12 @@ function createChatStore(userId: string) {
     for (const channel of subscriptions.values()) {
       void supabase.removeChannel(channel);
     }
+    for (const interval of channelSyncIntervals.values()) {
+      clearInterval(interval);
+    }
     subscriptions.clear();
+    channelWatchCounts.clear();
+    channelSyncIntervals.clear();
     listeners.clear();
     channelListeners.clear();
   }
@@ -415,6 +500,7 @@ function createChatStore(userId: string) {
     seedChannel,
     loadChannel,
     subscribeToChannel,
+    watchChannel,
     loadOlderMessages,
     addOptimisticMessage,
     markMessageFailed,
@@ -432,6 +518,59 @@ function createChatStore(userId: string) {
 function getReactionMessageId(payload: { new?: { message_id?: unknown }; old?: { message_id?: unknown } }) {
   const messageId = payload.new?.message_id ?? payload.old?.message_id;
   return typeof messageId === "string" ? messageId : null;
+}
+
+function getLatestPersistedMessage(messages: FullMessage[]) {
+  let latestMessage: FullMessage | null = null;
+
+  for (const message of messages) {
+    if (message.id.startsWith("optimistic-")) continue;
+    if (!latestMessage || compareMessages(message, latestMessage) > 0) {
+      latestMessage = message;
+    }
+  }
+
+  return latestMessage;
+}
+
+function hasPendingOptimisticMessage(messages: FullMessage[]) {
+  return messages.some((message) => message.id.startsWith("optimistic-") && message._status === "sending");
+}
+
+function mergeMessages(currentMessages: FullMessage[], incomingMessages: FullMessage[]) {
+  const incomingById = new Map(incomingMessages.map((message) => [message.id, message]));
+  const optimisticIdsToRemove = new Set<string>();
+
+  for (const optimisticMessage of currentMessages) {
+    if (!optimisticMessage.id.startsWith("optimistic-")) continue;
+
+    for (const incomingMessage of incomingMessages) {
+      if (
+        optimisticMessage.content === incomingMessage.content &&
+        optimisticMessage.author_id === incomingMessage.author_id
+      ) {
+        optimisticIdsToRemove.add(optimisticMessage.id);
+      }
+    }
+  }
+
+  const mergedById = new Map<string, FullMessage>();
+  for (const message of currentMessages) {
+    if (optimisticIdsToRemove.has(message.id)) continue;
+    mergedById.set(message.id, incomingById.get(message.id) ?? message);
+  }
+
+  for (const message of incomingMessages) {
+    mergedById.set(message.id, message);
+  }
+
+  return [...mergedById.values()].sort(compareMessages);
+}
+
+function compareMessages(a: FullMessage, b: FullMessage) {
+  const createdAtDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  if (createdAtDiff !== 0) return createdAtDiff;
+  return a.id.localeCompare(b.id);
 }
 
 // ─── React Context ───

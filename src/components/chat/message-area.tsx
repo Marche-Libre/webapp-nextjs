@@ -55,6 +55,10 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
     void store.loadChannel(channelId);
   }, [channelId, store]);
 
+  const watchChannelEffect = useCallback(() => {
+    return store.watchChannel(channelId);
+  }, [channelId, store]);
+
   const autoScrollEffect = useCallback(() => {
     void messageCount;
     if (isAtBottom.current) {
@@ -90,7 +94,7 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
         <MessageBubbleRow
           key={msg.id}
           channelId={channelId}
-          currentUserId={userId}
+          userId={userId}
           isAdmin={isAdmin}
           message={msg}
           reactions={reactions[msg.id]}
@@ -103,6 +107,7 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   }, [channelId, isAdmin, messages, reactions, store, userId]);
 
   useEffect(loadChannelEffect, [loadChannelEffect]);
+  useEffect(watchChannelEffect, [watchChannelEffect]);
   useEffect(autoScrollEffect, [autoScrollEffect]);
   useEffect(initialScrollEffect, [initialScrollEffect]);
 
@@ -143,32 +148,32 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
 
 interface MessageBubbleRowProps {
   channelId: string;
-  currentUserId: string;
+  userId: string;
   isAdmin?: boolean;
   message: FullMessage;
   reactions?: MessageReactions;
   store: ChatStore;
 }
 
-function MessageBubbleRow({ channelId, currentUserId, isAdmin, message, reactions, store }: MessageBubbleRowProps) {
-  const isOwnMessage = message.author_id === currentUserId;
+function MessageBubbleRow({ channelId, userId, isAdmin, message: msg, reactions, store }: MessageBubbleRowProps) {
+  const isOwnMessage = msg.author_id === userId;
 
   const handleReact = useCallback((emoji: string) => {
-    void store.toggleReaction(channelId, message.id, emoji);
-  }, [channelId, message.id, store]);
+    void store.toggleReaction(channelId, msg.id, emoji);
+  }, [channelId, msg.id, store]);
 
   const handleMessageUpdated = useCallback(() => {
-    void store.refreshMessage(channelId, message.id);
-  }, [channelId, message.id, store]);
+    void store.refreshMessage(channelId, msg.id);
+  }, [channelId, msg.id, store]);
 
   const reactionHandler = isOwnMessage ? undefined : handleReact;
 
   return (
     <MessageBubble
-      message={message}
+      message={msg}
       reactions={reactions}
       onReact={reactionHandler}
-      currentUserId={currentUserId}
+      currentUserId={userId}
       isAdmin={isAdmin}
       onMessageUpdated={handleMessageUpdated}
     />
