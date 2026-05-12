@@ -55,6 +55,8 @@ async function expectAllowed(pathname: string) {
 }
 
 beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "test-key");
   mockUserId = "user-1";
   mockProfile = { status: "approved", onboarding_completed: true };
   mockProfileError = null;
