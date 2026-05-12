@@ -72,6 +72,7 @@ function isString(value: unknown): value is string {
 
 function MessageImage({ url, index }: { url: string; index: number }) {
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- Chat images can be arbitrary uploaded URLs outside Next image config.
     <img
       src={url}
       alt={`Image ${index + 1}`}
@@ -205,8 +206,9 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   }, [handleSaveEdit, message.content]);
 
   const handleStartEditing = useCallback(() => {
+    setEditContent(message.content);
     setEditing(true);
-  }, []);
+  }, [message.content]);
 
   const handleStartDeleteConfirming = useCallback(() => {
     setDeleteConfirming(true);

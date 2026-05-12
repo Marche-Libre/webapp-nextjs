@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import type { ChangeEvent, KeyboardEvent, MouseEvent } from "react";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentions } from "@/lib/notifications";
 import { Avatar } from "@/components/ui/avatar";
+import type { FullMessage } from "./chat-store";
 
 interface MessageInputProps {
   channelId: string;
   userId: string;
   onOptimisticMessage?: (content: string, imageUrl?: string) => string;
-  onMessageConfirmed?: (optimisticId: string, realMessage: any) => void;
+  onMessageConfirmed?: (optimisticId: string, realMessage: FullMessage | null) => void;
   onMessageFailed?: (optimisticId: string) => void;
 }
 
@@ -21,6 +23,36 @@ type MentionSuggestion = {
   avatar_url: string | null;
 };
 
+interface MentionSuggestionItemProps {
+  user: MentionSuggestion;
+  selected: boolean;
+  onPick: (handle: string) => void;
+}
+
+function MentionSuggestionItem({ user, selected, onPick }: MentionSuggestionItemProps) {
+  const handleMouseDown = useCallback((e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    onPick(user.x_handle);
+  }, [onPick, user.x_handle]);
+
+  return (
+    <button
+      type="button"
+      onMouseDown={handleMouseDown}
+      className={`flex items-center gap-[10px] px-[12px] py-[8px] w-full text-left cursor-pointer transition-colors ${
+        selected
+          ? "bg-primary-50 text-primary-700"
+          : "hover:bg-bg-surface text-text-secondary"
+      }`}
+    >
+      <Avatar src={user.avatar_url} name={user.full_name} size="sm" />
+      <div className="min-w-0">
+        <span className="text-[13px] font-medium">@{user.x_handle}</span>
+      </div>
+    </button>
+  );
+}
+
 export function MessageInput({ channelId, userId, onOptimisticMessage, onMessageConfirmed, onMessageFailed }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
@@ -29,7 +61,8 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
+    if (sending) return;
     const text = content.trim();
     if (!text) return;
 
@@ -60,7 +93,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     }
 
     setSending(false);
-  };
+  }, [channelId, content, onMessageConfirmed, onMessageFailed, onOptimisticMessage, sending, userId]);
 
   const detectMentionQuery = useCallback((text: string, cursorPos: number) => {
     const before = text.slice(0, cursorPos);
@@ -75,10 +108,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
   }, []);
 
   useEffect(() => {
-    if (mentionQuery === null) {
-      setSuggestions([]);
-      return;
-    }
+    if (mentionQuery === null) return;
 
     const fetchSuggestions = async () => {
       const supabase = createClient();
@@ -98,10 +128,10 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       setSuggestions((data as MentionSuggestion[]) || []);
     };
 
-    fetchSuggestions();
+    void fetchSuggestions();
   }, [mentionQuery, userId]);
 
-  const insertMention = (handle: string) => {
+  const insertMention = useCallback((handle: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -120,15 +150,15 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       textarea.focus();
       textarea.setSelectionRange(newPos, newPos);
     });
-  };
+  }, [content]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setContent(value);
     detectMentionQuery(value, e.target.selectionStart);
-  };
+  }, [detectMentionQuery]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (suggestions.length > 0 && mentionQuery !== null) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -155,36 +185,31 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      void sendMessage();
     }
-  };
+  }, [insertMention, mentionQuery, selectedIndex, sendMessage, suggestions]);
 
-  const canSend = content.trim();
+  const handleSendClick = useCallback(() => {
+    void sendMessage();
+  }, [sendMessage]);
+
+  const suggestionItems = suggestions.map((user, index) => (
+    <MentionSuggestionItem
+      key={user.id}
+      user={user}
+      selected={index === selectedIndex}
+      onPick={insertMention}
+    />
+  ));
+
+  const canSend = Boolean(content.trim());
 
   return (
     <div className="px-[12px] py-[12px] relative">
       {/* Mention suggestions dropdown */}
       {suggestions.length > 0 && mentionQuery !== null && (
         <div className="absolute bottom-full left-[12px] right-[12px] mb-[4px] bg-bg-elevated border border-border-default rounded-lg shadow-modal overflow-hidden z-50">
-          {suggestions.map((user, i) => (
-            <button
-              key={user.id}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                insertMention(user.x_handle);
-              }}
-              className={`flex items-center gap-[10px] px-[12px] py-[8px] w-full text-left cursor-pointer transition-colors ${
-                i === selectedIndex
-                  ? "bg-primary-50 text-primary-700"
-                  : "hover:bg-bg-surface text-text-secondary"
-              }`}
-            >
-              <Avatar src={user.avatar_url} name={user.full_name} size="sm" />
-              <div className="min-w-0">
-                <span className="text-[13px] font-medium">@{user.x_handle}</span>
-              </div>
-            </button>
-          ))}
+          {suggestionItems}
         </div>
       )}
 
@@ -199,7 +224,8 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
           className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none max-h-[120px]"
         />
         <button
-          onClick={() => sendMessage()}
+          type="button"
+          onClick={handleSendClick}
           disabled={sending || !canSend}
           className="p-[4px] rounded hover:bg-bg-surface text-primary-500 hover:text-primary-600 cursor-pointer shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
