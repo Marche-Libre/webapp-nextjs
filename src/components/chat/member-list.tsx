@@ -17,12 +17,12 @@ function renderMember(member: MemberListMember) {
       full_name={member.full_name}
       avatar_url={member.avatar_url}
       className="w-full"
-    >
+    >-
       <div className="flex w-full items-center gap-[8px] px-[8px] py-[6px] rounded-md cursor-pointer transition-colors hover:bg-bg-surface">
         <Avatar src={member.avatar_url} name={member.full_name || member.x_handle} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-medium text-text-primary truncate">
-            @{member.x_handle}
+            @{member.x_handle} oudou
           </p>
         </div>
       </div>
