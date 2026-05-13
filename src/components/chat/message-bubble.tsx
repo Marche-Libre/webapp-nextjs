@@ -77,7 +77,7 @@ const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const DIRECT_IMAGE_URL_REGEX =
   /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
 const EMPTY_IMAGE_URLS: string[] = [];
-const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
+const MESSAGE_WIDTH_CLASSNAME = "w-full sm:max-w-[620px]";
 const AVATAR_SLOT_CLASSNAME = "h-[32px] w-[32px] shrink-0 sm:h-[40px] sm:w-[40px]";
 const MESSAGE_AVATAR_CLASSNAME = "h-[32px] w-[32px] sm:h-[40px] sm:w-[40px]";
 const CHAT_IMAGE_SIGNED_URL_TTL_SECONDS = 3600;
@@ -566,9 +566,9 @@ export function MessageBubble({
   return (
     <article
       className={cn(
-        "group flex items-end gap-[8px] px-[12px] transition-colors",
+        "group px-[8px] transition-colors sm:flex sm:items-end sm:gap-[8px] sm:px-[12px]",
         rowSpacingClass,
-        isOwn ? "flex-row-reverse" : "hover:bg-bg-surface/20",
+        isOwn ? "sm:flex-row-reverse" : "sm:hover:bg-bg-surface/20",
         message.is_pinned &&
           (isOwn
             ? "border-r-2 border-primary-500 bg-primary-50/30"
@@ -581,6 +581,7 @@ export function MessageBubble({
           x_handle={message.author.x_handle}
           full_name={message.author.full_name}
           avatar_url={message.author.avatar_url}
+          className="hidden sm:block"
         >
             <Avatar
               src={message.author.avatar_url}
@@ -590,19 +591,92 @@ export function MessageBubble({
             />
         </UserHoverCard>
       ) : (
-        <div className={AVATAR_SLOT_CLASSNAME} aria-hidden />
+        <div className={cn("hidden sm:block", AVATAR_SLOT_CLASSNAME)} aria-hidden />
       )}
       <section
         className={cn(
-          "min-w-0 flex flex-col",
+          "min-w-0 flex w-full flex-col",
           MESSAGE_WIDTH_CLASSNAME,
           isOwn ? "items-end" : "items-start",
           isOwn && editing && "w-[75%]",
         )}
       >
+        <div
+          className={cn(
+            "flex w-full items-center px-[2px] sm:hidden",
+            showMessageMeta ? "mb-[3px] min-h-[28px]" : "mb-[2px]",
+          )}
+        >
+          <div
+            className={cn(
+              "flex min-w-0 items-center gap-[6px]",
+              isOwn && "ml-auto",
+              isOwn && "justify-end text-right",
+            )}
+          >
+            {showMessageMeta && !isOwn && showAvatar && (
+              <UserHoverCard
+                authorId={message.author_id}
+                x_handle={message.author.x_handle}
+                full_name={message.author.full_name}
+                avatar_url={message.author.avatar_url}
+              >
+                <Avatar
+                  src={message.author.avatar_url}
+                  name={message.author.x_handle}
+                  size="md"
+                  className="h-[28px] w-[28px]"
+                />
+              </UserHoverCard>
+            )}
+            {showMessageMeta && message.is_pinned && (
+              <Pin className="h-[11px] w-[11px] shrink-0 translate-y-[1px] text-primary-500" />
+            )}
+            {showMessageMeta && (
+              <UserHoverCard
+                authorId={message.author_id}
+                x_handle={message.author.x_handle}
+                full_name={message.author.full_name}
+                avatar_url={message.author.avatar_url}
+              >
+                <span className="cursor-pointer truncate text-[12px] font-semibold text-text-muted hover:text-text-secondary hover:underline">
+                  @{message.author.x_handle}
+                </span>
+              </UserHoverCard>
+            )}
+            {showMessageMeta && (
+              <span className="shrink-0 text-[10px] text-text-muted">
+                {timeAgo(message.created_at)}
+              </span>
+            )}
+            {showMessageMeta && isEdited && !editing && (
+              <span className="shrink-0 text-[10px] italic text-text-muted">
+                (modifié)
+              </span>
+            )}
+          </div>
+          <MessageInlineActions
+            canReact={canReact}
+            currentUserId={currentUserId}
+            deleteConfirming={deleteConfirming}
+            isAdmin={isAdmin}
+            isEditing={editing}
+            isOwn={isOwn}
+            isPinned={Boolean(message.is_pinned)}
+            saving={saving}
+            onCancelDelete={handleCancelDeleteConfirming}
+            onConfirmDelete={handleStartDeleteConfirming}
+            onDelete={handleDelete}
+            onEdit={handleStartEditing}
+            onPin={handleTogglePin}
+            onReact={handleReactionSelect}
+            onReport={handleReport}
+            className={cn("opacity-100", isOwn ? "ml-[6px]" : "ml-auto")}
+          />
+        </div>
         <header
           className={cn(
-            "flex items-center gap-[8px]",
+            "hidden items-center gap-[8px] sm:flex",
             headerSpacingClass,
             isOwn && "justify-end text-right",
           )}
@@ -651,13 +725,13 @@ export function MessageBubble({
         ) : (
           <div
             className={cn(
-              "flex max-w-full items-center gap-[4px]",
-              isOwn && "flex-row-reverse",
+              "max-w-full sm:flex sm:items-center sm:gap-[4px]",
+              isOwn && "sm:flex-row-reverse",
             )}
           >
             <div
               className={cn(
-                "w-fit max-w-[calc(100%_-_56px)] px-[14px] py-[9px] shadow-card",
+                "w-fit max-w-full px-[14px] py-[9px] shadow-card sm:max-w-[calc(100%_-_56px)]",
                 bubbleRadiusClass,
                 isOwn
                   ? "bg-primary-500 text-white"
@@ -718,6 +792,7 @@ export function MessageBubble({
               onPin={handleTogglePin}
               onReact={handleReactionSelect}
               onReport={handleReport}
+              className="hidden sm:flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100"
             />
           </div>
         )}
@@ -739,6 +814,7 @@ export function MessageBubble({
 
 function MessageInlineActions({
   canReact,
+  className,
   currentUserId,
   deleteConfirming,
   isAdmin,
@@ -755,6 +831,7 @@ function MessageInlineActions({
   onReport,
 }: {
   canReact: boolean;
+  className?: string;
   currentUserId?: string;
   deleteConfirming: boolean;
   isAdmin?: boolean;
@@ -819,7 +896,12 @@ function MessageInlineActions({
   if (!canReact && !hasMenuActions) return null;
 
   return (
-    <div className="relative flex shrink-0 items-center gap-[2px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center gap-[2px] transition-opacity",
+        className,
+      )}
+    >
       {canReact && (
         <ReactionPicker onSelect={onReact} />
       )}
