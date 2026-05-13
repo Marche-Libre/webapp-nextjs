@@ -215,8 +215,8 @@ body > * {
 ::-webkit-scrollbar-thumb { background: var(--color-border-default); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
 
-::selection { background: rgb(29 155 240 / 0.26); }
-[data-mode="light"] ::selection { background: rgb(29 155 240 / 0.2); }
+::selection { background: rgb(249 115 22 / 0.34); }
+[data-mode="light"] ::selection { background: rgb(249 115 22 / 0.24); }
 
 /* ══════════════════════════════════════════
    THEME TRANSITION ANIMATION

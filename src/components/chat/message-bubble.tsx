@@ -37,11 +37,11 @@ function renderContentWithMentions(content: string, isOwn: boolean) {
             ? "rounded bg-warning/15 px-[3px] text-warning"
             : isOwn
               ? "text-white underline decoration-white/45 underline-offset-2"
-              : "text-primary-400"
+              : "text-primary-400",
         )}
       >
         {match[0]}
-      </span>
+      </span>,
     );
     lastIndex = regex.lastIndex;
   }
@@ -67,10 +67,15 @@ interface MessageBubbleProps {
   isLastInGroup?: boolean;
 }
 
-type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean };
+type MessageReactionEntry = {
+  emoji: string;
+  count: number;
+  hasReacted: boolean;
+};
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
-const DIRECT_IMAGE_URL_REGEX = /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
+const DIRECT_IMAGE_URL_REGEX =
+  /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
 const EMPTY_IMAGE_URLS: string[] = [];
 const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
 const AVATAR_SLOT_CLASSNAME = "h-[40px] w-[40px] shrink-0";
@@ -92,14 +97,21 @@ function isString(value: unknown): value is string {
 }
 
 function hasRemoteImageUrl(imageUrl: string) {
-  return /^https?:\/\//i.test(imageUrl) || imageUrl.startsWith("blob:") || imageUrl.startsWith("data:");
+  return (
+    /^https?:\/\//i.test(imageUrl) ||
+    imageUrl.startsWith("blob:") ||
+    imageUrl.startsWith("data:")
+  );
 }
 
 function isDirectImageUrl(url: string | null) {
   return Boolean(url && DIRECT_IMAGE_URL_REGEX.test(url));
 }
 
-function resolveVisibleMessageContent(content: string, mediaUrl: string | null) {
+function resolveVisibleMessageContent(
+  content: string,
+  mediaUrl: string | null,
+) {
   if (!mediaUrl) return content;
   if (!isDirectImageUrl(mediaUrl)) return content;
   if (content.trim() !== mediaUrl) return content;
@@ -143,7 +155,7 @@ function MessageReactionButton({
         reaction.hasReacted
           ? "border-primary-500/45 bg-primary-50 text-primary-400"
           : "border-border-default bg-bg-base text-text-muted hover:border-border-strong hover:bg-bg-surface",
-        canReact ? "cursor-pointer" : "cursor-default"
+        canReact ? "cursor-pointer" : "cursor-default",
       )}
     >
       <span>{reaction.emoji}</span>
@@ -179,12 +191,18 @@ export function MessageBubble({
   const isSending = message._status === "sending";
   const isFailed = message._status === "failed";
   // Consider edited only if updated_at is more than 2 seconds after created_at
-  const isEdited = message.updated_at && message.created_at
-    && (new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 2000);
+  const isEdited =
+    message.updated_at &&
+    message.created_at &&
+    new Date(message.updated_at).getTime() -
+      new Date(message.created_at).getTime() >
+      2000;
   const showAvatar = isLastInGroup || editing;
   const showMessageMeta = isFirstInGroup || editing;
   const rowSpacingClass = isFirstInGroup ? "pt-[8px] pb-[3px]" : "py-[2px]";
-  const headerSpacingClass = showMessageMeta ? "mb-[3px] px-[4px]" : "mb-[1px] px-[2px]";
+  const headerSpacingClass = showMessageMeta
+    ? "mb-[3px] px-[4px]"
+    : "mb-[1px] px-[2px]";
   const bubbleRadiusClass = useMemo(() => {
     if (isFirstInGroup && isLastInGroup) return "rounded-[18px]";
 
@@ -199,8 +217,14 @@ export function MessageBubble({
     return "rounded-[18px] rounded-tl-[8px] rounded-bl-[8px]";
   }, [isFirstInGroup, isLastInGroup, isOwn]);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
-  const rawImageUrls = useMemo(() => parseImageUrls(message.image_url), [message.image_url]);
-  const previewUrl = useMemo(() => extractFirstHttpUrl(message.content), [message.content]);
+  const rawImageUrls = useMemo(
+    () => parseImageUrls(message.image_url),
+    [message.image_url],
+  );
+  const previewUrl = useMemo(
+    () => extractFirstHttpUrl(message.content),
+    [message.content],
+  );
   const mediaEmbed = useMemo(() => resolveMediaEmbed(previewUrl), [previewUrl]);
   const directImageUrl = useMemo(() => {
     if (!isDirectImageUrl(previewUrl)) return null;
@@ -213,7 +237,10 @@ export function MessageBubble({
   const resolveContentParts = useCallback(() => {
     return renderContentWithMentions(visibleContent, isOwn);
   }, [isOwn, visibleContent]);
-  const contentParts = useMemo(() => resolveContentParts(), [resolveContentParts]);
+  const contentParts = useMemo(
+    () => resolveContentParts(),
+    [resolveContentParts],
+  );
   const resolveImageUrls = useCallback(async () => {
     if (rawImageUrls.length === 0) {
       return [];
@@ -223,7 +250,9 @@ export function MessageBubble({
       rawImageUrls.map(async (url) => {
         if (hasRemoteImageUrl(url)) return url;
 
-        const { data, error } = await supabase.storage.from("medias").createSignedUrl(url, CHAT_IMAGE_SIGNED_URL_TTL_SECONDS);
+        const { data, error } = await supabase.storage
+          .from("medias")
+          .createSignedUrl(url, CHAT_IMAGE_SIGNED_URL_TTL_SECONDS);
         if (error || !data?.signedUrl) return url;
 
         return data.signedUrl;
@@ -322,7 +351,10 @@ export function MessageBubble({
 
     if (clearExistingPinError) {
       setSaving(false);
-      console.error("Failed to clear existing pinned message", clearExistingPinError);
+      console.error(
+        "Failed to clear existing pinned message",
+        clearExistingPinError,
+      );
       alert("Impossible de modifier l'épinglage du message pour le moment.");
       return;
     }
@@ -341,7 +373,14 @@ export function MessageBubble({
     }
 
     onMessageUpdated?.();
-  }, [channelId, isAdmin, message.id, message.is_pinned, onMessageUpdated, supabase]);
+  }, [
+    channelId,
+    isAdmin,
+    message.id,
+    message.is_pinned,
+    onMessageUpdated,
+    supabase,
+  ]);
 
   const handleReport = useCallback(async () => {
     const reason = prompt("Raison du signalement :");
@@ -355,20 +394,26 @@ export function MessageBubble({
     alert("Signalement envoyé. Un administrateur examinera ce message.");
   }, [currentUserId, message.author_id, message.id, supabase]);
 
-  const handleEditContentChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
-    setEditContent(e.target.value);
-  }, []);
+  const handleEditContentChange = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      setEditContent(e.target.value);
+    },
+    [],
+  );
 
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void handleSaveEdit();
-    }
-    if (e.key === "Escape") {
-      setEditing(false);
-      setEditContent(message.content);
-    }
-  }, [handleSaveEdit, message.content]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        void handleSaveEdit();
+      }
+      if (e.key === "Escape") {
+        setEditing(false);
+        setEditContent(message.content);
+      }
+    },
+    [handleSaveEdit, message.content],
+  );
 
   const handleStartEditing = useCallback(() => {
     setEditContent(message.content);
@@ -383,16 +428,21 @@ export function MessageBubble({
     setDeleteConfirming(false);
   }, []);
 
-  const handleReactionSelect = useCallback((emoji: string) => {
-    onReact?.(emoji);
-  }, [onReact]);
+  const handleReactionSelect = useCallback(
+    (emoji: string) => {
+      onReact?.(emoji);
+    },
+    [onReact],
+  );
 
   const buildImageItems = useCallback(() => {
     if (displayedImageUrls.length === 0) return null;
 
     const items: ReactNode[] = [];
     displayedImageUrls.forEach((url: string, index: number) => {
-      items.push(<MessageImage key={`${url}-${index}`} url={url} index={index} />);
+      items.push(
+        <MessageImage key={`${url}-${index}`} url={url} index={index} />,
+      );
     });
     return items;
   }, [displayedImageUrls]);
@@ -410,13 +460,16 @@ export function MessageBubble({
           reaction={reaction}
           canReact={canReact}
           onReact={handleReactionSelect}
-        />
+        />,
       );
     }
     return items;
   }, [canReact, handleReactionSelect, reactions]);
 
-  const reactionItems = useMemo(() => buildReactionItems(), [buildReactionItems]);
+  const reactionItems = useMemo(
+    () => buildReactionItems(),
+    [buildReactionItems],
+  );
 
   const clearDeleteConfirmTimeout = useCallback(() => {
     if (deleteConfirmTimeoutRef.current === null) return;
@@ -428,18 +481,33 @@ export function MessageBubble({
     clearDeleteConfirmTimeout();
     if (!deleteConfirming) return;
 
-    deleteConfirmTimeoutRef.current = window.setTimeout(handleCancelDeleteConfirming, 3000);
+    deleteConfirmTimeoutRef.current = window.setTimeout(
+      handleCancelDeleteConfirming,
+      3000,
+    );
 
     return clearDeleteConfirmTimeout;
-  }, [clearDeleteConfirmTimeout, deleteConfirming, handleCancelDeleteConfirming]);
+  }, [
+    clearDeleteConfirmTimeout,
+    deleteConfirming,
+    handleCancelDeleteConfirming,
+  ]);
 
-  useEffect(manageDeleteConfirmTimeoutEffect, [manageDeleteConfirmTimeoutEffect]);
+  useEffect(manageDeleteConfirmTimeoutEffect, [
+    manageDeleteConfirmTimeoutEffect,
+  ]);
 
   // Deleted message
   // TODO: Add revert option / rollback deletion
   if (deleted || (!message.content && !message.image_url)) {
     return (
-      <article className={cn("group flex items-end gap-[8px] px-[12px] transition-colors", rowSpacingClass, isOwn && "flex-row-reverse")}>
+      <article
+        className={cn(
+          "group flex items-end gap-[8px] px-[12px] transition-colors",
+          rowSpacingClass,
+          isOwn && "flex-row-reverse",
+        )}
+      >
         {showAvatar ? (
           <UserHoverCard
             authorId={message.author_id}
@@ -447,14 +515,30 @@ export function MessageBubble({
             full_name={message.author.full_name}
             avatar_url={message.author.avatar_url}
           >
-            <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
+            <Avatar
+              src={message.author.avatar_url}
+              name={message.author.x_handle}
+              size="md"
+            />
           </UserHoverCard>
         ) : (
           <div className={AVATAR_SLOT_CLASSNAME} aria-hidden />
         )}
-        <div className={cn("min-w-0", MESSAGE_WIDTH_CLASSNAME, isOwn && "flex flex-col items-end")}>
+        <div
+          className={cn(
+            "min-w-0",
+            MESSAGE_WIDTH_CLASSNAME,
+            isOwn && "flex flex-col items-end",
+          )}
+        >
           {showMessageMeta && (
-            <header className={cn("flex items-baseline gap-[8px]", headerSpacingClass, isOwn && "justify-end text-right")}>
+            <header
+              className={cn(
+                "flex items-baseline gap-[8px]",
+                headerSpacingClass,
+                isOwn && "justify-end text-right",
+              )}
+            >
               <span className="text-[13px] font-semibold text-text-primary">
                 @{message.author.x_handle}
               </span>
@@ -463,7 +547,13 @@ export function MessageBubble({
               </span>
             </header>
           )}
-          <p className={cn("bg-bg-surface px-[14px] py-[8px] text-[13px] italic text-text-muted", bubbleRadiusClass, isOwn && "text-right")}>
+          <p
+            className={cn(
+              "select-text bg-bg-surface px-[14px] py-[8px] text-[13px] italic text-text-muted",
+              bubbleRadiusClass,
+              isOwn && "text-right",
+            )}
+          >
             Ce message a été supprimé
           </p>
         </div>
@@ -477,9 +567,10 @@ export function MessageBubble({
         "group flex items-end gap-[8px] px-[12px] transition-colors",
         rowSpacingClass,
         isOwn ? "flex-row-reverse" : "hover:bg-bg-surface/20",
-        message.is_pinned && (isOwn
-          ? "border-r-2 border-primary-500 bg-primary-50/30"
-          : "border-l-2 border-primary-500 bg-primary-50/30")
+        message.is_pinned &&
+          (isOwn
+            ? "border-r-2 border-primary-500 bg-primary-50/30"
+            : "border-l-2 border-primary-500 bg-primary-50/30"),
       )}
     >
       {showAvatar ? (
@@ -489,7 +580,12 @@ export function MessageBubble({
           full_name={message.author.full_name}
           avatar_url={message.author.avatar_url}
         >
-          <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" className="cursor-pointer" />
+          <Avatar
+            src={message.author.avatar_url}
+            name={message.author.x_handle}
+            size="md"
+            className="cursor-pointer"
+          />
         </UserHoverCard>
       ) : (
         <div className={AVATAR_SLOT_CLASSNAME} aria-hidden />
@@ -499,10 +595,16 @@ export function MessageBubble({
           "min-w-0 flex flex-col",
           MESSAGE_WIDTH_CLASSNAME,
           isOwn ? "items-end" : "items-start",
-          isOwn && editing && "w-[75%]"
+          isOwn && editing && "w-[75%]",
         )}
       >
-        <header className={cn("flex items-center gap-[8px]", headerSpacingClass, isOwn && "justify-end text-right")}>
+        <header
+          className={cn(
+            "flex items-center gap-[8px]",
+            headerSpacingClass,
+            isOwn && "justify-end text-right",
+          )}
+        >
           {isOwn && (
             <MessageHeaderActions
               canReact={canReact}
@@ -543,7 +645,9 @@ export function MessageBubble({
             </span>
           )}
           {showMessageMeta && isEdited && !editing && (
-            <span className="text-[10px] text-text-muted italic">(modifié)</span>
+            <span className="text-[10px] text-text-muted italic">
+              (modifié)
+            </span>
           )}
           {!isOwn && (
             <MessageHeaderActions
@@ -576,7 +680,9 @@ export function MessageBubble({
               className="w-full resize-none rounded-[18px] border border-border-default bg-bg-surface px-[14px] py-[10px] text-[14px] leading-[20px] text-text-primary focus:border-primary-500 focus:outline-none"
               autoFocus
             />
-            <p className="text-[10px] text-text-muted mt-[2px]">Échap pour annuler · Entrée pour sauvegarder</p>
+            <p className="text-[10px] text-text-muted mt-[2px]">
+              Échap pour annuler · Entrée pour sauvegarder
+            </p>
           </div>
         ) : (
           <div
@@ -585,15 +691,19 @@ export function MessageBubble({
               bubbleRadiusClass,
               isOwn
                 ? "bg-primary-500 text-white"
-                : "border border-border-subtle bg-bg-surface-hover text-text-primary"
+                : "border border-border-subtle bg-bg-surface-hover text-text-primary",
             )}
           >
             {visibleContent && (
               <div
                 className={cn(
-                  "whitespace-pre-wrap break-words text-[14px] leading-[20px] [overflow-wrap:anywhere]",
+                  "select-text whitespace-pre-wrap break-words text-[14px] leading-[20px] [overflow-wrap:anywhere]",
                   isSending && "opacity-60",
-                  isFailed ? "text-error/80" : isOwn ? "text-white" : "text-text-primary"
+                  isFailed
+                    ? "text-error/80"
+                    : isOwn
+                      ? "text-white"
+                      : "text-text-primary",
                 )}
               >
                 {contentParts}
@@ -610,20 +720,27 @@ export function MessageBubble({
                   "mt-[8px]",
                   (displayedImageUrls.length > 1 || isOwn) && "flex",
                   displayedImageUrls.length > 1 && "gap-[6px] flex-wrap",
-                  isOwn && "justify-end"
+                  isOwn && "justify-end",
                 )}
               >
                 {imageItems}
               </div>
             )}
             {mediaEmbed && <MediaEmbed embed={mediaEmbed} />}
-            {shouldShowLinkPreview && previewUrl && <LinkPreview url={previewUrl} />}
+            {shouldShowLinkPreview && previewUrl && (
+              <LinkPreview url={previewUrl} />
+            )}
             {forumMatch && <PostEmbed postId={forumMatch[1]} />}
           </div>
         )}
 
         {reactionItems && (
-          <div className={cn("flex gap-[4px] mt-[6px] flex-wrap", isOwn && "justify-end")}>
+          <div
+            className={cn(
+              "flex gap-[4px] mt-[6px] flex-wrap",
+              isOwn && "justify-end",
+            )}
+          >
             {reactionItems}
           </div>
         )}
@@ -674,7 +791,9 @@ function MessageHeaderActions({
           disabled={saving}
           className={`p-[4px] rounded hover:bg-bg-surface cursor-pointer transition-colors ${isPinned ? "text-primary-500" : "text-text-muted hover:text-text-secondary"}`}
           title={isPinned ? "Désépingler" : "Épingler"}
-          aria-label={isPinned ? "Désépingler le message" : "Épingler le message"}
+          aria-label={
+            isPinned ? "Désépingler le message" : "Épingler le message"
+          }
         >
           <Pin className="h-[13px] w-[13px]" />
         </button>
@@ -695,10 +814,7 @@ function MessageHeaderActions({
               onCancel={onCancelDelete}
             />
           ) : (
-            <DeleteButton
-              saving={saving}
-              onConfirm={onConfirmDelete}
-            />
+            <DeleteButton saving={saving} onConfirm={onConfirmDelete} />
           )}
         </>
       )}
@@ -716,7 +832,13 @@ function MessageHeaderActions({
   );
 }
 
-function DeleteButton({ saving, onConfirm }: { saving: boolean; onConfirm: () => void }) {
+function DeleteButton({
+  saving,
+  onConfirm,
+}: {
+  saving: boolean;
+  onConfirm: () => void;
+}) {
   return (
     <button
       onClick={onConfirm}
@@ -730,7 +852,15 @@ function DeleteButton({ saving, onConfirm }: { saving: boolean; onConfirm: () =>
   );
 }
 
-function ConfirmDeleteButton({ saving, onDelete, onCancel }: { saving: boolean; onDelete: () => void; onCancel: () => void }) {
+function ConfirmDeleteButton({
+  saving,
+  onDelete,
+  onCancel,
+}: {
+  saving: boolean;
+  onDelete: () => void;
+  onCancel: () => void;
+}) {
   return (
     <button
       onClick={onDelete}
