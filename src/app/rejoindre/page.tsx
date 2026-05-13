@@ -1,27 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
-import { Suspense } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { getAuthCallbackUrl } from "@/lib/auth-url";
+import {
+  AUTH_ENTRY_PROFILE_SELECT,
+  getAuthEntryDestination,
+} from "@/lib/auth-entry";
 
 function RejoindreContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const ref = searchParams.get("ref")?.replace("@", "") || "";
+  const referralHandle = useMemo(
+    () => searchParams.get("ref")?.replace("@", "") || "",
+    [searchParams],
+  );
+  const admissionIntro = referralHandle ? (
+    <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
+      Votre demande d’admission mentionnera l’invitation de{" "}
+      <span className="text-accent font-medium">@{referralHandle}</span>
+    </p>
+  ) : (
+    <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
+      Club privé en bêta privée, avec admission revue manuellement
+    </p>
+  );
+  const referralContext = referralHandle ? (
+    <p className="text-xs text-accent/60 text-center mt-3 leading-relaxed">
+      Ce contexte sera joint à votre demande, sans approbation automatique.
+    </p>
+  ) : null;
 
-  const handleSignUp = () => {
-    // Store referral handle in cookie so the server-side callback can read it
-    if (ref) {
-      document.cookie = `ml-referral=${ref};path=/;max-age=3600;SameSite=Lax`;
-    }
+  const handleSignUp = useCallback(async () => {
     const supabase = createClient();
-    supabase.auth.signInWithOAuth({
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select(AUTH_ENTRY_PROFILE_SELECT)
+        .eq("id", user.id)
+        .single();
+
+      router.replace(getAuthEntryDestination(profile));
+      return;
+    }
+
+    // Store referral handle in cookie so the server-side callback can read it
+    if (referralHandle) {
+      document.cookie = `ml-referral=${referralHandle};path=/;max-age=3600;SameSite=Lax`;
+    }
+
+    await supabase.auth.signInWithOAuth({
       provider: "x",
       options: { redirectTo: getAuthCallbackUrl() },
     });
-  };
+  }, [referralHandle, router]);
 
   return (
     <div className="min-h-dvh bg-base-200 flex items-center justify-center px-4 py-6">
@@ -50,16 +90,7 @@ function RejoindreContent() {
           Demander l’accès à MarchéLibre
         </h1>
 
-        {ref ? (
-          <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
-            Votre demande d’admission mentionnera l’invitation de{" "}
-            <span className="text-accent font-medium">@{ref}</span>
-          </p>
-        ) : (
-          <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
-            Club privé en bêta privée, avec admission revue manuellement
-          </p>
-        )}
+        {admissionIntro}
 
         <button
           type="button"
@@ -70,12 +101,7 @@ function RejoindreContent() {
           Continuer avec X
         </button>
 
-        {ref && (
-          <p className="text-xs text-accent/60 text-center mt-3 leading-relaxed">
-            Ce contexte sera joint à votre demande, sans approbation
-            automatique.
-          </p>
-        )}
+        {referralContext}
 
         <p className="text-xs text-base-content/40 text-center mt-4 leading-relaxed max-w-[300px] mx-auto">
           Votre identifiant X démarre la demande d’admission et sert d’identité
