@@ -68,6 +68,7 @@ interface MessageBubbleProps {
 type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean };
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
+const DIRECT_IMAGE_URL_REGEX = /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
 const EMPTY_IMAGE_URLS: string[] = [];
 const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
 const AVATAR_SLOT_CLASSNAME = "h-[40px] w-[40px] shrink-0";
@@ -92,13 +93,25 @@ function hasRemoteImageUrl(imageUrl: string) {
   return /^https?:\/\//i.test(imageUrl) || imageUrl.startsWith("blob:") || imageUrl.startsWith("data:");
 }
 
+function isDirectImageUrl(url: string | null) {
+  return Boolean(url && DIRECT_IMAGE_URL_REGEX.test(url));
+}
+
+function resolveVisibleMessageContent(content: string, mediaUrl: string | null) {
+  if (!mediaUrl) return content;
+  if (!isDirectImageUrl(mediaUrl)) return content;
+  if (content.trim() !== mediaUrl) return content;
+
+  return "";
+}
+
 function MessageImage({ url, index }: { url: string; index: number }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- Chat images can be arbitrary uploaded URLs outside Next image config.
     <img
       src={url}
       alt={`Image ${index + 1}`}
-      className="rounded-lg max-w-full sm:max-w-[400px] max-h-[300px] object-cover border border-border-default"
+      className="h-auto max-h-[320px] w-auto max-w-full rounded-lg border border-border-default object-contain"
     />
   );
 }
@@ -184,10 +197,19 @@ export function MessageBubble({
     return "rounded-[18px] rounded-tl-[8px] rounded-bl-[8px]";
   }, [isFirstInGroup, isLastInGroup, isOwn]);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
-  const resolveContentParts = useCallback(() => {
-    return renderContentWithMentions(message.content, isOwn);
-  }, [isOwn, message.content]);
   const rawImageUrls = useMemo(() => parseImageUrls(message.image_url), [message.image_url]);
+  const previewUrl = useMemo(() => extractFirstHttpUrl(message.content), [message.content]);
+  const directImageUrl = useMemo(() => {
+    if (!isDirectImageUrl(previewUrl)) return null;
+
+    return previewUrl;
+  }, [previewUrl]);
+  const visibleContent = useMemo(() => {
+    return resolveVisibleMessageContent(message.content, directImageUrl);
+  }, [directImageUrl, message.content]);
+  const resolveContentParts = useCallback(() => {
+    return renderContentWithMentions(visibleContent, isOwn);
+  }, [isOwn, visibleContent]);
   const contentParts = useMemo(() => resolveContentParts(), [resolveContentParts]);
   const resolveImageUrls = useCallback(async () => {
     if (rawImageUrls.length === 0) {
@@ -206,7 +228,15 @@ export function MessageBubble({
     );
   }, [rawImageUrls, supabase]);
   const imageUrls = useMemo(() => resolvedImageUrls, [resolvedImageUrls]);
-  const previewUrl = useMemo(() => extractFirstHttpUrl(message.content), [message.content]);
+  const displayedImageUrls = useMemo(() => {
+    if (!directImageUrl) return imageUrls;
+    if (imageUrls.includes(directImageUrl)) return imageUrls;
+
+    return [...imageUrls, directImageUrl];
+  }, [directImageUrl, imageUrls]);
+  const shouldShowLinkPreview = useMemo(() => {
+    return Boolean(previewUrl && !directImageUrl);
+  }, [directImageUrl, previewUrl]);
 
   const updateImageUrlsEffect = useCallback(() => {
     let isCancelled = false;
@@ -355,14 +385,14 @@ export function MessageBubble({
   }, [onReact]);
 
   const buildImageItems = useCallback(() => {
-    if (imageUrls.length === 0) return null;
+    if (displayedImageUrls.length === 0) return null;
 
     const items: ReactNode[] = [];
-    imageUrls.forEach((url: string, index: number) => {
+    displayedImageUrls.forEach((url: string, index: number) => {
       items.push(<MessageImage key={`${url}-${index}`} url={url} index={index} />);
     });
     return items;
-  }, [imageUrls]);
+  }, [displayedImageUrls]);
 
   const imageItems = useMemo(() => buildImageItems(), [buildImageItems]);
 
@@ -465,7 +495,7 @@ export function MessageBubble({
         className={cn(
           "min-w-0 flex flex-col",
           MESSAGE_WIDTH_CLASSNAME,
-          isOwn && "flex flex-col items-end",
+          isOwn ? "items-end" : "items-start",
           isOwn && editing && "w-[75%]"
         )}
       >
@@ -548,17 +578,17 @@ export function MessageBubble({
         ) : (
           <div
             className={cn(
-              "px-[14px] py-[9px] shadow-card",
+              "w-fit max-w-full px-[14px] py-[9px] shadow-card",
               bubbleRadiusClass,
               isOwn
                 ? "bg-primary-500 text-white"
                 : "border border-border-subtle bg-bg-surface-hover text-text-primary"
             )}
           >
-            {message.content && (
+            {visibleContent && (
               <div
                 className={cn(
-                  "whitespace-pre-wrap break-words text-[14px] leading-[20px]",
+                  "whitespace-pre-wrap break-words text-[14px] leading-[20px] [overflow-wrap:anywhere]",
                   isSending && "opacity-60",
                   isFailed ? "text-error/80" : isOwn ? "text-white" : "text-text-primary"
                 )}
@@ -575,15 +605,15 @@ export function MessageBubble({
               <div
                 className={cn(
                   "mt-[8px]",
-                  (imageUrls.length > 1 || isOwn) && "flex",
-                  imageUrls.length > 1 && "gap-[6px] flex-wrap",
+                  (displayedImageUrls.length > 1 || isOwn) && "flex",
+                  displayedImageUrls.length > 1 && "gap-[6px] flex-wrap",
                   isOwn && "justify-end"
                 )}
               >
                 {imageItems}
               </div>
             )}
-            {previewUrl && <LinkPreview url={previewUrl} />}
+            {shouldShowLinkPreview && previewUrl && <LinkPreview url={previewUrl} />}
             {forumMatch && <PostEmbed postId={forumMatch[1]} />}
           </div>
         )}

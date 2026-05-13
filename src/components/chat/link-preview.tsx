@@ -75,7 +75,7 @@ export function LinkPreview({ url }: LinkPreviewProps) {
       href={visiblePreview.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-[8px] block max-w-[420px] overflow-hidden rounded-lg border border-border-default bg-bg-elevated transition-colors hover:border-border-strong"
+      className="mt-[8px] block w-[min(420px,100%)] overflow-hidden rounded-lg border border-border-default bg-bg-elevated transition-colors hover:border-border-strong"
     >
       {imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- Link preview images are arbitrary remote Open Graph URLs.
