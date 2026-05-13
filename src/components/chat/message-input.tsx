@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import type { ChangeEvent, ClipboardEvent, KeyboardEvent, MouseEvent } from "react";
-import { ImagePlus, Send, X } from "lucide-react";
+import type {
+  ChangeEvent,
+  ClipboardEvent,
+  KeyboardEvent,
+  MouseEvent,
+} from "react";
+import { ImagePlus, Send, Smile, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentions } from "@/lib/notifications";
 import { Avatar } from "@/components/ui/avatar";
@@ -15,7 +20,10 @@ interface MessageInputProps {
   noPermissionMessage?: string | null;
   userId: string;
   onOptimisticMessage?: (content: string, imageUrl?: string) => string;
-  onMessageConfirmed?: (optimisticId: string, realMessage: FullMessage | null) => void;
+  onMessageConfirmed?: (
+    optimisticId: string,
+    realMessage: FullMessage | null,
+  ) => void;
   onMessageFailed?: (optimisticId: string) => void;
 }
 
@@ -32,11 +40,142 @@ interface MentionSuggestionItemProps {
   onPick: (handle: string) => void;
 }
 
-function MentionSuggestionItem({ user, selected, onPick }: MentionSuggestionItemProps) {
-  const handleMouseDown = useCallback((e: MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    onPick(user.x_handle);
-  }, [onPick, user.x_handle]);
+interface EmojiPickerItemProps {
+  emoji: string;
+  onPick: (emoji: string) => void;
+}
+
+function EmojiPickerItem({ emoji, onPick }: EmojiPickerItemProps) {
+  const handleMouseDown = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      onPick(emoji);
+    },
+    [emoji, onPick],
+  );
+
+  return (
+    <button
+      type="button"
+      onMouseDown={handleMouseDown}
+      className="inline-flex h-[32px] w-[32px] items-center justify-center rounded-lg text-[18px] transition-colors hover:bg-bg-surface-hover"
+      aria-label={`Ajouter l'emoji ${emoji}`}
+      title={emoji}
+    >
+      {emoji}
+    </button>
+  );
+}
+
+const EMOJI_OPTIONS = [
+  "😀",
+  "😁",
+  "😂",
+  "🤣",
+  "😅",
+  "😆",
+  "😉",
+  "😊",
+  "😍",
+  "😘",
+  "🥰",
+  "😎",
+  "🤗",
+  "🤔",
+  "🧐",
+  "😐",
+  "🙄",
+  "😶",
+  "😏",
+  "😮",
+  "😯",
+  "😢",
+  "😭",
+  "😤",
+  "😠",
+  "😡",
+  "🤯",
+  "😱",
+  "😬",
+  "🤪",
+  "😜",
+  "🥳",
+  "😇",
+  "🤓",
+  "🤩",
+  "🤐",
+  "😭",
+  "😴",
+  "🤤",
+  "👍",
+  "🙌",
+  "👏",
+  "👎",
+  "🙅",
+  "🙆",
+  "🤞",
+  "🙏",
+  "❤️",
+  "💔",
+  "💛",
+  "💙",
+  "🧡",
+  "💚",
+  "💜",
+  "✨",
+  "🌟",
+  "💫",
+  "🎉",
+  "🎊",
+  "🎈",
+  "🚀",
+  "🔥",
+  "⚡",
+  "💯",
+  "✅",
+  "❌",
+  "⚠️",
+  "🕊️",
+  "⚖️",
+  "🤝",
+  "🇫🇷",
+  "🏛️",
+  "🗼",
+  "🗽",
+  "🚩",
+  "🏳️‍🌈",
+  "🥐",
+  "🥖",
+  "🧀",
+  "🍷",
+  "☕",
+  "🏢",
+  "💼",
+  "🧾",
+  "📈",
+  "📉",
+  "📊",
+  "💳",
+  "🧠",
+  "💡",
+  "🧮",
+  "📅",
+  "🗂️",
+  "📌",
+];
+
+function MentionSuggestionItem({
+  user,
+  selected,
+  onPick,
+}: MentionSuggestionItemProps) {
+  const handleMouseDown = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onPick(user.x_handle);
+    },
+    [onPick, user.x_handle],
+  );
 
   return (
     <button
@@ -58,7 +197,8 @@ function MentionSuggestionItem({ user, selected, onPick }: MentionSuggestionItem
 
 const MAX_CHAT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const CHAT_MEDIA_BUCKET = "medias";
-const MESSAGE_WITH_AUTHOR_SELECT = "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
+const MESSAGE_WITH_AUTHOR_SELECT =
+  "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
 
 function resolveImageFileExtension(fileName: string) {
   const segments = fileName.split(".");
@@ -69,7 +209,10 @@ function resolveImageFileExtension(fileName: string) {
 
 function resolveImageUploadFileName(file: File) {
   const extension = resolveImageFileExtension(file.name);
-  const randomSuffix = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+  const randomSuffix =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
   return `${randomSuffix}${extension ? `.${extension}` : ""}`;
 }
 
@@ -90,6 +233,7 @@ export function MessageInput({
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -111,7 +255,10 @@ export function MessageInput({
     if (!text && !imageFile) return;
 
     const selectedImagePreviewUrl = imagePreviewUrl;
-    const optimisticId = onOptimisticMessage?.(text, selectedImagePreviewUrl || undefined);
+    const optimisticId = onOptimisticMessage?.(
+      text,
+      selectedImagePreviewUrl || undefined,
+    );
     setError(null);
     setUploadingImage(Boolean(imageFile));
     setSending(true);
@@ -122,10 +269,12 @@ export function MessageInput({
     if (imageFile) {
       const objectPath = resolveImageObjectKey(channelId, userId, imageFile);
 
-      const { error: uploadError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(objectPath, imageFile, {
-        contentType: imageFile.type,
-        upsert: false,
-      });
+      const { error: uploadError } = await supabase.storage
+        .from(CHAT_MEDIA_BUCKET)
+        .upload(objectPath, imageFile, {
+          contentType: imageFile.type,
+          upsert: false,
+        });
 
       if (uploadError) {
         if (optimisticId) onMessageFailed?.(optimisticId);
@@ -151,7 +300,9 @@ export function MessageInput({
 
     if (insertError) {
       if (uploadedImageUrl) {
-        await supabase.storage.from(CHAT_MEDIA_BUCKET).remove([uploadedImageUrl]);
+        await supabase.storage
+          .from(CHAT_MEDIA_BUCKET)
+          .remove([uploadedImageUrl]);
       }
       if (optimisticId) onMessageFailed?.(optimisticId);
       setError(`Échec de l'envoi du message : ${insertError.message}`);
@@ -165,7 +316,11 @@ export function MessageInput({
       }
       setContent("");
       setImagePreviewUrl(null);
-      if (optimisticId) onMessageConfirmed?.(optimisticId, insertedMessage as FullMessage | null);
+      if (optimisticId)
+        onMessageConfirmed?.(
+          optimisticId,
+          insertedMessage as FullMessage | null,
+        );
       if (text) {
         notifyMentions(supabase, {
           content: text,
@@ -211,33 +366,49 @@ export function MessageInput({
     fileInputRef.current?.click();
   }, []);
 
-  const applyImageSelection = useCallback((selectedFile: File) => {
-    if (!selectedFile.type.startsWith("image/")) {
-      setError("Veuillez sélectionner une image valide.");
-      clearImageSelection();
-      return;
-    }
+  const handleEmojiPickerClose = useCallback(() => {
+    setEmojiPickerOpen(false);
+  }, []);
 
-    if (selectedFile.size > MAX_CHAT_IMAGE_SIZE_BYTES) {
-      setError(`L'image dépasse la limite de ${MAX_CHAT_IMAGE_SIZE_BYTES / (1024 * 1024)} MB.`);
-      clearImageSelection();
-      return;
-    }
+  const handleEmojiPickerToggle = useCallback(() => {
+    setEmojiPickerOpen((previous) => !previous);
+  }, []);
 
-    if (imagePreviewUrl) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    setImageFile(selectedFile);
-    setImagePreviewUrl(URL.createObjectURL(selectedFile));
-    setError(null);
-  }, [clearImageSelection, imagePreviewUrl]);
+  const applyImageSelection = useCallback(
+    (selectedFile: File) => {
+      if (!selectedFile.type.startsWith("image/")) {
+        setError("Veuillez sélectionner une image valide.");
+        clearImageSelection();
+        return;
+      }
 
-  const handleImageFileSelected = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+      if (selectedFile.size > MAX_CHAT_IMAGE_SIZE_BYTES) {
+        setError(
+          `L'image dépasse la limite de ${MAX_CHAT_IMAGE_SIZE_BYTES / (1024 * 1024)} MB.`,
+        );
+        clearImageSelection();
+        return;
+      }
 
-    applyImageSelection(selectedFile);
-  }, [applyImageSelection]);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImageFile(selectedFile);
+      setImagePreviewUrl(URL.createObjectURL(selectedFile));
+      setError(null);
+    },
+    [clearImageSelection, imagePreviewUrl],
+  );
+
+  const handleImageFileSelected = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0];
+      if (!selectedFile) return;
+
+      applyImageSelection(selectedFile);
+    },
+    [applyImageSelection],
+  );
 
   const detectMentionQuery = useCallback((text: string, cursorPos: number) => {
     const before = text.slice(0, cursorPos);
@@ -251,46 +422,62 @@ export function MessageInput({
     }
   }, []);
 
-  const insertTextAtCursor = useCallback((nextText: string) => {
-    if (!nextText) return;
+  const insertTextAtCursor = useCallback(
+    (nextText: string) => {
+      if (!nextText) return;
 
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      setContent((previous) => previous + nextText);
-      return;
-    }
+      const textarea = textareaRef.current;
+      if (!textarea) {
+        setContent((previous) => previous + nextText);
+        return;
+      }
 
-    const selectionStart = textarea.selectionStart;
-    const selectionEnd = textarea.selectionEnd;
-    const before = content.slice(0, selectionStart);
-    const after = content.slice(selectionEnd);
-    const merged = `${before}${nextText}${after}`;
+      const selectionStart = textarea.selectionStart;
+      const selectionEnd = textarea.selectionEnd;
+      const before = content.slice(0, selectionStart);
+      const after = content.slice(selectionEnd);
+      const merged = `${before}${nextText}${after}`;
 
-    setContent(merged);
-    setMentionQuery(null);
-    setSuggestions([]);
+      setContent(merged);
+      setMentionQuery(null);
+      setSuggestions([]);
 
-    requestAnimationFrame(() => {
-      const cursorPos = before.length + nextText.length;
-      textarea.focus();
-      textarea.setSelectionRange(cursorPos, cursorPos);
-      detectMentionQuery(merged, cursorPos);
-    });
-  }, [content, detectMentionQuery]);
+      requestAnimationFrame(() => {
+        const cursorPos = before.length + nextText.length;
+        textarea.focus();
+        textarea.setSelectionRange(cursorPos, cursorPos);
+        detectMentionQuery(merged, cursorPos);
+      });
+    },
+    [content, detectMentionQuery],
+  );
 
-  const handlePaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const clipboardItems = Array.from(event.clipboardData?.items || []);
-    const pastedImage = clipboardItems.find((item) => item.kind === "file" && item.type.startsWith("image/"));
+  const handleInsertEmoji = useCallback(
+    (emoji: string) => {
+      insertTextAtCursor(emoji);
+      handleEmojiPickerClose();
+    },
+    [handleEmojiPickerClose, insertTextAtCursor],
+  );
 
-    if (!pastedImage) return;
+  const handlePaste = useCallback(
+    (event: ClipboardEvent<HTMLTextAreaElement>) => {
+      const clipboardItems = Array.from(event.clipboardData?.items || []);
+      const pastedImage = clipboardItems.find(
+        (item) => item.kind === "file" && item.type.startsWith("image/"),
+      );
 
-    const pastedFile = pastedImage.getAsFile();
-    if (!pastedFile) return;
+      if (!pastedImage) return;
 
-    event.preventDefault();
-    insertTextAtCursor(event.clipboardData?.getData("text/plain") ?? "");
-    applyImageSelection(pastedFile);
-  }, [applyImageSelection, insertTextAtCursor]);
+      const pastedFile = pastedImage.getAsFile();
+      if (!pastedFile) return;
+
+      event.preventDefault();
+      insertTextAtCursor(event.clipboardData?.getData("text/plain") ?? "");
+      applyImageSelection(pastedFile);
+    },
+    [applyImageSelection, insertTextAtCursor],
+  );
 
   useEffect(() => {
     return () => {
@@ -324,68 +511,109 @@ export function MessageInput({
     void fetchSuggestions();
   }, [mentionQuery, userId]);
 
-  const insertMention = useCallback((handle: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+  const insertMention = useCallback(
+    (handle: string) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
 
-    const cursorPos = textarea.selectionStart;
-    const before = content.slice(0, cursorPos);
-    const after = content.slice(cursorPos);
-    const mentionStart = before.lastIndexOf("@");
+      const cursorPos = textarea.selectionStart;
+      const before = content.slice(0, cursorPos);
+      const after = content.slice(cursorPos);
+      const mentionStart = before.lastIndexOf("@");
 
-    const newContent = before.slice(0, mentionStart) + `@${handle} ` + after;
-    setContent(newContent);
-    setMentionQuery(null);
-    setSuggestions([]);
+      const newContent = before.slice(0, mentionStart) + `@${handle} ` + after;
+      setContent(newContent);
+      setMentionQuery(null);
+      setSuggestions([]);
 
-    requestAnimationFrame(() => {
-      const newPos = mentionStart + handle.length + 2;
-      textarea.focus();
-      textarea.setSelectionRange(newPos, newPos);
-    });
-  }, [content]);
+      requestAnimationFrame(() => {
+        const newPos = mentionStart + handle.length + 2;
+        textarea.focus();
+        textarea.setSelectionRange(newPos, newPos);
+      });
+    },
+    [content],
+  );
 
-  const handleChange = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    setContent(value);
-    detectMentionQuery(value, e.target.selectionStart);
-  }, [detectMentionQuery]);
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setContent(value);
+      detectMentionQuery(value, e.target.selectionStart);
+    },
+    [detectMentionQuery],
+  );
 
-  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!canWrite && e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!canWrite && e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        return;
+      }
+
+      if (suggestions.length > 0 && mentionQuery !== null) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSelectedIndex((i) => (i + 1) % suggestions.length);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSelectedIndex(
+            (i) => (i - 1 + suggestions.length) % suggestions.length,
+          );
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          e.preventDefault();
+          insertMention(suggestions[selectedIndex].x_handle);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setMentionQuery(null);
+          setSuggestions([]);
+          if (emojiPickerOpen) {
+            handleEmojiPickerClose();
+          }
+          return;
+        }
+      }
+
+      if (emojiPickerOpen && e.key === "Escape") {
+        e.preventDefault();
+        handleEmojiPickerClose();
+        return;
+      }
+
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        void sendMessage();
+      }
+    },
+    [
+      canWrite,
+      emojiPickerOpen,
+      handleEmojiPickerClose,
+      insertMention,
+      mentionQuery,
+      selectedIndex,
+      sendMessage,
+      suggestions,
+    ],
+  );
+
+  const handleComposerFocus = useCallback(() => {
+    if (emojiPickerOpen) {
+      handleEmojiPickerClose();
     }
+  }, [emojiPickerOpen, handleEmojiPickerClose]);
 
-    if (suggestions.length > 0 && mentionQuery !== null) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSelectedIndex((i) => (i + 1) % suggestions.length);
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSelectedIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
-        return;
-      }
-      if (e.key === "Enter" || e.key === "Tab") {
-        e.preventDefault();
-        insertMention(suggestions[selectedIndex].x_handle);
-        return;
-      }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setMentionQuery(null);
-        setSuggestions([]);
-        return;
-      }
-    }
-
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void sendMessage();
-    }
-  }, [canWrite, insertMention, mentionQuery, selectedIndex, sendMessage, suggestions]);
+  const emojiPickerItems = useMemo(() => {
+    return EMOJI_OPTIONS.map((emoji, index) => (
+      <EmojiPickerItem key={`${emoji}-${index}`} emoji={emoji} onPick={handleInsertEmoji} />
+    ));
+  }, [handleInsertEmoji]);
 
   const handleSendClick = useCallback(() => {
     void sendMessage();
@@ -406,6 +634,9 @@ export function MessageInput({
   const isBusy = sending || uploadingImage;
   const inputDisabled = isBusy || !canWrite;
   const sendButtonDisabled = inputDisabled || !canSubmit;
+  const emojiPickerTitle = emojiPickerOpen
+    ? "Fermer la palette d'emojis"
+    : "Ajouter un emoji";
 
   const imagePreview = useMemo(() => {
     if (!imagePreviewUrl) return null;
@@ -413,7 +644,11 @@ export function MessageInput({
     return (
       <div className="mt-[8px] flex items-center gap-[8px] rounded-[12px] border border-border-default bg-bg-surface px-[10px] py-[8px]">
         {/* eslint-disable-next-line @next/next/no-img-element -- Chat composer image previews are local blob URLs handled by the browser. */}
-        <img src={imagePreviewUrl} alt="Aperçu du fichier" className="h-[64px] w-[64px] rounded-md object-cover" />
+        <img
+          src={imagePreviewUrl}
+          alt="Aperçu du fichier"
+          className="h-[64px] w-[64px] rounded-md object-cover"
+        />
         <button
           type="button"
           onClick={handleImageRemove}
@@ -435,7 +670,13 @@ export function MessageInput({
         </div>
       )}
 
-      <div className="flex min-h-[46px] items-end gap-[8px] rounded-[23px] border border-border-default bg-bg-surface-hover px-[14px] py-[8px] shadow-card transition-colors focus-within:border-primary-500 focus-within:shadow-focus">
+      {emojiPickerOpen && (
+        <div className="absolute bottom-full left-[12px] right-[12px] z-50 mb-[8px] overflow-hidden rounded-2xl border border-border-default bg-bg-elevated p-[8px] shadow-modal">
+          <div className="grid grid-cols-8 gap-[4px]">{emojiPickerItems}</div>
+        </div>
+      )}
+
+      <div className="flex min-h-[46px] items-end gap-[3px] rounded-[23px] border border-border-default bg-bg-surface-hover px-[14px] py-[8px] shadow-card transition-colors focus-within:border-primary-500 focus-within:shadow-focus">
         <button
           type="button"
           onClick={handleImageClick}
@@ -446,11 +687,22 @@ export function MessageInput({
         >
           <ImagePlus className="h-[16px] w-[16px]" />
         </button>
+        <button
+          type="button"
+          onClick={handleEmojiPickerToggle}
+          disabled={inputDisabled}
+          className="flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={emojiPickerTitle}
+          title={emojiPickerTitle}
+        >
+          <Smile className="h-[16px] w-[16px]" />
+        </button>
         <textarea
           ref={textareaRef}
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onFocus={handleComposerFocus}
           onPaste={handlePaste}
           disabled={inputDisabled}
           placeholder="Écrire un message..."
@@ -474,11 +726,7 @@ export function MessageInput({
         onChange={handleImageFileSelected}
         className="hidden"
       />
-      {error && (
-        <p className="mt-[8px] text-[11px] text-error">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-[8px] text-[11px] text-error">{error}</p>}
       {!canWrite && noPermissionMessage && (
         <p className="mt-[8px] text-[11px] text-text-muted">
           {noPermissionMessage}
