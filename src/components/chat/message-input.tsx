@@ -54,6 +54,8 @@ function MentionSuggestionItem({ user, selected, onPick }: MentionSuggestionItem
 }
 
 const MAX_CHAT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const CHAT_MEDIA_BUCKET = "medias";
+const MESSAGE_WITH_AUTHOR_SELECT = "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
 
 function resolveImageFileExtension(fileName: string) {
   const segments = fileName.split(".");
@@ -90,7 +92,8 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     const text = content.trim();
     if (!text && !imageFile) return;
 
-    const optimisticId = onOptimisticMessage?.(text, imagePreviewUrl || undefined);
+    const selectedImagePreviewUrl = imagePreviewUrl;
+    const optimisticId = onOptimisticMessage?.(text, selectedImagePreviewUrl || undefined);
     setError(null);
     setUploadingImage(Boolean(imageFile));
     setSending(true);
@@ -101,7 +104,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     if (imageFile) {
       const objectPath = resolveImageObjectKey(channelId, userId, imageFile);
 
-      const { error: uploadError } = await supabase.storage.from("medias").upload(objectPath, imageFile, {
+      const { error: uploadError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(objectPath, imageFile, {
         contentType: imageFile.type,
         upsert: false,
       });
@@ -117,29 +120,34 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       uploadedImageUrl = objectPath;
     }
 
-    const { error: insertError } = await supabase
+    const { data: insertedMessage, error: insertError } = await supabase
       .from("messages")
       .insert({
         channel_id: channelId,
         author_id: userId,
         content: text,
         image_url: uploadedImageUrl,
-      });
+      })
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .single();
 
     if (insertError) {
       if (uploadedImageUrl) {
-        await supabase.storage.from("medias").remove([uploadedImageUrl]);
+        await supabase.storage.from(CHAT_MEDIA_BUCKET).remove([uploadedImageUrl]);
       }
       if (optimisticId) onMessageFailed?.(optimisticId);
       setError(`Échec de l'envoi du message : ${insertError.message}`);
     } else {
       setImageFile(null);
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
       }
       setContent("");
       setImagePreviewUrl(null);
-      if (optimisticId) onMessageConfirmed?.(optimisticId, null);
+      if (optimisticId) onMessageConfirmed?.(optimisticId, insertedMessage as FullMessage | null);
       if (text) {
         notifyMentions(supabase, {
           content: text,

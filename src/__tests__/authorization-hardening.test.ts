@@ -137,7 +137,10 @@ describe("authorization hardening", () => {
       .map(({ text }) => text)
       .join("\n");
 
-    expect(messageInput).toContain("storage.from(\"medias\")");
+    expect(messageInput).toContain('const CHAT_MEDIA_BUCKET = "medias"');
+    expect(messageInput).toContain("storage.from(CHAT_MEDIA_BUCKET)");
+    expect(messageInput).toContain("MESSAGE_WITH_AUTHOR_SELECT");
+    expect(messageInput).toContain("onMessageConfirmed?.(optimisticId, insertedMessage as FullMessage | null)");
     expect(messageInput).toContain("ImagePlus");
     expect(messageInput).toContain("handleImageFileSelected");
     expect(messageInput).toContain("handlePaste");
@@ -147,6 +150,8 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain('CREATE POLICY "Users can upload chat media"');
     expect(migrationText).toContain('CREATE POLICY "Users can read chat media"');
     expect(migrationText).toContain("private.can_current_user_access_chat_media_path");
+    expect(migrationText).toContain("COALESCE(c.write_permission, 'all') = 'all'");
+    expect(migrationText).toContain("COALESCE(c.read_permission, 'all') = 'all'");
     expect(migrationText).toContain("split_part(image_url, '/', 1) = 'chat'");
     expect(migrationText).toContain('CREATE POLICY "Approved users can send messages to allowed channels"');
     expect(migrationText).toContain("bucket_id = 'medias'");
