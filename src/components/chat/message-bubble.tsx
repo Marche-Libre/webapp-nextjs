@@ -9,9 +9,11 @@ import { Pencil, Trash2, Check, Flag, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
 import { extractFirstHttpUrl } from "@/lib/link-preview-url";
+import { resolveMediaEmbed } from "@/lib/media-embed";
 import { PostEmbed } from "./post-embed";
 import { UserHoverCard } from "./user-hover-card";
 import { LinkPreview } from "./link-preview";
+import { MediaEmbed } from "./media-embed";
 
 const MENTION_REGEX = /@([A-Za-z0-9_]+)/g;
 
@@ -199,6 +201,7 @@ export function MessageBubble({
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
   const rawImageUrls = useMemo(() => parseImageUrls(message.image_url), [message.image_url]);
   const previewUrl = useMemo(() => extractFirstHttpUrl(message.content), [message.content]);
+  const mediaEmbed = useMemo(() => resolveMediaEmbed(previewUrl), [previewUrl]);
   const directImageUrl = useMemo(() => {
     if (!isDirectImageUrl(previewUrl)) return null;
 
@@ -235,8 +238,8 @@ export function MessageBubble({
     return [...imageUrls, directImageUrl];
   }, [directImageUrl, imageUrls]);
   const shouldShowLinkPreview = useMemo(() => {
-    return Boolean(previewUrl && !directImageUrl);
-  }, [directImageUrl, previewUrl]);
+    return Boolean(previewUrl && !directImageUrl && !mediaEmbed);
+  }, [directImageUrl, mediaEmbed, previewUrl]);
 
   const updateImageUrlsEffect = useCallback(() => {
     let isCancelled = false;
@@ -613,6 +616,7 @@ export function MessageBubble({
                 {imageItems}
               </div>
             )}
+            {mediaEmbed && <MediaEmbed embed={mediaEmbed} />}
             {shouldShowLinkPreview && previewUrl && <LinkPreview url={previewUrl} />}
             {forumMatch && <PostEmbed postId={forumMatch[1]} />}
           </div>
