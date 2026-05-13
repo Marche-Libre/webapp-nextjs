@@ -11,6 +11,8 @@ import {
   PanelLeftClose,
   ChevronUp,
   Star,
+  MessageCircle,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,11 +31,29 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-import { MessageCircle } from "lucide-react";
+type SidebarNavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+};
 
-const communaute = [
+const communaute: SidebarNavItem[] = [
   { name: "Chat", href: "/chat", icon: MessageCircle },
 ];
+
+const administration: SidebarNavItem[] = [
+  { name: "Administration", href: "/admin", icon: ShieldCheck, exact: true },
+  { name: "Gestion des utilisateurs", href: "/admin/users", icon: Users },
+];
+
+function isSidebarNavItemActive(pathname: string, item: SidebarNavItem) {
+  if (item.exact) {
+    return pathname === item.href;
+  }
+
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
@@ -74,8 +94,8 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
     }
   }, [handleCloseUserMenu, userMenuOpen]);
 
-  const renderLink = (item: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }) => {
-    const isActive = pathname.startsWith(item.href);
+  const renderLink = (item: SidebarNavItem) => {
+    const isActive = isSidebarNavItemActive(pathname, item);
     return (
       <Link
         key={item.href}
@@ -95,7 +115,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
     );
   };
 
-  const renderSection = (label: string, items: typeof communaute) => (
+  const renderSection = (label: string, items: SidebarNavItem[]) => (
     <>
       <p className="px-[12px] mb-[8px] mt-[16px] text-[11px] leading-[16px] font-semibold uppercase tracking-[0.08em] text-text-muted">
         {label}
@@ -186,6 +206,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
           )}
 
           {renderSection("Communauté", communaute)}
+          {profile.is_admin && renderSection("Administration", administration)}
         </nav>
 
         {/* Discord-style user bar */}
@@ -216,7 +237,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
                   className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
                 >
                   <ShieldCheck className="h-[16px] w-[16px]" />
-                  Gestion admin
+                  Administration
                 </Link>
               )}
               <div className="my-[4px] border-t border-border-subtle" />

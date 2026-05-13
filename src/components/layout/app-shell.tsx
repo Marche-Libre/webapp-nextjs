@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { SettingsShell } from "./settings-shell";
+import { AdminShell } from "./admin-shell";
 import { ChatStoreProvider } from "@/components/chat/chat-store";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import type { Profile } from "@/lib/types/database";
@@ -22,7 +23,20 @@ function MainArea({ profile, children }: { profile: Profile; children: React.Rea
   const pathname = usePathname();
 
   const isSettingsRoute = SETTINGS_ROUTES.some((r) => pathname.startsWith(r));
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const isChatRoute = pathname.startsWith("/chat");
+
+  const handleOpenSidebar = useCallback(() => {
+    setSidebarOpen(true);
+  }, []);
+
+  const handleCloseSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((current) => !current);
+  }, []);
 
   // Chat full-screen: no sidebar, no header, just the chat page
   if (isChatRoute) {
@@ -41,18 +55,18 @@ function MainArea({ profile, children }: { profile: Profile; children: React.Rea
         profile={profile}
         open={sidebarOpen}
         collapsed={sidebarCollapsed}
-        onClose={() => setSidebarOpen(false)}
-        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        onClose={handleCloseSidebar}
+        onToggleCollapse={handleToggleSidebar}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           sidebarCollapsed={sidebarCollapsed}
-          onMenuClick={() => setSidebarOpen(true)}
-          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+          onMenuClick={handleOpenSidebar}
+          onToggleSidebar={handleToggleSidebar}
         />
         <main className="flex-1 overflow-y-auto p-[16px] lg:p-[32px]">
           <div className="mx-auto max-w-5xl">
-            {!isSettingsRoute && children}
+            {!isSettingsRoute && !isAdminRoute && children}
           </div>
         </main>
       </div>
@@ -60,6 +74,9 @@ function MainArea({ profile, children }: { profile: Profile; children: React.Rea
       {/* Discord-style settings overlay */}
       {isSettingsRoute && (
         <SettingsShell>{children}</SettingsShell>
+      )}
+      {isAdminRoute && (
+        <AdminShell>{children}</AdminShell>
       )}
     </div>
   );

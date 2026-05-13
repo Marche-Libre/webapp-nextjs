@@ -73,6 +73,7 @@ const memberRoutes = [
   "/tableau-de-bord",
   "/parrainages",
 ];
+const adminRoutes = ["/admin", "/admin/users"];
 
 describe("auth session middleware routing matrix", () => {
   it("keeps public routes and public non-private route handlers accessible when logged out", async () => {
@@ -95,7 +96,7 @@ describe("auth session middleware routing matrix", () => {
   it("redirects logged-out users away from onboarding, member, and admin routes", async () => {
     mockUserId = null;
 
-    const privateRoutes = ["/onboarding", ...memberRoutes, "/admin"];
+    const privateRoutes = ["/onboarding", ...memberRoutes, ...adminRoutes];
     await Promise.all(privateRoutes.map((route) => expectAccessModalRedirect(route)));
   });
 
@@ -113,7 +114,7 @@ describe("auth session middleware routing matrix", () => {
       "/en-attente",
       "/onboarding",
       ...memberRoutes,
-      "/admin",
+      ...adminRoutes,
     ];
 
     await Promise.all(blockedRoutes.map((route) => expectAccessModalRedirect(route)));
@@ -130,7 +131,7 @@ describe("auth session middleware routing matrix", () => {
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
-    const blockedRoutes = ["/en-attente", "/onboarding", ...memberRoutes, "/admin"];
+    const blockedRoutes = ["/en-attente", "/onboarding", ...memberRoutes, ...adminRoutes];
     await Promise.all(blockedRoutes.map((route) => expectAccessModalRedirect(route)));
   });
 
@@ -148,7 +149,7 @@ describe("auth session middleware routing matrix", () => {
       "/rejoindre",
       "/onboarding",
       ...memberRoutes,
-      "/admin",
+      ...adminRoutes,
     ];
     await Promise.all(
       nonMemberRoutes.map((route) => expectRedirect(route, "/en-attente")),
@@ -169,7 +170,7 @@ describe("auth session middleware routing matrix", () => {
       "/rejoindre",
       "/onboarding",
       ...memberRoutes,
-      "/admin",
+      ...adminRoutes,
     ];
     await Promise.all(
       blockedRoutes.map((route) => expectRedirect(route, "/en-attente")),
@@ -190,7 +191,7 @@ describe("auth session middleware routing matrix", () => {
       "/rejoindre",
       "/onboarding",
       ...memberRoutes,
-      "/admin",
+      ...adminRoutes,
     ];
     await Promise.all(
       blockedRoutes.map((route) => expectRedirect(route, "/en-attente")),
@@ -211,7 +212,7 @@ describe("auth session middleware routing matrix", () => {
       "/rejoindre",
       "/en-attente",
       ...memberRoutes,
-      "/admin",
+      ...adminRoutes,
     ];
     await Promise.all(
       onboardingRedirectRoutes.map((route) => expectRedirect(route, "/onboarding")),
@@ -240,7 +241,7 @@ describe("auth session middleware routing matrix", () => {
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
-    const allowedRoutes = [...memberRoutes, "/admin"];
+    const allowedRoutes = [...memberRoutes, ...adminRoutes];
     await Promise.all(allowedRoutes.map((route) => expectAllowed(route)));
   });
 });

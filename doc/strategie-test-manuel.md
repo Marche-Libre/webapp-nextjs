@@ -142,7 +142,7 @@ tester :
 
 1. Reset les fixtures.
 2. Se connecter avec `admin@dev.local`.
-3. Ouvrir `/admin/utilisateurs`.
+3. Ouvrir `/admin/users`.
 4. Verifier que `pending@dev.local` apparait dans la section en attente.
 5. Approuver `pending@dev.local`.
 6. Verifier que son statut devient `approved`.

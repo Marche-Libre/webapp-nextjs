@@ -251,7 +251,7 @@ Points d'entree et methodes cles:
 ```mermaid
 sequenceDiagram
     actor Admin
-    participant AdminRoute as UI /admin et /admin/utilisateurs
+    participant AdminRoute as UI /admin et /admin/users
     participant Layout as AdminLayout
     participant Actions as Server Actions admin
     participant DB as Supabase DB

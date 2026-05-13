@@ -114,7 +114,7 @@ function UserBar({ profile, onNavigate }: { profile: Profile; onNavigate?: () =>
               className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
             >
               <ShieldCheck className="h-[16px] w-[16px]" />
-              Gestion admin
+              Administration
             </Link>
           )}
           <div className="my-[4px] border-t border-border-subtle" />

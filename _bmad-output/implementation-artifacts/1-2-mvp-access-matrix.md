@@ -121,7 +121,7 @@ This document defines the canonical expected access matrix for the Le Marché Li
 | `/admin` layout | Logged-out | Redirect to `/connexion` | Redirect | `admin/layout.tsx:9-15` | decided | verified | None | No |
 | `/admin` layout | Non-admin | Redirect to `/chat` | Redirect | `admin/layout.tsx:16-24` | decided | verified | UI gate only; DB RLS must still protect mutations | No |
 | `/admin` | Admin | Allow | Allow | `admin/layout.tsx:9-26` | decided | verified | None | No |
-| `/admin/utilisateurs` | Admin | Allow | Allow (inherited) | Route glob inspection | decided | verified | None | No |
+| `/admin/users` | Admin | Allow | Allow (inherited) | Route glob inspection | decided | verified | None | No |
 | `/admin` child routes | Non-admin | Redirect to `/chat` | Redirect (inherited from layout) | Route glob inspection | decided | verified | None | No |
 
 ## Data Access and RLS Expectations

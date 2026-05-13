@@ -41,7 +41,7 @@ so that beta launch work starts from known security facts instead of assumptions
   - [x] Inspect profile/member, sponsorship, notification, forum, report/block, and direct-message paths surfaced by `from(...)` calls.
   - [x] Record where security relies on route guards, Server Actions, RLS, storage policy, realtime authorization, or UI hiding.
 - [x] Audit admin routes/actions and mutation authorization (AC: 1, 2, 3, 6)
-  - [x] Inspect `src/app/(app)/admin/layout.tsx`, `src/app/(app)/admin/page.tsx`, `src/app/(app)/admin/utilisateurs/page.tsx`, `src/app/(app)/admin/actions.ts`, and `src/components/admin/approve-reject-buttons.tsx`.
+  - [x] Inspect `src/app/(app)/admin/layout.tsx`, `src/app/(app)/admin/page.tsx`, `src/app/(app)/admin/users/page.tsx`, `src/app/(app)/admin/actions.ts`, and `src/components/admin/approve-reject-buttons.tsx`.
   - [x] Identify all admin mutations currently available: approve, reject, mute, unmute, chat ban, chat unban, and any channel/user/role mutation paths if present elsewhere.
   - [x] Record app-code guard, database/RLS dependency, missing audit attribution if applicable, and whether non-admin execution appears blocked beyond UI.
 - [x] Audit API, Route Handler, Server Action, storage, and realtime surfaces (AC: 1, 2, 3, 4, 5)
@@ -181,7 +181,7 @@ Admin routes to classify:
 
 - `src/app/(app)/admin/layout.tsx`: server-side admin guard; requires authenticated user, selects `profiles.is_admin`, redirects non-admins to `/chat`. [Source: `src/app/(app)/admin/layout.tsx`]
 - `src/app/(app)/admin/page.tsx`
-- `src/app/(app)/admin/utilisateurs/page.tsx`
+- `src/app/(app)/admin/users/page.tsx`
 
 ### Data, Mutation, and Realtime Surfaces to Audit
 

@@ -178,7 +178,7 @@ Allowed implementation patterns:
 - What this story may change: Only if a small admission-request completeness helper is useful and kept focused. Do not reuse `getProfileCompleteness()` as the admission-required-field definition without narrowing it.
 - Preserve: Existing member profile completeness tests and behavior unless directly required.
 
-`src/app/(app)/admin/utilisateurs/page.tsx`
+`src/app/(app)/admin/users/page.tsx`
 
 - Current state: Admin pending-candidate list selects `profiles.*` plus sponsor handle/name, displays avatar, X handle, full name/email fallback, created date, sponsor state, and approve/reject controls.
 - What this story may change: Usually none. If the admission form stores fields that are already selected by `*`, admin review may naturally surface some of them only if existing UI renders them. Full candidate detail/review belongs to Epic 4, so do not overbuild admin UI here.
@@ -345,7 +345,7 @@ Recent implementation pattern: create a comprehensive BMad story, implement mini
 - `src/lib/profile-utils.ts`
 - `src/lib/types/database.ts`
 - `src/lib/supabase/middleware.ts`
-- `src/app/(app)/admin/utilisateurs/page.tsx`
+- `src/app/(app)/admin/users/page.tsx`
 - `src/app/(app)/admin/actions.ts`
 - `src/__tests__/auth-session-middleware.test.ts`
 - `src/__tests__/authorization-hardening.test.ts`
