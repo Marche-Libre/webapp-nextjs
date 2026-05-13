@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useEffect, useState, useRef, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useState, useRef, type MouseEvent, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,27 @@ interface Toast {
   fadingOut?: boolean;
 }
 
-function ToastNotification({ toast, onDismiss, onClick }: { toast: Toast; onDismiss: () => void; onClick: () => void }) {
+interface ToastNotificationProps {
+  toast: Toast;
+  onDismiss: (id: string) => void;
+  onOpen: (toast: Toast) => void;
+}
+
+type NotificationRealtimePayload = {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: Partial<Notification>;
+};
+
+function ToastNotification({ toast, onDismiss, onOpen }: ToastNotificationProps) {
+  const handleOpen = useCallback(() => {
+    onOpen(toast);
+  }, [onOpen, toast]);
+
+  const handleDismiss = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onDismiss(toast.id);
+  }, [onDismiss, toast.id]);
+
   return (
     <div
       className={cn(
@@ -27,7 +47,7 @@ function ToastNotification({ toast, onDismiss, onClick }: { toast: Toast; onDism
         "bg-base-100/90 backdrop-blur-xl border border-base-content/10 shadow-2xl",
         toast.fadingOut ? "animate-[notification-exit_400ms_ease-out_forwards]" : "animate-[notification-enter_400ms_ease-out_forwards]"
       )}
-      onClick={onClick}
+      onClick={handleOpen}
     >
       {/* Accent bar */}
       <div className="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-accent" />
@@ -51,7 +71,8 @@ function ToastNotification({ toast, onDismiss, onClick }: { toast: Toast; onDism
       </div>
 
       <button
-        onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+        type="button"
+        onClick={handleDismiss}
         className="shrink-0 p-0.5 text-base-content/30 hover:text-base-content/60 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
       >
         <X className="w-3.5 h-3.5" />
@@ -85,18 +106,94 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
   const [unreadCount, setUnreadCount] = useState(0);
   const supabaseRef = useRef(createClient());
 
-  // Fetch initial unread count
-  useEffect(() => {
-    const supabase = supabaseRef.current;
-    supabase
+  const fetchUnreadCount = useCallback(async () => {
+    const { count } = await supabaseRef.current
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .eq("is_read", false)
-      .then(({ count }) => {
-        setUnreadCount(count || 0);
-      });
+      .eq("is_read", false);
+
+    return count || 0;
   }, [userId]);
+
+  // Fetch initial unread count
+  useEffect(() => {
+    let isMounted = true;
+    void fetchUnreadCount().then((nextCount) => {
+      if (isMounted) {
+        setUnreadCount(nextCount);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchUnreadCount]);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) =>
+      prev.map((toast) => (toast.id === id ? { ...toast, fadingOut: true } : toast))
+    );
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 400);
+  }, []);
+
+  const handleToastClick = useCallback((toast: Toast) => {
+    dismissToast(toast.id);
+    if (toast.link) {
+      window.location.href = toast.link;
+    }
+  }, [dismissToast]);
+
+  const handleNotificationChange = useCallback(async (payload: NotificationRealtimePayload) => {
+    if (payload.eventType !== "INSERT") {
+      const nextCount = await fetchUnreadCount();
+      setUnreadCount(nextCount);
+      return;
+    }
+
+    const notif = payload.new as Notification;
+
+    if (!notif.is_read) {
+      setUnreadCount((prev) => prev + 1);
+    }
+
+    let channelName: string | undefined;
+    if (notif.link?.includes("channel=")) {
+      const channelId = notif.link.split("channel=")[1];
+      if (channelId) {
+        const { data } = await supabaseRef.current
+          .from("channels")
+          .select("name")
+          .eq("id", channelId)
+          .single();
+        channelName = data?.name || undefined;
+      }
+    }
+
+    const toast: Toast = {
+      id: notif.id,
+      title: notif.title,
+      body: notif.body,
+      link: notif.link,
+      type: notif.type,
+      channelName,
+    };
+
+    setToasts((prev) => [...prev, toast]);
+
+    setTimeout(() => {
+      setToasts((prev) =>
+        prev.map((currentToast) =>
+          currentToast.id === toast.id ? { ...currentToast, fadingOut: true } : currentToast
+        )
+      );
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((currentToast) => currentToast.id !== toast.id));
+      }, 400);
+    }, 5000);
+  }, [fetchUnreadCount]);
 
   // Subscribe to new notifications in real-time
   useEffect(() => {
@@ -107,76 +204,19 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        async (payload) => {
-          const notif = payload.new as Notification;
-
-          // Increment unread count
-          setUnreadCount((prev) => prev + 1);
-
-          // Resolve channel name if it's a chat mention with a link
-          let channelName: string | undefined;
-          if (notif.link?.includes("channel=")) {
-            const channelId = notif.link.split("channel=")[1];
-            if (channelId) {
-              const { data } = await supabase
-                .from("channels")
-                .select("name")
-                .eq("id", channelId)
-                .single();
-              channelName = data?.name || undefined;
-            }
-          }
-
-          // Show toast
-          const toast: Toast = {
-            id: notif.id,
-            title: notif.title,
-            body: notif.body,
-            link: notif.link,
-            type: notif.type,
-            channelName,
-          };
-
-          setToasts((prev) => [...prev, toast]);
-
-          // Auto-dismiss after 5 seconds
-          setTimeout(() => {
-            setToasts((prev) =>
-              prev.map((t) => (t.id === toast.id ? { ...t, fadingOut: true } : t))
-            );
-            setTimeout(() => {
-              setToasts((prev) => prev.filter((t) => t.id !== toast.id));
-            }, 400);
-          }, 5000);
-        }
+        handleNotificationChange
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
-
-  const dismissToast = useCallback((id: string) => {
-    setToasts((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, fadingOut: true } : t))
-    );
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 400);
-  }, []);
-
-  const handleToastClick = useCallback((toast: Toast) => {
-    dismissToast(toast.id);
-    if (toast.link) {
-      window.location.href = toast.link;
-    }
-  }, [dismissToast]);
+  }, [handleNotificationChange, userId]);
 
   const markAsRead = useCallback(async (id: string) => {
     await supabaseRef.current
@@ -217,8 +257,8 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
               <ToastNotification
                 key={toast.id}
                 toast={toast}
-                onDismiss={() => dismissToast(toast.id)}
-                onClick={() => handleToastClick(toast)}
+                onDismiss={dismissToast}
+                onOpen={handleToastClick}
               />
             ))}
           </div>

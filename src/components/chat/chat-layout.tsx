@@ -11,6 +11,7 @@ import { ChannelList } from "./channel-list";
 import { MemberList } from "./member-list";
 import { MessageArea } from "./message-area";
 import { Avatar } from "@/components/ui/avatar";
+import { NotificationEntry } from "@/components/notifications/notification-entry";
 import { ChatChannelProvider, useActiveChannel } from "./chat-channel-context";
 import { useChatStore, type FullMessage } from "./chat-store";
 import { Spinner } from "@/components/ui/spinner";
@@ -50,7 +51,7 @@ interface ChatLayoutProps {
 
 /* ── User bar at bottom of channel sidebar ── */
 
-function UserBar({ profile }: { profile: Profile }) {
+function UserBar({ profile, onNavigate }: { profile: Profile; onNavigate?: () => void }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -62,6 +63,13 @@ function UserBar({ profile }: { profile: Profile }) {
   const handleToggleMenu = useCallback(() => {
     setMenuOpen((current) => !current);
   }, []);
+
+  const handleNavigate = useCallback(() => {
+    setMenuOpen(false);
+    if (onNavigate) {
+      onNavigate();
+    }
+  }, [onNavigate]);
 
   const handleLogout = useCallback(async () => {
     const supabase = createClient();
@@ -85,7 +93,7 @@ function UserBar({ profile }: { profile: Profile }) {
         <div className="absolute bottom-full left-[8px] right-[8px] mb-[4px] bg-bg-base border border-border-default rounded-lg shadow-modal p-[4px] animate-in fade-in slide-in-from-bottom-2 duration-150">
           <Link
             href="/profil"
-            onClick={handleCloseMenu}
+            onClick={handleNavigate}
             className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
           >
             <User className="h-[16px] w-[16px]" />
@@ -93,7 +101,7 @@ function UserBar({ profile }: { profile: Profile }) {
           </Link>
           <Link
             href="/parametres"
-            onClick={handleCloseMenu}
+            onClick={handleNavigate}
             className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
           >
             <Settings className="h-[16px] w-[16px]" />
@@ -102,7 +110,7 @@ function UserBar({ profile }: { profile: Profile }) {
           {profile.is_admin && (
             <Link
               href="/admin"
-              onClick={handleCloseMenu}
+              onClick={handleNavigate}
               className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
             >
               <ShieldCheck className="h-[16px] w-[16px]" />
@@ -120,30 +128,33 @@ function UserBar({ profile }: { profile: Profile }) {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={handleToggleMenu}
-        className={cn(
-          "flex items-center gap-[10px] w-full px-[12px] h-[60px] hover:bg-bg-surface transition-colors cursor-pointer",
-          menuOpen && "bg-bg-surface"
-        )}
-      >
-        <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
-        <div className="min-w-0 flex-1 text-left">
-          <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
-            {profile.full_name || `@${profile.x_handle}`}
-          </p>
-          {profile.full_name && profile.full_name.toLowerCase() !== profile.x_handle.toLowerCase() && (
-            <p className="text-[11px] leading-[14px] text-text-muted truncate">
-              @{profile.x_handle}
-            </p>
+      <div className="flex items-center gap-[6px] px-[8px] py-[8px] border-t border-border-subtle">
+        <button
+          type="button"
+          onClick={handleToggleMenu}
+          className={cn(
+            "flex items-center gap-[10px] flex-1 min-w-0 px-[4px] py-[6px] rounded-md hover:bg-bg-surface transition-colors cursor-pointer",
+            menuOpen && "bg-bg-surface"
           )}
-        </div>
-        <ChevronUp className={cn(
-          "h-[14px] w-[14px] text-text-muted shrink-0 transition-transform duration-200",
-          !menuOpen && "rotate-180"
-        )} />
-      </button>
+        >
+          <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
+              {profile.full_name || `@${profile.x_handle}`}
+            </p>
+            {profile.full_name && profile.full_name.toLowerCase() !== profile.x_handle.toLowerCase() && (
+              <p className="text-[11px] leading-[14px] text-text-muted truncate">
+                @{profile.x_handle}
+              </p>
+            )}
+          </div>
+          <ChevronUp className={cn(
+            "h-[14px] w-[14px] text-text-muted shrink-0 transition-transform duration-200",
+            !menuOpen && "rotate-180"
+          )} />
+        </button>
+        <NotificationEntry compact onNavigate={handleNavigate} />
+      </div>
     </div>
   );
 }
@@ -467,7 +478,7 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
                 <div className="flex-1" onClick={closeDrawer}>
                   <ChannelList channels={channels} dmChannels={dmChannels} userId={profile.id} hiddenChannelIds={profile.hidden_channel_ids || []} />
                 </div>
-                <UserBar profile={profile} />
+                <UserBar profile={profile} onNavigate={closeDrawer} />
               </div>
             </div>
           )}
