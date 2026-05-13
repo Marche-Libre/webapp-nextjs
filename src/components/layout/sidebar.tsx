@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-  UserPlus,
   User,
   Settings,
   ShieldCheck,
@@ -34,10 +33,6 @@ import { MessageCircle } from "lucide-react";
 
 const communaute = [
   { name: "Chat", href: "/chat", icon: MessageCircle },
-];
-
-const reseau = [
-  { name: "Parrainages", href: "/parrainages", icon: UserPlus },
 ];
 
 export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
@@ -191,7 +186,6 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
           )}
 
           {renderSection("Communauté", communaute)}
-          {renderSection("Réseau", reseau)}
         </nav>
 
         {/* Discord-style user bar */}

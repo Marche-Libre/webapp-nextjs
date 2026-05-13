@@ -7,7 +7,6 @@ import { Header } from "./header";
 import { SettingsShell } from "./settings-shell";
 import { ChatStoreProvider } from "@/components/chat/chat-store";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
-import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types/database";
 
 interface AppShellProps {
@@ -15,7 +14,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-const SETTINGS_ROUTES = ["/profil", "/parametres"];
+const SETTINGS_ROUTES = ["/profil", "/parametres", "/notifications", "/parrainages"];
 
 function MainArea({ profile, children }: { profile: Profile; children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
