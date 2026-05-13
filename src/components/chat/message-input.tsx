@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import type { ChangeEvent, KeyboardEvent, MouseEvent } from "react";
-import { Send } from "lucide-react";
+import type { ChangeEvent, ClipboardEvent, KeyboardEvent, MouseEvent } from "react";
+import { ImagePlus, Send, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentions } from "@/lib/notifications";
 import { Avatar } from "@/components/ui/avatar";
@@ -53,47 +53,153 @@ function MentionSuggestionItem({ user, selected, onPick }: MentionSuggestionItem
   );
 }
 
+const MAX_CHAT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
+function resolveImageFileExtension(fileName: string) {
+  const segments = fileName.split(".");
+  if (segments.length <= 1) return null;
+
+  return segments.at(-1)?.toLowerCase() ?? null;
+}
+
+function resolveImageUploadFileName(file: File) {
+  const extension = resolveImageFileExtension(file.name);
+  const randomSuffix = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+  return `${randomSuffix}${extension ? `.${extension}` : ""}`;
+}
+
+function resolveImageObjectKey(channelId: string, userId: string, file: File) {
+  return `chat/${channelId}/${userId}/${resolveImageUploadFileName(file)}`;
+}
+
 export function MessageInput({ channelId, userId, onOptimisticMessage, onMessageConfirmed, onMessageFailed }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sendMessage = useCallback(async () => {
     if (sending) return;
     const text = content.trim();
-    if (!text) return;
+    if (!text && !imageFile) return;
 
-    const optimisticId = onOptimisticMessage?.(text);
-    setContent("");
+    const optimisticId = onOptimisticMessage?.(text, imagePreviewUrl || undefined);
+    setError(null);
+    setUploadingImage(Boolean(imageFile));
     setSending(true);
 
     const supabase = createClient();
+    let uploadedImageUrl: string | null = null;
 
-    const { error } = await supabase
+    if (imageFile) {
+      const objectPath = resolveImageObjectKey(channelId, userId, imageFile);
+
+      const { error: uploadError } = await supabase.storage.from("medias").upload(objectPath, imageFile, {
+        contentType: imageFile.type,
+        upsert: false,
+      });
+
+      if (uploadError) {
+        if (optimisticId) onMessageFailed?.(optimisticId);
+        setError(`Échec du téléversement de l'image : ${uploadError.message}`);
+        setSending(false);
+        setUploadingImage(false);
+        return;
+      }
+
+      uploadedImageUrl = objectPath;
+    }
+
+    const { error: insertError } = await supabase
       .from("messages")
       .insert({
         channel_id: channelId,
         author_id: userId,
         content: text,
+        image_url: uploadedImageUrl,
       });
 
-    if (error) {
+    if (insertError) {
+      if (uploadedImageUrl) {
+        await supabase.storage.from("medias").remove([uploadedImageUrl]);
+      }
       if (optimisticId) onMessageFailed?.(optimisticId);
+      setError(`Échec de l'envoi du message : ${insertError.message}`);
     } else {
+      setImageFile(null);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setContent("");
+      setImagePreviewUrl(null);
       if (optimisticId) onMessageConfirmed?.(optimisticId, null);
-      notifyMentions(supabase, {
-        content: text,
-        authorId: userId,
-        type: "chat_mention",
-        link: `/chat?channel=${channelId}`,
-      });
+      if (text) {
+        notifyMentions(supabase, {
+          content: text,
+          authorId: userId,
+          type: "chat_mention",
+          link: `/chat?channel=${channelId}`,
+        });
+      }
     }
 
+    setUploadingImage(false);
     setSending(false);
-  }, [channelId, content, onMessageConfirmed, onMessageFailed, onOptimisticMessage, sending, userId]);
+  }, [channelId, content, imageFile, imagePreviewUrl, onMessageConfirmed, onMessageFailed, onOptimisticMessage, sending, userId]);
+
+  const clearImageSelection = useCallback(() => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [imagePreviewUrl]);
+
+  const handleImageRemove = useCallback(() => {
+    clearImageSelection();
+  }, [clearImageSelection]);
+
+  const handleImageClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const applyImageSelection = useCallback((selectedFile: File) => {
+    if (!selectedFile.type.startsWith("image/")) {
+      setError("Veuillez sélectionner une image valide.");
+      clearImageSelection();
+      return;
+    }
+
+    if (selectedFile.size > MAX_CHAT_IMAGE_SIZE_BYTES) {
+      setError(`L'image dépasse la limite de ${MAX_CHAT_IMAGE_SIZE_BYTES / (1024 * 1024)} MB.`);
+      clearImageSelection();
+      return;
+    }
+
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImageFile(selectedFile);
+    setImagePreviewUrl(URL.createObjectURL(selectedFile));
+    setError(null);
+  }, [clearImageSelection, imagePreviewUrl]);
+
+  const handleImageFileSelected = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    applyImageSelection(selectedFile);
+  }, [applyImageSelection]);
 
   const detectMentionQuery = useCallback((text: string, cursorPos: number) => {
     const before = text.slice(0, cursorPos);
@@ -106,6 +212,55 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       setSuggestions([]);
     }
   }, []);
+
+  const insertTextAtCursor = useCallback((nextText: string) => {
+    if (!nextText) return;
+
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setContent((previous) => previous + nextText);
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const before = content.slice(0, selectionStart);
+    const after = content.slice(selectionEnd);
+    const merged = `${before}${nextText}${after}`;
+
+    setContent(merged);
+    setMentionQuery(null);
+    setSuggestions([]);
+
+    requestAnimationFrame(() => {
+      const cursorPos = before.length + nextText.length;
+      textarea.focus();
+      textarea.setSelectionRange(cursorPos, cursorPos);
+      detectMentionQuery(merged, cursorPos);
+    });
+  }, [content, detectMentionQuery]);
+
+  const handlePaste = useCallback((event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboardItems = Array.from(event.clipboardData?.items || []);
+    const pastedImage = clipboardItems.find((item) => item.kind === "file" && item.type.startsWith("image/"));
+
+    if (!pastedImage) return;
+
+    const pastedFile = pastedImage.getAsFile();
+    if (!pastedFile) return;
+
+    event.preventDefault();
+    insertTextAtCursor(event.clipboardData?.getData("text/plain") ?? "");
+    applyImageSelection(pastedFile);
+  }, [applyImageSelection, insertTextAtCursor]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   useEffect(() => {
     if (mentionQuery === null) return;
@@ -204,7 +359,29 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     ));
   }, [insertMention, selectedIndex, suggestions]);
 
-  const canSend = Boolean(content.trim());
+  const canSubmit = Boolean(content.trim()) || Boolean(imageFile);
+  const isBusy = sending || uploadingImage;
+
+  const sendButtonDisabled = isBusy || !canSubmit;
+
+  const imagePreview = useMemo(() => {
+    if (!imagePreviewUrl) return null;
+
+    return (
+      <div className="mt-[8px] flex items-center gap-[8px] rounded-[12px] border border-border-default bg-bg-surface px-[10px] py-[8px]">
+        {/* eslint-disable-next-line @next/next/no-img-element -- Chat composer image previews are local blob URLs handled by the browser. */}
+        <img src={imagePreviewUrl} alt="Aperçu du fichier" className="h-[64px] w-[64px] rounded-md object-cover" />
+        <button
+          type="button"
+          onClick={handleImageRemove}
+          className="inline-flex h-[24px] w-[24px] items-center justify-center rounded-full bg-bg-surface-hover text-text-muted hover:text-text-secondary"
+          aria-label="Supprimer l'image"
+        >
+          <X className="h-[14px] w-[14px]" />
+        </button>
+      </div>
+    );
+  }, [handleImageRemove, imagePreviewUrl]);
 
   return (
     <div className="relative border-t border-border-subtle bg-bg-base/95 px-[12px] py-[10px] backdrop-blur">
@@ -216,11 +393,22 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       )}
 
       <div className="flex min-h-[46px] items-end gap-[8px] rounded-[23px] border border-border-default bg-bg-surface-hover px-[14px] py-[8px] shadow-card transition-colors focus-within:border-primary-500 focus-within:shadow-focus">
+        <button
+          type="button"
+          onClick={handleImageClick}
+          disabled={isBusy}
+          className="flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Ajouter une image"
+          title="Ajouter une image"
+        >
+          <ImagePlus className="h-[16px] w-[16px]" />
+        </button>
         <textarea
           ref={textareaRef}
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Écrire un message..."
           rows={1}
           className="max-h-[120px] min-h-[28px] flex-1 resize-none bg-transparent py-[4px] text-[15px] leading-[20px] text-text-primary placeholder:text-text-muted focus:outline-none"
@@ -228,12 +416,25 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
         <button
           type="button"
           onClick={handleSendClick}
-          disabled={sending || !canSend}
+          disabled={sendButtonDisabled}
           className="flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary-500 text-white transition-all hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-bg-surface disabled:text-text-muted"
         >
           <Send className="h-[16px] w-[16px]" />
         </button>
       </div>
+      {imagePreview}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageFileSelected}
+        className="hidden"
+      />
+      {error && (
+        <p className="mt-[8px] text-[11px] text-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
