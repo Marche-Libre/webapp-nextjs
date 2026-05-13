@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Menu, PanelLeftOpen, Search, X, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { LAUNCH_CHAT_CHANNEL_SLUGS } from "@/lib/chat/channels";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
 
@@ -19,6 +20,11 @@ type SearchResult = {
   subtitle: string;
   href: string;
   avatarUrl?: string | null;
+};
+
+type ChatChannelRow = {
+  id: string;
+  slug: string;
 };
 
 export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: HeaderProps) {
@@ -56,9 +62,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
       const supabase = createClient();
       const q = value.trim();
 
-      // Members: ILIKE on handles/names (not suited for ts_vector)
-      // Messages: full-text search with plainto_tsquery (French config)
-      const [membersRes, messagesRes] = await Promise.all([
+      const [membersRes, launchChannelsRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, full_name, x_handle, avatar_url")
@@ -66,12 +70,31 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           .or(`full_name.ilike.%${q}%,x_handle.ilike.%${q}%`)
           .limit(5),
         supabase
+          .from("channels")
+          .select("id, slug")
+          .in("slug", [...LAUNCH_CHAT_CHANNEL_SLUGS]),
+      ]);
+      const launchChannelIds = ((launchChannelsRes.data || []) as ChatChannelRow[]).map(
+        (channel) => channel.id,
+      );
+
+      let messageRows: Array<{
+        id: string;
+        content: string;
+        channel_id: string;
+        author: unknown;
+        channel: unknown;
+      }> = [];
+      if (launchChannelIds.length > 0) {
+        const { data: messages } = await supabase
           .from("messages")
           .select("id, content, channel_id, author:profiles!messages_author_id_fkey(x_handle), channel:channels(name, slug)")
+          .in("channel_id", launchChannelIds)
           .textSearch("content", q, { type: "plain", config: "french" })
           .order("created_at", { ascending: false })
-          .limit(5),
-      ]);
+          .limit(5);
+        messageRows = messages || [];
+      }
 
       const items: SearchResult[] = [];
 
@@ -86,7 +109,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
         });
       });
 
-      messagesRes.data?.forEach((m) => {
+      messageRows.forEach((m) => {
         const author = m.author as unknown as { x_handle: string } | null;
         const channel = m.channel as unknown as { name: string; slug: string } | null;
         items.push({

@@ -30,6 +30,39 @@ type NotificationRealtimePayload = {
   new: Partial<Notification>;
 };
 
+type ChatLinkTarget =
+  | { kind: "channel_id"; value: string }
+  | { kind: "channel_slug"; value: string };
+
+function resolveChatLinkTarget(link: string): ChatLinkTarget | null {
+  try {
+    const parsedLink = new URL(link, "https://marchelibre.local");
+    if (!parsedLink.pathname.startsWith("/chat")) return null;
+
+    const slugValue = parsedLink.pathname.startsWith("/chat/")
+      ? parsedLink.pathname.split("/chat/")[1]?.split("/")[0]
+      : null;
+    if (slugValue) {
+      return {
+        kind: "channel_slug",
+        value: decodeURIComponent(slugValue),
+      };
+    }
+
+    const channelId = parsedLink.searchParams.get("channel");
+    if (channelId) {
+      return {
+        kind: "channel_id",
+        value: channelId,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function ToastNotification({ toast, onDismiss, onOpen }: ToastNotificationProps) {
   const handleOpen = useCallback(() => {
     onOpen(toast);
@@ -160,16 +193,22 @@ export function NotificationProvider({ userId, children }: { userId: string; chi
     }
 
     let channelName: string | undefined;
-    if (notif.link?.includes("channel=")) {
-      const channelId = notif.link.split("channel=")[1];
-      if (channelId) {
-        const { data } = await supabaseRef.current
-          .from("channels")
-          .select("name")
-          .eq("id", channelId)
-          .single();
-        channelName = data?.name || undefined;
-      }
+    const channelTarget = typeof notif.link === "string" ? resolveChatLinkTarget(notif.link) : null;
+    if (channelTarget?.kind === "channel_id") {
+      const { data } = await supabaseRef.current
+        .from("channels")
+        .select("name")
+        .eq("id", channelTarget.value)
+        .single();
+      channelName = data?.name || undefined;
+    }
+    if (channelTarget?.kind === "channel_slug") {
+      const { data } = await supabaseRef.current
+        .from("channels")
+        .select("name")
+        .eq("slug", channelTarget.value)
+        .single();
+      channelName = data?.name || undefined;
     }
 
     const toast: Toast = {

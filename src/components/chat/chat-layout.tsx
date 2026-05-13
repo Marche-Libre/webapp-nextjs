@@ -185,6 +185,17 @@ function ChatArea({
   }, [activeSlug, channels]);
   const activeChannelId = activeChannel?.id ?? null;
   const activeChannelIsPrivate = activeChannel?.is_private ?? false;
+  const activeChannelCanWrite = useMemo(() => {
+    if (!activeChannel) return false;
+    return activeChannel.write_permission === "all" || Boolean(isAdmin);
+  }, [activeChannel, isAdmin]);
+  const activeChannelNoPermissionMessage = useMemo(() => {
+    if (!activeChannel || activeChannelCanWrite) return null;
+    if (activeChannel.slug === "jobs") {
+      return "Seuls les admins peuvent publier dans Jobs.";
+    }
+    return "Vous n'avez pas la permission de publier dans ce salon.";
+  }, [activeChannel, activeChannelCanWrite]);
 
   // Seed the store with server-fetched messages on first mount
   const seeded = useRef(false);
@@ -374,6 +385,9 @@ function ChatArea({
           <MessageArea
             key={activeChannel.id}
             channelId={activeChannel.id}
+            channelSlug={activeChannel.slug}
+            canWrite={activeChannelCanWrite}
+            noPermissionMessage={activeChannelNoPermissionMessage}
             userId={userId}
             userProfile={userProfile}
             isAdmin={isAdmin}
@@ -427,6 +441,8 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
         description: null,
         created_by: null,
         is_private: true,
+        read_permission: "all",
+        write_permission: "all",
         created_at: dm.created_at,
       } as Channel)),
     ];

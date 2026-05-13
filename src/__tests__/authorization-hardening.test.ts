@@ -99,6 +99,23 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("c.write_permission = 'all'");
   });
 
+  it("enforces the US3 canonical launch channel taxonomy", () => {
+    const taxonomyMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("us3_launch_channel_taxonomy"),
+    );
+    const migrationText = taxonomyMigration?.text ?? "";
+
+    expect(migrationText).toContain("'general'");
+    expect(migrationText).toContain("'business'");
+    expect(migrationText).toContain("'politique'");
+    expect(migrationText).toContain("'divers'");
+    expect(migrationText).toContain("'jobs'");
+    expect(migrationText).toContain("'admin_only'");
+    expect(migrationText).toContain("('recrutement', 'jobs')");
+    expect(migrationText).toContain("('random', 'divers')");
+    expect(migrationText).toContain("slug IN ('recrutement', 'aide', 'random')");
+  });
+
   it("adds local database guards for chat writes and private channel membership", () => {
     const hardeningMigration = migrationSources().find(({ text }) =>
       text.includes("prevent_sensitive_profile_update"),
@@ -267,6 +284,45 @@ describe("authorization hardening", () => {
 
     expect(errorBranch).not.toContain("notifyMentions");
     expect(successBranch).toContain("notifyMentions");
+  });
+
+  it("uses canonical chat slug links for chat mention notifications", () => {
+    const messageInput = source("src/components/chat/message-input.tsx");
+    const notificationProvider = source("src/components/notifications/notification-provider.tsx");
+
+    expect(messageInput).toContain("const mentionNotificationLink = useMemo(() => {");
+    expect(messageInput).toContain("if (channelSlug) return `/chat/${channelSlug}`;");
+    expect(messageInput).toContain("link: mentionNotificationLink");
+    expect(notificationProvider).toContain("resolveChatLinkTarget");
+    expect(notificationProvider).toContain("kind: \"channel_slug\"");
+    expect(notificationProvider).toContain(".eq(\"slug\", channelTarget.value)");
+  });
+
+  it("blocks the composer UI when the active channel is not writable", () => {
+    const chatLayout = source("src/components/chat/chat-layout.tsx");
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const messageInput = source("src/components/chat/message-input.tsx");
+
+    expect(chatLayout).toContain("const activeChannelCanWrite = useMemo(() => {");
+    expect(chatLayout).toContain("activeChannel.write_permission === \"all\" || Boolean(isAdmin)");
+    expect(chatLayout).toContain("Seuls les admins peuvent publier dans Jobs.");
+    expect(chatLayout).toContain("canWrite={activeChannelCanWrite}");
+    expect(messageArea).toContain("canWrite: boolean;");
+    expect(messageInput).toContain("if (!canWrite) return;");
+    expect(messageInput).toContain("const inputDisabled = isBusy || !canWrite;");
+    expect(messageInput).toContain("{!canWrite && noPermissionMessage && (");
+  });
+
+  it("filters global message search to canonical launch chat channels", () => {
+    const chatLayoutPage = source("src/app/(app)/chat/layout.tsx");
+    const header = source("src/components/layout/header.tsx");
+
+    expect(chatLayoutPage).toContain("LAUNCH_CHAT_CHANNEL_SLUGS");
+    expect(chatLayoutPage).toContain(".in(\"slug\", [...LAUNCH_CHAT_CHANNEL_SLUGS])");
+    expect(header).toContain("LAUNCH_CHAT_CHANNEL_SLUGS");
+    expect(header).toContain('.from("channels")');
+    expect(header).toContain(".in(\"slug\", [...LAUNCH_CHAT_CHANNEL_SLUGS])");
+    expect(header).toContain(".in(\"channel_id\", launchChannelIds)");
   });
 
   it("prevents users from reacting to their own chat messages", () => {

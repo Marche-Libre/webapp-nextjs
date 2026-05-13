@@ -20,6 +20,9 @@ const SCROLL_TO_LATEST_NEW_MESSAGE_LABEL = "Aller aux nouveaux messages";
 
 interface MessageAreaProps {
   channelId: string;
+  channelSlug: string;
+  canWrite: boolean;
+  noPermissionMessage: string | null;
   userId: string;
   userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
   isAdmin?: boolean;
@@ -73,7 +76,15 @@ function resolveScrollToLatestPosition(composerLaneElement: HTMLDivElement) {
   };
 }
 
-export function MessageArea({ channelId, userId, userProfile, isAdmin }: MessageAreaProps) {
+export function MessageArea({
+  channelId,
+  channelSlug,
+  canWrite,
+  noPermissionMessage,
+  userId,
+  userProfile,
+  isAdmin,
+}: MessageAreaProps) {
   const store = useChatStore();
   const { messages, pinnedMessage, reactions, hasMore, loaded } = useChannelState(channelId);
   const [showScrollToLatest, setShowScrollToLatest] = useState(false);
@@ -324,6 +335,7 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   useEffect(syncBottomStateEffect, [syncBottomStateEffect]);
   useEffect(scrollToLatestPositionEffect, [scrollToLatestPositionEffect]);
   useEffect(cleanupHighlightTimeoutEffect, [cleanupHighlightTimeoutEffect]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- This effect derives a UI badge from latest message transitions.
   useEffect(latestMessageNotificationEffect, [latestMessageNotificationEffect]);
 
   if (!loaded) {
@@ -376,6 +388,9 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
       <div ref={composerLaneRef} className={CHAT_LANE_CLASSNAME}>
         <MessageInput
           channelId={channelId}
+          channelSlug={channelSlug}
+          canWrite={canWrite}
+          noPermissionMessage={noPermissionMessage}
           userId={userId}
           onOptimisticMessage={addOptimisticMessage}
           onMessageConfirmed={handleMessageConfirmed}

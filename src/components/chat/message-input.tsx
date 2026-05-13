@@ -10,6 +10,9 @@ import type { FullMessage } from "./chat-store";
 
 interface MessageInputProps {
   channelId: string;
+  channelSlug?: string;
+  canWrite?: boolean;
+  noPermissionMessage?: string | null;
   userId: string;
   onOptimisticMessage?: (content: string, imageUrl?: string) => string;
   onMessageConfirmed?: (optimisticId: string, realMessage: FullMessage | null) => void;
@@ -74,7 +77,16 @@ function resolveImageObjectKey(channelId: string, userId: string, file: File) {
   return `chat/${channelId}/${userId}/${resolveImageUploadFileName(file)}`;
 }
 
-export function MessageInput({ channelId, userId, onOptimisticMessage, onMessageConfirmed, onMessageFailed }: MessageInputProps) {
+export function MessageInput({
+  channelId,
+  channelSlug,
+  canWrite = true,
+  noPermissionMessage = null,
+  userId,
+  onOptimisticMessage,
+  onMessageConfirmed,
+  onMessageFailed,
+}: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -87,7 +99,13 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const mentionNotificationLink = useMemo(() => {
+    if (channelSlug) return `/chat/${channelSlug}`;
+    return `/chat?channel=${channelId}`;
+  }, [channelId, channelSlug]);
+
   const sendMessage = useCallback(async () => {
+    if (!canWrite) return;
     if (sending) return;
     const text = content.trim();
     if (!text && !imageFile) return;
@@ -153,14 +171,26 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
           content: text,
           authorId: userId,
           type: "chat_mention",
-          link: `/chat?channel=${channelId}`,
+          link: mentionNotificationLink,
         });
       }
     }
 
     setUploadingImage(false);
     setSending(false);
-  }, [channelId, content, imageFile, imagePreviewUrl, onMessageConfirmed, onMessageFailed, onOptimisticMessage, sending, userId]);
+  }, [
+    canWrite,
+    channelId,
+    content,
+    imageFile,
+    imagePreviewUrl,
+    mentionNotificationLink,
+    onMessageConfirmed,
+    onMessageFailed,
+    onOptimisticMessage,
+    sending,
+    userId,
+  ]);
 
   const clearImageSelection = useCallback(() => {
     if (imagePreviewUrl) {
@@ -322,6 +352,11 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
   }, [detectMentionQuery]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!canWrite && e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      return;
+    }
+
     if (suggestions.length > 0 && mentionQuery !== null) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -350,7 +385,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       e.preventDefault();
       void sendMessage();
     }
-  }, [insertMention, mentionQuery, selectedIndex, sendMessage, suggestions]);
+  }, [canWrite, insertMention, mentionQuery, selectedIndex, sendMessage, suggestions]);
 
   const handleSendClick = useCallback(() => {
     void sendMessage();
@@ -367,10 +402,10 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     ));
   }, [insertMention, selectedIndex, suggestions]);
 
-  const canSubmit = Boolean(content.trim()) || Boolean(imageFile);
+  const canSubmit = canWrite && (Boolean(content.trim()) || Boolean(imageFile));
   const isBusy = sending || uploadingImage;
-
-  const sendButtonDisabled = isBusy || !canSubmit;
+  const inputDisabled = isBusy || !canWrite;
+  const sendButtonDisabled = inputDisabled || !canSubmit;
 
   const imagePreview = useMemo(() => {
     if (!imagePreviewUrl) return null;
@@ -404,7 +439,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
         <button
           type="button"
           onClick={handleImageClick}
-          disabled={isBusy}
+          disabled={inputDisabled}
           className="flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Ajouter une image"
           title="Ajouter une image"
@@ -417,6 +452,7 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          disabled={inputDisabled}
           placeholder="Écrire un message..."
           rows={1}
           className="max-h-[120px] min-h-[28px] flex-1 resize-none bg-transparent py-[4px] text-[15px] leading-[20px] text-text-primary placeholder:text-text-muted focus:outline-none"
@@ -441,6 +477,11 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
       {error && (
         <p className="mt-[8px] text-[11px] text-error">
           {error}
+        </p>
+      )}
+      {!canWrite && noPermissionMessage && (
+        <p className="mt-[8px] text-[11px] text-text-muted">
+          {noPermissionMessage}
         </p>
       )}
     </div>
