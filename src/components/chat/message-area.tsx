@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useMemo, type ReactElement } from "react";
-import { Pin } from "lucide-react";
+import { useEffect, useRef, useCallback, useMemo, useState, type CSSProperties, type ReactElement } from "react";
+import { ArrowDown, Pin } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
@@ -10,6 +10,13 @@ import { timeAgo } from "@/lib/utils";
 
 const CHAT_LANE_CLASSNAME = "w-full max-w-[860px] mx-auto";
 const GROUP_MAX_GAP_MS = 10 * 60 * 1000;
+const CHAT_BOTTOM_THRESHOLD_PX = 100;
+const SCROLL_TO_LATEST_COMPOSER_GAP_PX = 12;
+const SCROLL_TO_LATEST_MIN_VIEWPORT_MARGIN_PX = 16;
+const MESSAGE_HIGHLIGHT_DURATION_MS = 1600;
+const MESSAGE_HIGHLIGHT_CLASSNAMES = ["bg-primary-50", "ring-1", "ring-primary-300"];
+const SCROLL_TO_LATEST_LATEST_LABEL = "Aller au dernier message";
+const SCROLL_TO_LATEST_NEW_MESSAGE_LABEL = "Aller aux nouveaux messages";
 
 interface MessageAreaProps {
   channelId: string;
@@ -36,17 +43,6 @@ function shouldJoinMessageGroup(previousMessage: FullMessage, nextMessage: FullM
   return Math.abs(nextTimestamp - previousTimestamp) <= GROUP_MAX_GAP_MS;
 }
 
-function findPinnedMessage(messages: FullMessage[]) {
-  let pinnedMessage: FullMessage | null = null;
-
-  for (const message of messages) {
-    if (!message.is_pinned) continue;
-    pinnedMessage = message;
-  }
-
-  return pinnedMessage;
-}
-
 function resolvePinnedPreviewText(message: FullMessage) {
   const trimmedContent = message.content.trim();
   if (trimmedContent.length > 0) return trimmedContent;
@@ -54,19 +50,68 @@ function resolvePinnedPreviewText(message: FullMessage) {
   return "Message épinglé";
 }
 
+function getMessageDomId(messageId: string) {
+  return `message-${messageId}`;
+}
+
+function resolveIsAtBottom(element: HTMLDivElement) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < CHAT_BOTTOM_THRESHOLD_PX;
+}
+
+function resolveScrollToLatestPosition(composerLaneElement: HTMLDivElement) {
+  const composerLaneRect = composerLaneElement.getBoundingClientRect();
+
+  return {
+    bottom: Math.max(
+      window.innerHeight - composerLaneRect.top + SCROLL_TO_LATEST_COMPOSER_GAP_PX,
+      SCROLL_TO_LATEST_MIN_VIEWPORT_MARGIN_PX,
+    ),
+    right: Math.max(
+      window.innerWidth - composerLaneRect.right + SCROLL_TO_LATEST_COMPOSER_GAP_PX,
+      SCROLL_TO_LATEST_MIN_VIEWPORT_MARGIN_PX,
+    ),
+  };
+}
+
 export function MessageArea({ channelId, userId, userProfile, isAdmin }: MessageAreaProps) {
   const store = useChatStore();
-  const { messages, reactions, hasMore, loaded } = useChannelState(channelId);
+  const { messages, pinnedMessage, reactions, hasMore, loaded } = useChannelState(channelId);
+  const [showScrollToLatest, setShowScrollToLatest] = useState(false);
+  const [hasNewLatestMessage, setHasNewLatestMessage] = useState(false);
+  const [scrollToLatestPosition, setScrollToLatestPosition] = useState<{ bottom: number; right: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const composerLaneRef = useRef<HTMLDivElement>(null);
   const isAtBottom = useRef(true);
   const loadingMore = useRef(false);
+  const highlightTimeoutRef = useRef<number | null>(null);
+  const highlightedMessageElementRef = useRef<HTMLElement | null>(null);
+  const latestMessageIdRef = useRef<string | null>(null);
+
+  const messageCount = messages.length;
+  const latestMessageId = useMemo(() => {
+    if (!messages.length) return null;
+
+    return messages[messages.length - 1]?.id ?? null;
+  }, [messages]);
+  const scrollToLatestAriaLabel = useMemo(() => {
+    if (hasNewLatestMessage) return SCROLL_TO_LATEST_NEW_MESSAGE_LABEL;
+
+    return SCROLL_TO_LATEST_LATEST_LABEL;
+  }, [hasNewLatestMessage]);
+
+  const syncBottomState = useCallback((element: HTMLDivElement | null) => {
+    if (!element) return;
+
+    const atBottom = resolveIsAtBottom(element);
+    isAtBottom.current = atBottom;
+    setShowScrollToLatest(!atBottom);
+    if (atBottom) setHasNewLatestMessage(false);
+  }, []);
 
   const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    isAtBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-  }, []);
+    syncBottomState(scrollRef.current);
+  }, [syncBottomState]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore.current) return;
@@ -87,8 +132,69 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
     store.markMessageFailed(channelId, optimisticId);
   }, [channelId, store]);
 
-  const messageCount = messages.length;
-  const pinnedMessage = useMemo(() => findPinnedMessage(messages), [messages]);
+  const clearHighlightTimeout = useCallback(() => {
+    if (highlightTimeoutRef.current === null) return;
+    window.clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = null;
+  }, []);
+
+  const clearMessageHighlight = useCallback(() => {
+    clearHighlightTimeout();
+    highlightedMessageElementRef.current?.classList.remove(...MESSAGE_HIGHLIGHT_CLASSNAMES);
+    highlightedMessageElementRef.current = null;
+  }, [clearHighlightTimeout]);
+
+  const highlightMessageElement = useCallback((messageElement: HTMLElement) => {
+    clearMessageHighlight();
+    messageElement.classList.add(...MESSAGE_HIGHLIGHT_CLASSNAMES);
+    highlightedMessageElementRef.current = messageElement;
+    highlightTimeoutRef.current = window.setTimeout(clearMessageHighlight, MESSAGE_HIGHLIGHT_DURATION_MS);
+  }, [clearMessageHighlight]);
+
+  const scrollToMessageElement = useCallback((messageId: string) => {
+    const messageElement = document.getElementById(getMessageDomId(messageId));
+    if (!messageElement) return false;
+
+    messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+    highlightMessageElement(messageElement);
+    return true;
+  }, [highlightMessageElement]);
+
+  const scheduleScrollToMessage = useCallback((messageId: string) => {
+    window.requestAnimationFrame(() => {
+      if (scrollToMessageElement(messageId)) return;
+
+      window.requestAnimationFrame(() => {
+        scrollToMessageElement(messageId);
+      });
+    });
+  }, [scrollToMessageElement]);
+
+  const handlePinnedMessageClick = useCallback(async () => {
+    if (!pinnedMessage) return;
+
+    const found = await store.jumpToMessage(channelId, pinnedMessage.id);
+    if (!found) return;
+
+    isAtBottom.current = false;
+    setShowScrollToLatest(true);
+    scheduleScrollToMessage(pinnedMessage.id);
+  }, [channelId, pinnedMessage, scheduleScrollToMessage, store]);
+
+  const handleScrollToLatest = useCallback(() => {
+    clearMessageHighlight();
+    isAtBottom.current = true;
+    setShowScrollToLatest(false);
+    setHasNewLatestMessage(false);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [clearMessageHighlight]);
+
+  const updateScrollToLatestPosition = useCallback(() => {
+    const composerLaneElement = composerLaneRef.current;
+    if (!composerLaneElement) return;
+
+    setScrollToLatestPosition(resolveScrollToLatestPosition(composerLaneElement));
+  }, []);
 
   const loadChannelEffect = useCallback(() => {
     void store.loadChannel(channelId);
@@ -109,6 +215,63 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
     if (!channelId) return;
     bottomRef.current?.scrollIntoView();
   }, [channelId]);
+
+  const syncBottomStateEffect = useCallback(() => {
+    void messageCount;
+    syncBottomState(scrollRef.current);
+  }, [messageCount, syncBottomState]);
+
+  const scrollToLatestPositionEffect = useCallback(() => {
+    updateScrollToLatestPosition();
+
+    const composerLaneElement = composerLaneRef.current;
+    if (!composerLaneElement) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateScrollToLatestPosition();
+    });
+    resizeObserver.observe(composerLaneElement);
+    window.addEventListener("resize", updateScrollToLatestPosition);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScrollToLatestPosition);
+    };
+  }, [updateScrollToLatestPosition]);
+
+  const cleanupHighlightTimeoutEffect = useCallback(() => {
+    return clearMessageHighlight;
+  }, [clearMessageHighlight]);
+
+  const latestMessageNotificationEffect = useCallback(() => {
+    if (latestMessageId === null) {
+      latestMessageIdRef.current = null;
+      setHasNewLatestMessage(false);
+      return;
+    }
+
+    const previousLatestMessageId = latestMessageIdRef.current;
+    latestMessageIdRef.current = latestMessageId;
+
+    if (!previousLatestMessageId) return;
+    if (previousLatestMessageId === latestMessageId) return;
+    if (isAtBottom.current) {
+      setHasNewLatestMessage(false);
+      return;
+    }
+
+    setShowScrollToLatest(true);
+    setHasNewLatestMessage(true);
+  }, [latestMessageId]);
+
+  const scrollToLatestButtonStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!scrollToLatestPosition) return undefined;
+
+    return {
+      bottom: `${scrollToLatestPosition.bottom}px`,
+      right: `${scrollToLatestPosition.right}px`,
+    };
+  }, [scrollToLatestPosition]);
 
   const hasMoreNode = useMemo(() => {
     if (!hasMore) return null;
@@ -158,6 +321,10 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   useEffect(watchChannelEffect, [watchChannelEffect]);
   useEffect(autoScrollEffect, [autoScrollEffect]);
   useEffect(initialScrollEffect, [initialScrollEffect]);
+  useEffect(syncBottomStateEffect, [syncBottomStateEffect]);
+  useEffect(scrollToLatestPositionEffect, [scrollToLatestPositionEffect]);
+  useEffect(cleanupHighlightTimeoutEffect, [cleanupHighlightTimeoutEffect]);
+  useEffect(latestMessageNotificationEffect, [latestMessageNotificationEffect]);
 
   if (!loaded) {
     return (
@@ -172,7 +339,7 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
       {pinnedMessage && (
         <div className="border-b border-border-subtle bg-bg-surface/50">
           <div className={`${CHAT_LANE_CLASSNAME} px-[6px] py-[8px] sm:px-[12px]`}>
-            <PinnedMessageBanner message={pinnedMessage} />
+            <PinnedMessageBanner message={pinnedMessage} onClick={handlePinnedMessageClick} />
           </div>
         </div>
       )}
@@ -181,6 +348,23 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
+        {showScrollToLatest && scrollToLatestButtonStyle && (
+          <div className="pointer-events-none fixed z-20" style={scrollToLatestButtonStyle}>
+            <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleScrollToLatest}
+                  aria-label={scrollToLatestAriaLabel}
+                  className="pointer-events-auto relative flex h-[40px] w-[40px] items-center justify-center rounded-full border border-border-default bg-bg-elevated text-text-primary shadow-modal transition-colors hover:bg-bg-surface focus:outline-none focus:ring-2 focus:ring-primary-300"
+                >
+                  <ArrowDown className="h-[16px] w-[16px]" />
+                  {hasNewLatestMessage && (
+                    <span className="absolute right-[6px] top-[6px] h-[8px] w-[8px] rounded-full border-2 border-bg-elevated bg-primary-500" />
+                  )}
+                </button>
+              </div>
+            </div>
+        )}
         {/* Keep a readable lane on wide screens while preserving the existing chat flow. */}
         <div className={`${CHAT_LANE_CLASSNAME} flex min-h-full flex-col px-[6px] py-[10px] sm:px-[12px]`}>
           {hasMoreNode}
@@ -189,7 +373,7 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
         </div>
       </div>
 
-      <div className={CHAT_LANE_CLASSNAME}>
+      <div ref={composerLaneRef} className={CHAT_LANE_CLASSNAME}>
         <MessageInput
           channelId={channelId}
           userId={userId}
@@ -236,25 +420,35 @@ function MessageBubbleRow({
   const reactionHandler = isOwnMessage ? undefined : handleReact;
 
   return (
-    <MessageBubble
-      channelId={channelId}
-      message={msg}
-      reactions={reactions}
-      onReact={reactionHandler}
-      currentUserId={userId}
-      isAdmin={isAdmin}
-      onMessageUpdated={handleMessageUpdated}
-      isFirstInGroup={isFirstInGroup}
-      isLastInGroup={isLastInGroup}
-    />
+    <div
+      id={getMessageDomId(msg.id)}
+      data-message-id={msg.id}
+      className="scroll-mt-[96px] rounded-[16px] transition-colors duration-700"
+    >
+      <MessageBubble
+        channelId={channelId}
+        message={msg}
+        reactions={reactions}
+        onReact={reactionHandler}
+        currentUserId={userId}
+        isAdmin={isAdmin}
+        onMessageUpdated={handleMessageUpdated}
+        isFirstInGroup={isFirstInGroup}
+        isLastInGroup={isLastInGroup}
+      />
+    </div>
   );
 }
 
-function PinnedMessageBanner({ message }: { message: FullMessage }) {
+function PinnedMessageBanner({ message, onClick }: { message: FullMessage; onClick: () => void }) {
   const previewText = resolvePinnedPreviewText(message);
 
   return (
-    <section className="flex items-start gap-[8px] rounded-[10px] border border-primary-200 bg-primary-50/70 px-[10px] py-[8px]">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full cursor-pointer items-start gap-[8px] rounded-[10px] border border-primary-200 bg-primary-50/70 px-[10px] py-[8px] text-left transition-colors hover:border-primary-300 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-300"
+    >
       <Pin className="mt-[1px] h-[14px] w-[14px] shrink-0 text-primary-500" />
       <div className="min-w-0">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-primary-700">
@@ -267,6 +461,6 @@ function PinnedMessageBanner({ message }: { message: FullMessage }) {
           {previewText}
         </p>
       </div>
-    </section>
+    </button>
   );
 }

@@ -150,6 +150,47 @@ describe("authorization hardening", () => {
     expect(messageBubble).toContain("Impossible de modifier l'épinglage");
     expect(messageArea).toContain("Message épinglé");
     expect(messageArea).toContain("PinnedMessageBanner");
+    expect(messageArea).toContain("data-message-id={msg.id}");
+    expect(messageArea).toContain("document.getElementById(getMessageDomId(messageId))");
+    expect(messageArea).toContain("scrollIntoView({ behavior: \"smooth\", block: \"center\" })");
+    expect(messageArea).toContain("MESSAGE_HIGHLIGHT_CLASSNAMES");
+    expect(messageArea).toContain("scheduleScrollToMessage(pinnedMessage.id)");
+  });
+
+  it("loads message context before jumping to unloaded chat messages", () => {
+    const chatStore = source("src/components/chat/chat-store.tsx");
+
+    expect(chatStore).toContain("const MESSAGE_JUMP_CONTEXT_LIMIT = 25");
+    expect(chatStore).toContain("async function jumpToMessage");
+    expect(chatStore).toContain(".lt(\"created_at\", targetMessage.created_at)");
+    expect(chatStore).toContain(".gt(\"created_at\", targetMessage.created_at)");
+    expect(chatStore).toContain(".limit(MESSAGE_JUMP_CONTEXT_LIMIT)");
+    expect(chatStore).toContain("messages: mergeMessages(prev.messages, windowMessages)");
+    expect(chatStore).toContain("pinnedMessage: FullMessage | null");
+  });
+
+  it("adds a floating shortcut back to the latest chat messages", () => {
+    const messageArea = source("src/components/chat/message-area.tsx");
+
+    expect(messageArea).toContain("const CHAT_BOTTOM_THRESHOLD_PX = 100");
+    expect(messageArea).toContain("const [showScrollToLatest, setShowScrollToLatest] = useState(false)");
+    expect(messageArea).toContain("function resolveIsAtBottom");
+    expect(messageArea).toContain("function resolveScrollToLatestPosition");
+    expect(messageArea).toContain("const composerLaneRef = useRef<HTMLDivElement>(null)");
+    expect(messageArea).toContain("window.innerWidth - composerLaneRect.right + SCROLL_TO_LATEST_COMPOSER_GAP_PX");
+    expect(messageArea).toContain("window.innerHeight - composerLaneRect.top + SCROLL_TO_LATEST_COMPOSER_GAP_PX");
+    expect(messageArea).toContain("pointer-events-none fixed z-20");
+    expect(messageArea).toContain("aria-label={scrollToLatestAriaLabel}");
+    expect(messageArea).toContain("<ArrowDown className=\"h-[16px] w-[16px]\" />");
+    expect(messageArea).toContain("bottomRef.current?.scrollIntoView({ behavior: \"smooth\", block: \"end\" })");
+    expect(messageArea).toContain("const [hasNewLatestMessage, setHasNewLatestMessage] = useState(false)");
+    expect(messageArea).toContain("const latestMessageIdRef = useRef<string | null>(null)");
+    expect(messageArea).toContain("const latestMessageNotificationEffect");
+    expect(messageArea).toContain("const latestMessageId = useMemo(() => {");
+    expect(messageArea).toContain("setShowScrollToLatest(true);");
+    expect(messageArea).toContain("setHasNewLatestMessage(true)");
+    expect(messageArea).toContain("Aller aux nouveaux messages");
+    expect(messageArea).toContain("h-[8px] w-[8px] rounded-full");
   });
 
   it("replaces recursive channel member visibility with a private RLS helper", () => {

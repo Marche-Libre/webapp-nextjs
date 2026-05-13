@@ -18,6 +18,7 @@ export type ReactionMap = Record<string, ReactionEntry[]>;
 
 type ChannelState = {
   messages: FullMessage[];
+  pinnedMessage: FullMessage | null;
   reactions: ReactionMap;
   hasMore: boolean;
   loaded: boolean;
@@ -30,6 +31,7 @@ type StoreState = {
 
 const EMPTY_CHANNEL_STATE: ChannelState = {
   messages: [],
+  pinnedMessage: null,
   reactions: {},
   hasMore: true,
   loaded: false,
@@ -37,6 +39,7 @@ const EMPTY_CHANNEL_STATE: ChannelState = {
 
 const MESSAGE_WITH_AUTHOR_SELECT = "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
 const CHANNEL_SYNC_INTERVAL_MS = 5000;
+const MESSAGE_JUMP_CONTEXT_LIMIT = 25;
 
 // ─── Store (singleton, lives outside React) ───
 
@@ -142,6 +145,28 @@ function createChatStore(userId: string) {
     return data as FullMessage | null;
   }
 
+  async function fetchPinnedMessage(channelId: string) {
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("channel_id", channelId)
+      .eq("is_pinned", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return data as FullMessage | null;
+  }
+
+  async function refreshPinnedMessage(channelId: string) {
+    const pinnedMessage = await fetchPinnedMessage(channelId);
+
+    setChannel(channelId, (prev) => ({
+      ...prev,
+      pinnedMessage,
+    }));
+  }
+
   async function syncLatestMessages(channelId: string) {
     const ch = getChannel(channelId);
     if (!ch.loaded) return;
@@ -188,7 +213,11 @@ function createChatStore(userId: string) {
 
           if (data) {
             setChannel(channelId, (prev) => {
-              return { ...prev, messages: mergeMessages(prev.messages, [data]) };
+              return {
+                ...prev,
+                messages: mergeMessages(prev.messages, [data]),
+                pinnedMessage: data.is_pinned ? data : prev.pinnedMessage,
+              };
             });
           }
         }
@@ -205,6 +234,7 @@ function createChatStore(userId: string) {
             setChannel(channelId, (prev) => ({
               ...prev,
               messages: prev.messages.map((m) => m.id === data.id ? data : m),
+              pinnedMessage: resolveUpdatedPinnedMessage(prev.pinnedMessage, data),
             }));
           }
         }
@@ -285,12 +315,14 @@ function createChatStore(userId: string) {
     if (ch.loaded) return; // Already loaded
     setChannel(channelId, () => ({
       messages,
+      pinnedMessage: getPinnedMessageFromMessages(messages),
       reactions: {},
       hasMore: messages.length >= 50,
       loaded: true,
     }));
     subscribeToChannel(channelId);
     setTimeout(() => fetchReactions(channelId), 100);
+    void refreshPinnedMessage(channelId);
   }
 
   async function loadChannel(channelId: string, forceRefresh = false) {
@@ -308,6 +340,7 @@ function createChatStore(userId: string) {
 
     setChannel(channelId, () => ({
       messages: ordered,
+      pinnedMessage: getPinnedMessageFromMessages(ordered),
       reactions: {},
       hasMore: (data?.length || 0) >= 50,
       loaded: true,
@@ -316,6 +349,7 @@ function createChatStore(userId: string) {
     subscribeToChannel(channelId);
     // Fetch reactions after messages are set
     setTimeout(() => fetchReactions(channelId), 100);
+    void refreshPinnedMessage(channelId);
   }
 
   async function loadOlderMessages(channelId: string) {
@@ -335,6 +369,7 @@ function createChatStore(userId: string) {
       setChannel(channelId, (prev) => ({
         ...prev,
         messages: [...(data as FullMessage[]).reverse(), ...prev.messages],
+        pinnedMessage: getPinnedMessageFromMessages(data as FullMessage[]) ?? prev.pinnedMessage,
         hasMore: data.length >= 50,
       }));
       // Fetch reactions for new messages
@@ -458,8 +493,50 @@ function createChatStore(userId: string) {
       setChannel(channelId, (prev) => ({
         ...prev,
         messages: prev.messages.map((m) => m.id === messageId ? data : m),
+        pinnedMessage: resolveUpdatedPinnedMessage(prev.pinnedMessage, data),
       }));
     }
+  }
+
+  async function jumpToMessage(channelId: string, messageId: string) {
+    const ch = getChannel(channelId);
+    if (ch.messages.some((message) => message.id === messageId)) return true;
+
+    const targetMessage = await fetchMessage(messageId);
+    if (!targetMessage || targetMessage.channel_id !== channelId) return false;
+
+    const [{ data: before }, { data: after }] = await Promise.all([
+      supabase
+        .from("messages")
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .eq("channel_id", channelId)
+        .lt("created_at", targetMessage.created_at)
+        .order("created_at", { ascending: false })
+        .limit(MESSAGE_JUMP_CONTEXT_LIMIT),
+      supabase
+        .from("messages")
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .eq("channel_id", channelId)
+        .gt("created_at", targetMessage.created_at)
+        .order("created_at", { ascending: true })
+        .limit(MESSAGE_JUMP_CONTEXT_LIMIT),
+    ]);
+
+    const windowMessages = [
+      ...((before || []) as FullMessage[]).reverse(),
+      targetMessage,
+      ...((after || []) as FullMessage[]),
+    ];
+
+    setChannel(channelId, (prev) => ({
+      ...prev,
+      messages: mergeMessages(prev.messages, windowMessages),
+      pinnedMessage: targetMessage.is_pinned ? targetMessage : prev.pinnedMessage,
+      loaded: true,
+    }));
+    void fetchReactions(channelId);
+
+    return true;
   }
 
   // Panel state
@@ -508,6 +585,7 @@ function createChatStore(userId: string) {
     removeOptimistic,
     toggleReaction,
     refreshMessage,
+    jumpToMessage,
     openPanel,
     closePanel,
     togglePanel,
@@ -535,6 +613,20 @@ function getLatestPersistedMessage(messages: FullMessage[]) {
 
 function hasPendingOptimisticMessage(messages: FullMessage[]) {
   return messages.some((message) => message.id.startsWith("optimistic-") && message._status === "sending");
+}
+
+function getPinnedMessageFromMessages(messages: FullMessage[]) {
+  for (const message of messages) {
+    if (message.is_pinned) return message;
+  }
+
+  return null;
+}
+
+function resolveUpdatedPinnedMessage(currentPinnedMessage: FullMessage | null, updatedMessage: FullMessage) {
+  if (updatedMessage.is_pinned) return updatedMessage;
+  if (currentPinnedMessage?.id === updatedMessage.id) return null;
+  return currentPinnedMessage;
 }
 
 function mergeMessages(currentMessages: FullMessage[], incomingMessages: FullMessage[]) {
