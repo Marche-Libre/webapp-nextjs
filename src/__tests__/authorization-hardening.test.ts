@@ -110,7 +110,6 @@ describe("authorization hardening", () => {
     );
     expect(migrationText).toContain("COALESCE(p.chat_banned, FALSE) = FALSE");
     expect(migrationText).toContain("chat_muted_until IS NULL");
-    expect(migrationText).toContain("image_url IS NULL");
     expect(migrationText).toContain("is_private = FALSE");
     expect(migrationText).toContain("public.channel_members");
     expect(migrationText).toContain(
@@ -129,6 +128,33 @@ describe("authorization hardening", () => {
       'DROP POLICY IF EXISTS "Approved users can create channel memberships" ON public.channel_members',
     );
     expect(migrationText).toContain('CREATE POLICY "Admins can create channel memberships"');
+  });
+
+  it("stores chat images with private signed media paths", () => {
+    const messageInput = source("src/components/chat/message-input.tsx");
+    const messageBubble = source("src/components/chat/message-bubble.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(messageInput).toContain('const CHAT_MEDIA_BUCKET = "medias"');
+    expect(messageInput).toContain("storage.from(CHAT_MEDIA_BUCKET)");
+    expect(messageInput).toContain("MESSAGE_WITH_AUTHOR_SELECT");
+    expect(messageInput).toContain("onMessageConfirmed?.(optimisticId, insertedMessage as FullMessage | null)");
+    expect(messageInput).toContain("ImagePlus");
+    expect(messageInput).toContain("handleImageFileSelected");
+    expect(messageInput).toContain("handlePaste");
+    expect(messageInput).toContain("setError(`Échec du téléversement de l'image");
+    expect(messageBubble).toContain("storage.from(\"medias\")");
+    expect(messageBubble).toContain("createSignedUrl");
+    expect(migrationText).toContain('CREATE POLICY "Users can upload chat media"');
+    expect(migrationText).toContain('CREATE POLICY "Users can read chat media"');
+    expect(migrationText).toContain("private.can_current_user_access_chat_media_path");
+    expect(migrationText).toContain("COALESCE(c.write_permission, 'all') = 'all'");
+    expect(migrationText).toContain("COALESCE(c.read_permission, 'all') = 'all'");
+    expect(migrationText).toContain("split_part(image_url, '/', 1) = 'chat'");
+    expect(migrationText).toContain('CREATE POLICY "Approved users can send messages to allowed channels"');
+    expect(migrationText).toContain("bucket_id = 'medias'");
   });
 
   it("supports admin-only chat message pinning", () => {
@@ -221,15 +247,6 @@ describe("authorization hardening", () => {
     expect(memberProfile).not.toContain("SendDmButton");
   });
 
-  it("does not upload chat images to public storage URLs", () => {
-    const messageInput = source("src/components/chat/message-input.tsx");
-
-    expect(messageInput).not.toContain('from("chat-images")');
-    expect(messageInput).not.toContain("getPublicUrl");
-    expect(messageInput).not.toContain("handleImageSelect");
-    expect(messageInput).not.toContain("ImagePlus");
-  });
-
   it("requires approved and onboarded admin state for server-side admin mutations", () => {
     const adminActions = source("src/app/(app)/admin/actions.ts");
 
@@ -241,11 +258,12 @@ describe("authorization hardening", () => {
 
   it("only notifies mentions after a successful message insert", () => {
     const messageInput = source("src/components/chat/message-input.tsx");
-    const sendResultBlock = messageInput.slice(
-      messageInput.indexOf("if (error)"),
-      messageInput.indexOf("setSending(false)"),
-    );
-    const [errorBranch, successBranch] = sendResultBlock.split("} else {");
+    const insertErrorStart = messageInput.indexOf("if (insertError)");
+    const insertElseIndex = messageInput.indexOf("} else {", insertErrorStart);
+    const sendResultBlock = messageInput.slice(insertErrorStart);
+    const [errorBranch, successBranch] = insertElseIndex === -1
+      ? [sendResultBlock, ""]
+      : sendResultBlock.split("} else {");
 
     expect(errorBranch).not.toContain("notifyMentions");
     expect(successBranch).toContain("notifyMentions");

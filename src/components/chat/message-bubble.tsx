@@ -71,6 +71,7 @@ const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const EMPTY_IMAGE_URLS: string[] = [];
 const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
 const AVATAR_SLOT_CLASSNAME = "h-[40px] w-[40px] shrink-0";
+const CHAT_IMAGE_SIGNED_URL_TTL_SECONDS = 3600;
 
 function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
@@ -85,6 +86,10 @@ function parseImageUrls(imageUrl: string | null) {
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+
+function hasRemoteImageUrl(imageUrl: string) {
+  return /^https?:\/\//i.test(imageUrl) || imageUrl.startsWith("blob:") || imageUrl.startsWith("data:");
 }
 
 function MessageImage({ url, index }: { url: string; index: number }) {
@@ -149,6 +154,7 @@ export function MessageBubble({
   const [saving, setSaving] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [supabase] = useState(createClient);
+  const [resolvedImageUrls, setResolvedImageUrls] = useState<string[]>([]);
   const deleteConfirmTimeoutRef = useRef<number | null>(null);
 
   const isOwn = currentUserId === message.author_id;
@@ -181,12 +187,49 @@ export function MessageBubble({
   const resolveContentParts = useCallback(() => {
     return renderContentWithMentions(message.content, isOwn);
   }, [isOwn, message.content]);
-  const resolveImageUrls = useCallback(() => {
-    return parseImageUrls(message.image_url);
-  }, [message.image_url]);
+  const rawImageUrls = useMemo(() => parseImageUrls(message.image_url), [message.image_url]);
   const contentParts = useMemo(() => resolveContentParts(), [resolveContentParts]);
-  const imageUrls = useMemo(() => resolveImageUrls(), [resolveImageUrls]);
+  const resolveImageUrls = useCallback(async () => {
+    if (rawImageUrls.length === 0) {
+      return [];
+    }
+
+    return Promise.all(
+      rawImageUrls.map(async (url) => {
+        if (hasRemoteImageUrl(url)) return url;
+
+        const { data, error } = await supabase.storage.from("medias").createSignedUrl(url, CHAT_IMAGE_SIGNED_URL_TTL_SECONDS);
+        if (error || !data?.signedUrl) return url;
+
+        return data.signedUrl;
+      }),
+    );
+  }, [rawImageUrls, supabase]);
+  const imageUrls = useMemo(() => resolvedImageUrls, [resolvedImageUrls]);
   const previewUrl = useMemo(() => extractFirstHttpUrl(message.content), [message.content]);
+
+  const updateImageUrlsEffect = useCallback(() => {
+    let isCancelled = false;
+    const resolve = async () => {
+      try {
+        const imageUrls = await resolveImageUrls();
+        if (isCancelled) return;
+        setResolvedImageUrls(imageUrls);
+      } catch (error) {
+        if (isCancelled) return;
+        console.error("Failed to resolve chat image URLs", error);
+        setResolvedImageUrls(rawImageUrls);
+      }
+    };
+
+    void resolve();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [rawImageUrls, resolveImageUrls]);
+
+  useEffect(updateImageUrlsEffect, [updateImageUrlsEffect]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editContent.trim() || editContent === message.content) {
