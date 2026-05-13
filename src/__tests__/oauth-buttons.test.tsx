@@ -40,7 +40,12 @@ function mockSupabaseClient(userId: string | null, profile: ProfileResult) {
       user: userId ? { id: userId } : null,
     },
   });
-  mocks.signInWithOAuth.mockResolvedValue({ data: {}, error: null });
+  mocks.signInWithOAuth.mockResolvedValue({
+    data: {
+      url: "https://x.com/i/oauth2/authorize?client_id=123",
+    },
+    error: null,
+  });
   mocks.createClient.mockReturnValue({
     auth: {
       getUser: mocks.getUser,
@@ -115,9 +120,10 @@ describe("OAuthButtons", () => {
       provider: "x",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: true,
       },
     });
-    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(mocks.replace).toHaveBeenCalledWith("/auth/x/continue");
 
     unmount();
   });
@@ -169,9 +175,10 @@ describe("RejoindrePage auth entry", () => {
       provider: "x",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: true,
       },
     });
-    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(mocks.replace).toHaveBeenCalledWith("/auth/x/continue");
 
     unmount();
   });

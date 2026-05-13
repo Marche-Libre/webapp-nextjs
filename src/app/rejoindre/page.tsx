@@ -4,12 +4,24 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
-import { Suspense, useCallback, useMemo } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { getAuthCallbackUrl } from "@/lib/auth-url";
 import {
   AUTH_ENTRY_PROFILE_SELECT,
   getAuthEntryDestination,
 } from "@/lib/auth-entry";
+import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
+
+const ERROR_MESSAGE_DEFAULT =
+  "Impossible de démarrer la connexion X. Réessayez dans un instant.";
+
+const getSignInErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return ERROR_MESSAGE_DEFAULT;
+};
 
 function RejoindreContent() {
   const router = useRouter();
@@ -18,6 +30,9 @@ function RejoindreContent() {
     () => searchParams.get("ref")?.replace("@", "") || "",
     [searchParams],
   );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const admissionIntro = referralHandle ? (
     <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
       Votre demande d’admission mentionnera l’invitation de{" "}
@@ -35,32 +50,53 @@ function RejoindreContent() {
   ) : null;
 
   const handleSignUp = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
     const supabase = createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
 
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select(AUTH_ENTRY_PROFILE_SELECT)
-        .eq("id", user.id)
-        .single();
+      if (userError) {
+        throw userError;
+      }
 
-      router.replace(getAuthEntryDestination(profile));
-      return;
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select(AUTH_ENTRY_PROFILE_SELECT)
+          .eq("id", userData.user.id)
+          .single();
+
+        router.replace(getAuthEntryDestination(profile));
+        return;
+      }
+
+      // Store referral handle in cookie so the server-side callback can read it
+      if (referralHandle) {
+        document.cookie = `ml-referral=${referralHandle};path=/;max-age=3600;SameSite=Lax`;
+      }
+
+      const { data: signInData, error } = await supabase.auth.signInWithOAuth({
+        provider: "x",
+        options: {
+          redirectTo: getAuthCallbackUrl(),
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error || !signInData.url) {
+        throw error ??
+          new Error("Le lien d'authentification n'a pas pu être généré.");
+      }
+
+      window.sessionStorage.setItem(X_OAUTH_URL_SESSION_KEY, signInData.url);
+      router.replace("/auth/x/continue");
+    } catch (requestError) {
+      setErrorMessage(getSignInErrorMessage(requestError));
+    } finally {
+      setLoading(false);
     }
-
-    // Store referral handle in cookie so the server-side callback can read it
-    if (referralHandle) {
-      document.cookie = `ml-referral=${referralHandle};path=/;max-age=3600;SameSite=Lax`;
-    }
-
-    await supabase.auth.signInWithOAuth({
-      provider: "x",
-      options: { redirectTo: getAuthCallbackUrl() },
-    });
   }, [referralHandle, router]);
 
   return (
@@ -92,12 +128,22 @@ function RejoindreContent() {
 
         {admissionIntro}
 
+        {errorMessage ? (
+          <p className="text-sm text-error text-center mb-3" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={handleSignUp}
-          className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all cursor-pointer"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all cursor-pointer disabled:opacity-40"
         >
-          <XLogo className="w-4 h-4" />
+          {loading ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <XLogo className="w-4 h-4" />
+          )}
           Continuer avec X
         </button>
 
