@@ -5,7 +5,7 @@ import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn, timeAgo } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
-import { Pencil, Trash2, Check, Flag, Pin } from "lucide-react";
+import { Check, Flag, MoreHorizontal, Pencil, Pin, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
 import { extractFirstHttpUrl } from "@/lib/link-preview-url";
@@ -78,7 +78,8 @@ const DIRECT_IMAGE_URL_REGEX =
   /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
 const EMPTY_IMAGE_URLS: string[] = [];
 const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
-const AVATAR_SLOT_CLASSNAME = "h-[40px] w-[40px] shrink-0";
+const AVATAR_SLOT_CLASSNAME = "h-[32px] w-[32px] shrink-0 sm:h-[40px] sm:w-[40px]";
+const MESSAGE_AVATAR_CLASSNAME = "h-[32px] w-[32px] sm:h-[40px] sm:w-[40px]";
 const CHAT_IMAGE_SIGNED_URL_TTL_SECONDS = 3600;
 
 function parseImageUrls(imageUrl: string | null) {
@@ -519,6 +520,7 @@ export function MessageBubble({
               src={message.author.avatar_url}
               name={message.author.x_handle}
               size="md"
+              className={MESSAGE_AVATAR_CLASSNAME}
             />
           </UserHoverCard>
         ) : (
@@ -580,12 +582,12 @@ export function MessageBubble({
           full_name={message.author.full_name}
           avatar_url={message.author.avatar_url}
         >
-          <Avatar
-            src={message.author.avatar_url}
-            name={message.author.x_handle}
-            size="md"
-            className="cursor-pointer"
-          />
+            <Avatar
+              src={message.author.avatar_url}
+              name={message.author.x_handle}
+              size="md"
+              className={cn("cursor-pointer", MESSAGE_AVATAR_CLASSNAME)}
+            />
         </UserHoverCard>
       ) : (
         <div className={AVATAR_SLOT_CLASSNAME} aria-hidden />
@@ -605,25 +607,6 @@ export function MessageBubble({
             isOwn && "justify-end text-right",
           )}
         >
-          {isOwn && (
-            <MessageHeaderActions
-              canReact={canReact}
-              currentUserId={currentUserId}
-              deleteConfirming={deleteConfirming}
-              isAdmin={isAdmin}
-              isEditing={editing}
-              isOwn={isOwn}
-              isPinned={Boolean(message.is_pinned)}
-              saving={saving}
-              onCancelDelete={handleCancelDeleteConfirming}
-              onConfirmDelete={handleStartDeleteConfirming}
-              onDelete={handleDelete}
-              onEdit={handleStartEditing}
-              onPin={handleTogglePin}
-              onReact={handleReactionSelect}
-              onReport={handleReport}
-            />
-          )}
           {showMessageMeta && message.is_pinned && (
             <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
           )}
@@ -649,25 +632,6 @@ export function MessageBubble({
               (modifié)
             </span>
           )}
-          {!isOwn && (
-            <MessageHeaderActions
-              canReact={canReact}
-              currentUserId={currentUserId}
-              deleteConfirming={deleteConfirming}
-              isAdmin={isAdmin}
-              isEditing={editing}
-              isOwn={isOwn}
-              isPinned={Boolean(message.is_pinned)}
-              saving={saving}
-              onCancelDelete={handleCancelDeleteConfirming}
-              onConfirmDelete={handleStartDeleteConfirming}
-              onDelete={handleDelete}
-              onEdit={handleStartEditing}
-              onPin={handleTogglePin}
-              onReact={handleReactionSelect}
-              onReport={handleReport}
-            />
-          )}
         </header>
 
         {editing ? (
@@ -687,50 +651,74 @@ export function MessageBubble({
         ) : (
           <div
             className={cn(
-              "w-fit max-w-full px-[14px] py-[9px] shadow-card",
-              bubbleRadiusClass,
-              isOwn
-                ? "bg-primary-500 text-white"
-                : "border border-border-subtle bg-bg-surface-hover text-text-primary",
+              "flex max-w-full items-center gap-[4px]",
+              isOwn && "flex-row-reverse",
             )}
           >
-            {visibleContent && (
-              <div
-                className={cn(
-                  "select-text whitespace-pre-wrap break-words text-[14px] leading-[20px] [overflow-wrap:anywhere]",
-                  isSending && "opacity-60",
-                  isFailed
-                    ? "text-error/80"
-                    : isOwn
-                      ? "text-white"
-                      : "text-text-primary",
-                )}
-              >
-                {contentParts}
-              </div>
-            )}
-            {isFailed && (
-              <p className="text-[11px] text-error mt-[2px]">
-                Échec de l&apos;envoi — vérifiez votre connexion
-              </p>
-            )}
-            {imageItems && (
-              <div
-                className={cn(
-                  "mt-[8px]",
-                  (displayedImageUrls.length > 1 || isOwn) && "flex",
-                  displayedImageUrls.length > 1 && "gap-[6px] flex-wrap",
-                  isOwn && "justify-end",
-                )}
-              >
-                {imageItems}
-              </div>
-            )}
-            {mediaEmbed && <MediaEmbed embed={mediaEmbed} />}
-            {shouldShowLinkPreview && previewUrl && (
-              <LinkPreview url={previewUrl} />
-            )}
-            {forumMatch && <PostEmbed postId={forumMatch[1]} />}
+            <div
+              className={cn(
+                "w-fit max-w-[calc(100%_-_56px)] px-[14px] py-[9px] shadow-card",
+                bubbleRadiusClass,
+                isOwn
+                  ? "bg-primary-500 text-white"
+                  : "border border-border-subtle bg-bg-surface-hover text-text-primary",
+              )}
+            >
+              {visibleContent && (
+                <div
+                  className={cn(
+                    "select-text whitespace-pre-wrap break-words text-[14px] leading-[20px] [overflow-wrap:anywhere]",
+                    isSending && "opacity-60",
+                    isFailed
+                      ? "text-error/80"
+                      : isOwn
+                        ? "text-white"
+                        : "text-text-primary",
+                  )}
+                >
+                  {contentParts}
+                </div>
+              )}
+              {isFailed && (
+                <p className="text-[11px] text-error mt-[2px]">
+                  Échec de l&apos;envoi — vérifiez votre connexion
+                </p>
+              )}
+              {imageItems && (
+                <div
+                  className={cn(
+                    "mt-[8px]",
+                    (displayedImageUrls.length > 1 || isOwn) && "flex",
+                    displayedImageUrls.length > 1 && "gap-[6px] flex-wrap",
+                    isOwn && "justify-end",
+                  )}
+                >
+                  {imageItems}
+                </div>
+              )}
+              {mediaEmbed && <MediaEmbed embed={mediaEmbed} />}
+              {shouldShowLinkPreview && previewUrl && (
+                <LinkPreview url={previewUrl} />
+              )}
+              {forumMatch && <PostEmbed postId={forumMatch[1]} />}
+            </div>
+            <MessageInlineActions
+              canReact={canReact}
+              currentUserId={currentUserId}
+              deleteConfirming={deleteConfirming}
+              isAdmin={isAdmin}
+              isEditing={editing}
+              isOwn={isOwn}
+              isPinned={Boolean(message.is_pinned)}
+              saving={saving}
+              onCancelDelete={handleCancelDeleteConfirming}
+              onConfirmDelete={handleStartDeleteConfirming}
+              onDelete={handleDelete}
+              onEdit={handleStartEditing}
+              onPin={handleTogglePin}
+              onReact={handleReactionSelect}
+              onReport={handleReport}
+            />
           </div>
         )}
 
@@ -749,7 +737,7 @@ export function MessageBubble({
   );
 }
 
-function MessageHeaderActions({
+function MessageInlineActions({
   canReact,
   currentUserId,
   deleteConfirming,
@@ -782,95 +770,158 @@ function MessageHeaderActions({
   onReact: (emoji: string) => void;
   onReport: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const hasMenuActions =
+    Boolean(isAdmin) || (isOwn && !isEditing) || (!isOwn && Boolean(currentUserId));
+  const closeMenuOnOutsidePointerDown = useCallback((event: PointerEvent) => {
+    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      setMenuOpen(false);
+    }
+  }, []);
+  const handleToggleMenu = useCallback(() => {
+    setMenuOpen((current) => !current);
+  }, []);
+  const handlePin = useCallback(() => {
+    onPin();
+    setMenuOpen(false);
+  }, [onPin]);
+  const handleEdit = useCallback(() => {
+    onEdit();
+    setMenuOpen(false);
+  }, [onEdit]);
+  const handleReport = useCallback(() => {
+    onReport();
+    setMenuOpen(false);
+  }, [onReport]);
+  const handleDelete = useCallback(() => {
+    onDelete();
+    setMenuOpen(false);
+  }, [onDelete]);
+  const handleConfirmDelete = useCallback(() => {
+    onConfirmDelete();
+  }, [onConfirmDelete]);
+  const handleCancelDelete = useCallback(() => {
+    onCancelDelete();
+    setMenuOpen(false);
+  }, [onCancelDelete]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    document.addEventListener("pointerdown", closeMenuOnOutsidePointerDown);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenuOnOutsidePointerDown);
+    };
+  }, [closeMenuOnOutsidePointerDown, menuOpen]);
+
+  if (!canReact && !hasMenuActions) return null;
+
   return (
-    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-[2px]">
-      {isAdmin && (
-        <button
-          type="button"
-          onClick={onPin}
-          disabled={saving}
-          className={`p-[4px] rounded hover:bg-bg-surface cursor-pointer transition-colors ${isPinned ? "text-primary-500" : "text-text-muted hover:text-text-secondary"}`}
-          title={isPinned ? "Désépingler" : "Épingler"}
-          aria-label={
-            isPinned ? "Désépingler le message" : "Épingler le message"
-          }
-        >
-          <Pin className="h-[13px] w-[13px]" />
-        </button>
+    <div className="relative flex shrink-0 items-center gap-[2px] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+      {canReact && (
+        <ReactionPicker onSelect={onReact} />
       )}
-      {isOwn && !isEditing && (
-        <>
+      {hasMenuActions && (
+        <div ref={menuRef} className="relative">
           <button
-            onClick={onEdit}
-            className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
-            title="Modifier"
+            type="button"
+            onClick={handleToggleMenu}
+            className="cursor-pointer rounded-full p-[5px] text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary"
+            aria-label="Plus d'actions"
+            title="Plus d'actions"
           >
-            <Pencil className="h-[13px] w-[13px]" />
+            <MoreHorizontal className="h-[14px] w-[14px]" />
           </button>
-          {deleteConfirming ? (
-            <ConfirmDeleteButton
-              saving={saving}
-              onDelete={onDelete}
-              onCancel={onCancelDelete}
-            />
-          ) : (
-            <DeleteButton saving={saving} onConfirm={onConfirmDelete} />
+          {menuOpen && (
+            <div className="fixed bottom-[calc(env(safe-area-inset-bottom)_+_72px)] left-[12px] right-[12px] z-50 rounded-lg border border-border-default bg-bg-elevated p-[4px] shadow-modal sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-[6px] sm:w-[184px]">
+              {isAdmin && (
+                <ActionMenuButton
+                  icon={<Pin className="h-[13px] w-[13px]" />}
+                  onClick={handlePin}
+                  disabled={saving}
+                >
+                  {isPinned ? "Désépingler" : "Épingler"}
+                </ActionMenuButton>
+              )}
+              {isOwn && !isEditing && (
+                <ActionMenuButton
+                  icon={<Pencil className="h-[13px] w-[13px]" />}
+                  onClick={handleEdit}
+                >
+                  Modifier
+                </ActionMenuButton>
+              )}
+              {isOwn && !isEditing && !deleteConfirming && (
+                <ActionMenuButton
+                  icon={<Trash2 className="h-[13px] w-[13px]" />}
+                  onClick={handleConfirmDelete}
+                  disabled={saving}
+                  variant="danger"
+                >
+                  Supprimer
+                </ActionMenuButton>
+              )}
+              {isOwn && !isEditing && deleteConfirming && (
+                <>
+                  <ActionMenuButton
+                    icon={<Check className="h-[13px] w-[13px]" />}
+                    onClick={handleDelete}
+                    disabled={saving}
+                    variant="danger"
+                  >
+                    Confirmer
+                  </ActionMenuButton>
+                  <ActionMenuButton onClick={handleCancelDelete}>
+                    Annuler
+                  </ActionMenuButton>
+                </>
+              )}
+              {!isOwn && currentUserId && (
+                <ActionMenuButton
+                  icon={<Flag className="h-[13px] w-[13px]" />}
+                  onClick={handleReport}
+                  variant="danger"
+                >
+                  Signaler
+                </ActionMenuButton>
+              )}
+            </div>
           )}
-        </>
+        </div>
       )}
-      {!isOwn && currentUserId && (
-        <button
-          onClick={onReport}
-          className="p-[4px] rounded hover:bg-error-bg text-text-muted hover:text-error cursor-pointer transition-colors"
-          title="Signaler"
-        >
-          <Flag className="h-[13px] w-[13px]" />
-        </button>
-      )}
-      {canReact && <ReactionPicker onSelect={onReact} />}
     </div>
   );
 }
 
-function DeleteButton({
-  saving,
-  onConfirm,
+function ActionMenuButton({
+  children,
+  disabled,
+  icon,
+  onClick,
+  variant = "default",
 }: {
-  saving: boolean;
-  onConfirm: () => void;
+  children: ReactNode;
+  disabled?: boolean;
+  icon?: ReactNode;
+  onClick: () => void;
+  variant?: "default" | "danger";
 }) {
   return (
     <button
-      onClick={onConfirm}
-      disabled={saving}
-      className="p-[4px] rounded hover:bg-error-bg cursor-pointer transition-colors disabled:opacity-50 text-text-muted hover:text-error"
-      title="Supprimer"
-      aria-label="Supprimer le message"
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-full cursor-pointer items-center gap-[8px] rounded-md px-[10px] py-[8px] text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "danger"
+          ? "text-error hover:bg-error-bg"
+          : "text-text-secondary hover:bg-bg-surface hover:text-text-primary",
+      )}
     >
-      <Trash2 className="h-[13px] w-[13px]" />
-    </button>
-  );
-}
-
-function ConfirmDeleteButton({
-  saving,
-  onDelete,
-  onCancel,
-}: {
-  saving: boolean;
-  onDelete: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <button
-      onClick={onDelete}
-      onMouseLeave={onCancel}
-      disabled={saving}
-      className="p-[4px] rounded hover:bg-error-bg cursor-pointer transition-colors disabled:opacity-50 bg-error-bg text-error"
-      title="Confirmer la suppression"
-      aria-label="Confirmer la suppression du message"
-    >
-      <Check className="h-[13px] w-[13px]" />
+      {icon}
+      <span>{children}</span>
     </button>
   );
 }
