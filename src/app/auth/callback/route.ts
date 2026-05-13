@@ -5,13 +5,21 @@ import type { NextRequest } from "next/server";
 const MAX_PENDING_REFERRALS = 5;
 const MAX_TOTAL_FILLEULS = 20;
 
+function getAuthErrorRedirect(origin: string) {
+  const redirectUrl = new URL("/connexion", origin);
+  redirectUrl.searchParams.set("auth", "access");
+  redirectUrl.searchParams.set("error", "oauth_callback");
+  return redirectUrl;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const origin = request.nextUrl.origin;
 
   if (!code) {
-    return NextResponse.redirect(new URL("/connexion", origin));
+    console.error("[auth/callback] Missing OAuth code");
+    return NextResponse.redirect(getAuthErrorRedirect(origin));
   }
 
   // We need a response object to write cookies to.
@@ -38,7 +46,12 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL("/connexion", origin));
+    console.error("[auth/callback] exchangeCodeForSession failed", {
+      message: error.message,
+      name: error.name,
+      status: error.status,
+    });
+    return NextResponse.redirect(getAuthErrorRedirect(origin));
   }
 
   const {
@@ -46,7 +59,8 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL("/connexion", origin));
+    console.error("[auth/callback] No user after OAuth code exchange");
+    return NextResponse.redirect(getAuthErrorRedirect(origin));
   }
 
   // Check profile
