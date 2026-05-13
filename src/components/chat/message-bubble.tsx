@@ -15,7 +15,7 @@ import { LinkPreview } from "./link-preview";
 
 const MENTION_REGEX = /@([A-Za-z0-9_]+)/g;
 
-function renderContentWithMentions(content: string) {
+function renderContentWithMentions(content: string, isOwn: boolean) {
   const parts: ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -27,7 +27,17 @@ function renderContentWithMentions(content: string) {
     }
     const isEveryone = match[1].toLowerCase() === "everyone";
     parts.push(
-      <span key={match.index} className={isEveryone ? "text-warning font-semibold bg-warning/10 px-[2px] rounded" : "text-primary-500 font-medium"}>
+      <span
+        key={match.index}
+        className={cn(
+          "font-semibold",
+          isEveryone
+            ? "rounded bg-warning/15 px-[3px] text-warning"
+            : isOwn
+              ? "text-white underline decoration-white/45 underline-offset-2"
+              : "text-primary-400"
+        )}
+      >
         {match[0]}
       </span>
     );
@@ -56,7 +66,7 @@ type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean 
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const EMPTY_IMAGE_URLS: string[] = [];
-const MESSAGE_WIDTH_CLASSNAME = "max-w-[75%] sm:max-w-[620px]";
+const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
 
 function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
@@ -105,10 +115,10 @@ function MessageReactionButton({
       onClick={clickHandler}
       disabled={!canReact}
       className={cn(
-        "inline-flex items-center gap-[4px] px-[8px] py-[2px] rounded-full text-[11px] border transition-all",
+        "inline-flex items-center gap-[4px] rounded-full border px-[8px] py-[2px] text-[11px] transition-all",
         reaction.hasReacted
-          ? "bg-primary-50 border-primary-500/30 text-primary-700"
-          : "bg-bg-surface border-border-default text-text-muted hover:border-border-strong",
+          ? "border-primary-500/45 bg-primary-50 text-primary-400"
+          : "border-border-default bg-bg-base text-text-muted hover:border-border-strong hover:bg-bg-surface",
         canReact ? "cursor-pointer" : "cursor-default"
       )}
     >
@@ -138,8 +148,8 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
     && (new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 2000);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
   const resolveContentParts = useCallback(() => {
-    return renderContentWithMentions(message.content);
-  }, [message.content]);
+    return renderContentWithMentions(message.content, isOwn);
+  }, [isOwn, message.content]);
   const resolveImageUrls = useCallback(() => {
     return parseImageUrls(message.image_url);
   }, [message.image_url]);
@@ -278,7 +288,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   // TODO: Add revert option / rollback deletion
   if (deleted || (!message.content && !message.image_url)) {
     return (
-      <article className={cn("flex items-start gap-[12px] px-[16px] py-[8px]", isOwn && "flex-row-reverse")}>
+      <article className={cn("group flex items-end gap-[8px] px-[12px] py-[5px]", isOwn && "flex-row-reverse")}>
         <UserHoverCard
           authorId={message.author_id}
           x_handle={message.author.x_handle}
@@ -288,7 +298,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
           <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
         </UserHoverCard>
         <div className={cn("min-w-0", MESSAGE_WIDTH_CLASSNAME, isOwn && "flex flex-col items-end")}>
-          <header className={cn("flex items-baseline gap-[8px]", isOwn && "justify-end text-right")}>
+          <header className={cn("mb-[3px] flex items-baseline gap-[8px] px-[4px]", isOwn && "justify-end text-right")}>
             <span className="text-[13px] font-semibold text-text-primary">
               @{message.author.x_handle}
             </span>
@@ -296,7 +306,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
               {timeAgo(message.created_at)}
             </span>
           </header>
-          <p className={cn("text-[13px] text-text-muted italic mt-[2px]", isOwn && "text-right")}>
+          <p className={cn("rounded-[18px] bg-bg-surface px-[14px] py-[8px] text-[13px] italic text-text-muted", isOwn && "text-right")}>
             Ce message a été supprimé
           </p>
         </div>
@@ -307,11 +317,11 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   return (
     <article
       className={cn(
-        "flex items-start gap-[12px] px-[16px] py-[8px] transition-colors group",
-        isOwn ? "flex-row-reverse hover:bg-primary-50/20" : "hover:bg-bg-surface/50",
+        "group flex items-end gap-[8px] px-[12px] py-[5px] transition-colors",
+        isOwn ? "flex-row-reverse" : "hover:bg-bg-surface/20",
         message.is_pinned && (isOwn
-          ? "bg-primary-50/30 border-r-2 border-primary-500"
-          : "bg-primary-50/30 border-l-2 border-primary-500")
+          ? "border-r-2 border-primary-500 bg-primary-50/30"
+          : "border-l-2 border-primary-500 bg-primary-50/30")
       )}
     >
       <UserHoverCard
@@ -324,13 +334,13 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
       </UserHoverCard>
       <section
         className={cn(
-          "min-w-0",
+          "min-w-0 flex flex-col",
           MESSAGE_WIDTH_CLASSNAME,
           isOwn && "flex flex-col items-end",
           isOwn && editing && "w-[75%]"
         )}
       >
-        <header className={cn("flex items-center gap-[8px]", isOwn && "justify-end text-right")}>
+        <header className={cn("mb-[3px] flex items-center gap-[8px] px-[4px]", isOwn && "justify-end text-right")}>
           {isOwn && (
             <MessageHeaderActions
               canReact={canReact}
@@ -359,7 +369,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
             full_name={message.author.full_name}
             avatar_url={message.author.avatar_url}
           >
-            <span className="text-[13px] font-semibold text-text-primary cursor-pointer hover:underline">
+            <span className="cursor-pointer text-[12px] font-semibold text-text-muted hover:text-text-secondary hover:underline">
               @{message.author.x_handle}
             </span>
           </UserHoverCard>
@@ -397,18 +407,26 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
               onChange={handleEditContentChange}
               onKeyDown={handleKeyDown}
               rows={2}
-              className="w-full bg-bg-elevated border border-border-default rounded-lg px-[12px] py-[8px] text-[13px] text-text-primary focus:border-primary-500 focus:outline-none resize-none"
+              className="w-full resize-none rounded-[18px] border border-border-default bg-bg-surface px-[14px] py-[10px] text-[14px] leading-[20px] text-text-primary focus:border-primary-500 focus:outline-none"
               autoFocus
             />
             <p className="text-[10px] text-text-muted mt-[2px]">Échap pour annuler · Entrée pour sauvegarder</p>
           </div>
         ) : (
-          <>
+          <div
+            className={cn(
+              "rounded-[18px] px-[14px] py-[9px] shadow-card",
+              isOwn
+                ? "bg-primary-500 text-white"
+                : "border border-border-subtle bg-bg-surface-hover text-text-primary"
+            )}
+          >
             {message.content && (
               <div
                 className={cn(
-                  "text-[13px] mt-[2px] whitespace-pre-wrap break-words",
-                  isSending ? "text-text-secondary opacity-50" : isFailed ? "text-error/70" : "text-text-secondary"
+                  "whitespace-pre-wrap break-words text-[14px] leading-[20px]",
+                  isSending && "opacity-60",
+                  isFailed ? "text-error/80" : isOwn ? "text-white" : "text-text-primary"
                 )}
               >
                 {contentParts}
@@ -433,7 +451,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
             )}
             {previewUrl && <LinkPreview url={previewUrl} />}
             {forumMatch && <PostEmbed postId={forumMatch[1]} />}
-          </>
+          </div>
         )}
 
         {reactionItems && (

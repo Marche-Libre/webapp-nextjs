@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { ChangeEvent, KeyboardEvent, MouseEvent } from "react";
 import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -39,10 +39,10 @@ function MentionSuggestionItem({ user, selected, onPick }: MentionSuggestionItem
     <button
       type="button"
       onMouseDown={handleMouseDown}
-      className={`flex items-center gap-[10px] px-[12px] py-[8px] w-full text-left cursor-pointer transition-colors ${
+      className={`flex w-full cursor-pointer items-center gap-[10px] px-[12px] py-[9px] text-left transition-colors ${
         selected
-          ? "bg-primary-50 text-primary-700"
-          : "hover:bg-bg-surface text-text-secondary"
+          ? "bg-primary-50 text-primary-400"
+          : "text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
       }`}
     >
       <Avatar src={user.avatar_url} name={user.full_name} size="sm" />
@@ -193,43 +193,45 @@ export function MessageInput({ channelId, userId, onOptimisticMessage, onMessage
     void sendMessage();
   }, [sendMessage]);
 
-  const suggestionItems = suggestions.map((user, index) => (
-    <MentionSuggestionItem
-      key={user.id}
-      user={user}
-      selected={index === selectedIndex}
-      onPick={insertMention}
-    />
-  ));
+  const suggestionItems = useMemo(() => {
+    return suggestions.map((user, index) => (
+      <MentionSuggestionItem
+        key={user.id}
+        user={user}
+        selected={index === selectedIndex}
+        onPick={insertMention}
+      />
+    ));
+  }, [insertMention, selectedIndex, suggestions]);
 
   const canSend = Boolean(content.trim());
 
   return (
-    <div className="px-[12px] py-[12px] relative">
+    <div className="relative border-t border-border-subtle bg-bg-base/95 px-[12px] py-[10px] backdrop-blur">
       {/* Mention suggestions dropdown */}
       {suggestions.length > 0 && mentionQuery !== null && (
-        <div className="absolute bottom-full left-[12px] right-[12px] mb-[4px] bg-bg-elevated border border-border-default rounded-lg shadow-modal overflow-hidden z-50">
+        <div className="absolute bottom-full left-[12px] right-[12px] z-50 mb-[8px] overflow-hidden rounded-2xl border border-border-default bg-bg-elevated shadow-modal">
           {suggestionItems}
         </div>
       )}
 
-      <div className="flex items-center gap-[8px] bg-bg-base border border-border-subtle rounded-lg px-[12px] py-[8px]">
+      <div className="flex min-h-[46px] items-end gap-[8px] rounded-[23px] border border-border-default bg-bg-surface-hover px-[14px] py-[8px] shadow-card transition-colors focus-within:border-primary-500 focus-within:shadow-focus">
         <textarea
           ref={textareaRef}
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Écrire un message…"
+          placeholder="Écrire un message..."
           rows={1}
-          className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none resize-none max-h-[120px]"
+          className="max-h-[120px] min-h-[28px] flex-1 resize-none bg-transparent py-[4px] text-[15px] leading-[20px] text-text-primary placeholder:text-text-muted focus:outline-none"
         />
         <button
           type="button"
           onClick={handleSendClick}
           disabled={sending || !canSend}
-          className="p-[4px] rounded hover:bg-bg-surface text-primary-500 hover:text-primary-600 cursor-pointer shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex h-[32px] w-[32px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary-500 text-white transition-all hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-bg-surface disabled:text-text-muted"
         >
-          <Send className="h-[18px] w-[18px]" />
+          <Send className="h-[16px] w-[16px]" />
         </button>
       </div>
     </div>

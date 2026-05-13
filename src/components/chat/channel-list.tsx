@@ -43,9 +43,9 @@ function DmChannelRow({ dm, currentSlug, onSelect }: DmChannelRowProps) {
       type="button"
       onClick={handleSelect}
       className={cn(
-        "flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium transition-all duration-150 w-full text-left cursor-pointer",
+        "flex w-full cursor-pointer items-center gap-[9px] rounded-full px-[12px] py-[8px] text-left text-[13px] font-semibold transition-all duration-150",
         isActive
-          ? "bg-primary-50 text-primary-700"
+          ? "bg-bg-surface-hover text-primary-400 shadow-card"
           : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
       )}
     >
@@ -53,7 +53,7 @@ function DmChannelRow({ dm, currentSlug, onSelect }: DmChannelRowProps) {
         src={dm.other_user.avatar_url}
         name={dm.other_user.x_handle}
         size="sm"
-        className="h-[20px] w-[20px] text-[8px] rounded-md shrink-0"
+        className="h-[24px] w-[24px] shrink-0 rounded-full text-[9px]"
       />
       <span className="truncate">@{dm.other_user.x_handle}</span>
     </button>
@@ -70,26 +70,26 @@ function ChannelRow({ channel, currentSlug, hidden = false, onSelect, onToggleHi
   }, [channel.id, onToggleHidden]);
 
   return (
-    <div className="group/ch flex items-center">
+    <div className="group/ch flex items-center gap-[4px]">
       <button
         type="button"
         onClick={handleSelect}
         className={cn(
-          "flex items-center gap-[8px] px-[12px] py-[6px] rounded-md text-[13px] font-medium transition-all flex-1 min-w-0 text-left cursor-pointer",
+          "flex min-w-0 flex-1 cursor-pointer items-center gap-[9px] rounded-full px-[12px] py-[8px] text-left text-[13px] font-semibold transition-all",
           hidden
             ? "text-text-muted hover:bg-bg-surface hover:text-text-secondary"
             : isActive
-              ? "bg-primary-50 text-primary-700"
+              ? "bg-bg-surface-hover text-primary-400 shadow-card"
               : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
         )}
       >
-        <Hash className={cn("h-[14px] w-[14px] shrink-0", hidden ? "opacity-40" : "opacity-60")} />
+        <Hash className={cn("h-[14px] w-[14px] shrink-0", hidden ? "opacity-40" : isActive ? "opacity-100" : "opacity-60")} />
         <span className="truncate">{channel.name}</span>
       </button>
       <button
         type="button"
         onClick={handleToggleHidden}
-        className="opacity-0 group-hover/ch:opacity-100 p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-all shrink-0"
+        className="shrink-0 cursor-pointer rounded-full p-[5px] text-text-muted opacity-0 transition-all hover:bg-bg-surface hover:text-text-secondary group-hover/ch:opacity-100"
         title={hidden ? "Réafficher ce salon" : "Masquer ce salon"}
       >
         {hidden ? <Eye className="h-[12px] w-[12px]" /> : <EyeOff className="h-[12px] w-[12px]" />}
@@ -167,17 +167,17 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-[10px] px-[20px] h-[64px] border-b border-border-subtle shrink-0">
-        <h2 className="font-display font-semibold text-[17px] text-text-primary tracking-[-0.02em] flex-1">
-          Salons
+      <div className="flex h-[56px] shrink-0 items-center gap-[10px] border-b border-border-subtle px-[18px]">
+        <h2 className="font-display flex-1 text-[16px] font-semibold text-text-primary">
+          Discussions
         </h2>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-[8px] py-[8px] space-y-[2px]">
+      <nav className="flex-1 space-y-[3px] overflow-y-auto px-[10px] py-[10px]">
         {/* DM channels */}
         {dmItems && (
           <div className="mb-[8px] pb-[8px] border-b border-border-subtle">
-            <p className="px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+            <p className="px-[12px] py-[5px] text-[10px] font-semibold uppercase tracking-wider text-text-muted">
               Messages
             </p>
             {dmItems}
@@ -193,7 +193,7 @@ export function ChannelList({ channels, dmChannels, userId, hiddenChannelIds: in
             <button
               type="button"
               onClick={handleToggleArchived}
-              className="flex items-center gap-[6px] px-[12px] py-[4px] text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-secondary cursor-pointer transition-colors w-full"
+              className="flex w-full cursor-pointer items-center gap-[6px] px-[12px] py-[5px] text-[10px] font-semibold uppercase tracking-wider text-text-muted transition-colors hover:text-text-secondary"
             >
               <ChevronDown className={cn("h-[12px] w-[12px] transition-transform", !showArchived && "-rotate-90")} />
               Masqués ({archivedChannels.length})

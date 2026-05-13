@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SmilePlus } from "lucide-react";
 
 // X-style limited emoji set
@@ -28,7 +28,7 @@ function EmojiButton({ emoji, onSelect }: EmojiButtonProps) {
     <button
       type="button"
       onClick={handleClick}
-      className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-bg-surface cursor-pointer text-[16px] transition-colors"
+      className="flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full text-[16px] transition-colors hover:bg-bg-surface-hover"
     >
       {emoji}
     </button>
@@ -59,22 +59,24 @@ export function ReactionPicker({ onSelect }: ReactionPickerProps) {
     setOpen(false);
   }, [onSelect]);
 
-  const emojiButtons = EMOJIS.map((emoji) => (
-    <EmojiButton key={emoji} emoji={emoji} onSelect={handleSelect} />
-  ));
+  const emojiButtons = useMemo(() => {
+    return EMOJIS.map((emoji) => (
+      <EmojiButton key={emoji} emoji={emoji} onSelect={handleSelect} />
+    ));
+  }, [handleSelect]);
 
   return (
     <div className="relative" ref={pickerRef}>
       <button
         type="button"
         onClick={handleToggleOpen}
-        className="p-[4px] rounded hover:bg-bg-surface text-text-muted hover:text-text-secondary cursor-pointer transition-colors"
+        className="cursor-pointer rounded-full p-[5px] text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary"
         title="Réagir"
       >
         <SmilePlus className="h-[14px] w-[14px]" />
       </button>
       {open && (
-        <div className="absolute top-full right-0 mt-[4px] z-50 bg-bg-elevated border border-border-default rounded-full shadow-modal px-[4px] py-[2px] flex gap-[2px]">
+        <div className="absolute right-0 top-full z-50 mt-[6px] flex gap-[2px] rounded-full border border-border-default bg-bg-elevated px-[5px] py-[3px] shadow-modal">
           {emojiButtons}
         </div>
       )}

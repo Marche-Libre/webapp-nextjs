@@ -342,9 +342,9 @@ function ChatArea({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-[20px] h-[64px] border-b border-border-subtle shrink-0">
+      <div className="flex h-[56px] shrink-0 items-center justify-between border-b border-border-subtle bg-bg-base/95 px-[18px] backdrop-blur">
         <div className="flex items-center gap-[10px] min-w-0">
-          <button type="button" onClick={openChannelDrawer} className="md:hidden p-[6px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors">
+          <button type="button" onClick={openChannelDrawer} className="cursor-pointer rounded-full p-[7px] text-text-muted transition-colors hover:bg-bg-surface md:hidden">
             <Menu className="h-[18px] w-[18px]" />
           </button>
           <div className="flex items-center gap-[8px] min-w-0">
@@ -353,16 +353,16 @@ function ChatArea({
             ) : (
               <Hash className="h-[18px] w-[18px] text-text-muted shrink-0" />
             )}
-            <span className="text-[15px] font-semibold text-text-primary truncate">{channelTitle}</span>
+            <span className="truncate text-[15px] font-semibold text-text-primary">{channelTitle}</span>
             {activeChannel.description && !activeChannel.is_private && (
-              <span className="text-[12px] text-text-muted truncate hidden sm:block">{activeChannel.description}</span>
+              <span className="hidden truncate text-[12px] text-text-muted sm:block">{activeChannel.description}</span>
             )}
           </div>
         </div>
         <button
           type="button"
           onClick={handleToggleSearch}
-          className={cn("p-[6px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors", searchOpen && "bg-bg-surface text-text-primary")}
+          className={cn("cursor-pointer rounded-full p-[7px] text-text-muted transition-colors hover:bg-bg-surface", searchOpen && "bg-bg-surface text-text-primary")}
         >
           <Search className="h-[16px] w-[16px]" />
         </button>
@@ -382,18 +382,18 @@ function ChatArea({
 
         {/* Search panel */}
         {searchOpen && (
-          <div className="w-full sm:w-[320px] border-l border-border-subtle bg-bg-base flex flex-col shrink-0">
-            <div className="p-[12px] border-b border-border-subtle">
-              <div className="flex items-center gap-[8px]">
+          <div className="flex w-full shrink-0 flex-col border-l border-border-subtle bg-bg-base sm:w-[320px]">
+            <div className="border-b border-border-subtle p-[12px]">
+              <div className="flex items-center gap-[8px] rounded-full border border-border-default bg-bg-surface px-[12px] py-[8px]">
                 <Search className="h-[14px] w-[14px] text-text-muted shrink-0" />
                 <input
                   ref={searchRef}
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  placeholder="Rechercher dans ce salon…"
+                  placeholder="Rechercher dans ce salon..."
                   className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none"
                 />
-                <button type="button" onClick={handleCloseSearch} className="p-[4px] text-text-muted hover:text-text-primary cursor-pointer">
+                <button type="button" onClick={handleCloseSearch} className="cursor-pointer rounded-full p-[4px] text-text-muted hover:bg-bg-surface-hover hover:text-text-primary">
                   <X className="h-[14px] w-[14px]" />
                 </button>
               </div>
@@ -457,20 +457,20 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
         <div className="flex h-full">
           {/* Mobile channel drawer */}
           {drawerOpen && (
-            <div className="md:hidden fixed inset-0 z-50">
+            <div className="fixed inset-0 z-50 md:hidden">
               <button
                 type="button"
                 aria-label="Fermer les salons"
-                className="absolute inset-0 bg-black/40"
+                className="absolute inset-0 bg-black/60"
                 onClick={closeDrawer}
               />
-              <div className="absolute left-0 top-0 bottom-0 w-[260px] bg-bg-base border-r border-border-default flex flex-col animate-in slide-in-from-left duration-200">
-                <div className="flex items-center justify-between px-[20px] h-[64px] border-b border-border-subtle shrink-0">
-                  <span className="text-[13px] font-semibold text-text-primary">Salons</span>
+              <div className="animate-in absolute bottom-0 left-0 top-0 flex w-[280px] flex-col border-r border-border-default bg-bg-base shadow-modal slide-in-from-left duration-200">
+                <div className="flex h-[56px] shrink-0 items-center justify-between border-b border-border-subtle px-[18px]">
+                  <span className="text-[13px] font-semibold text-text-primary">Discussions</span>
                   <button
                     type="button"
                     onClick={closeDrawer}
-                    className="p-[6px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors"
+                    className="cursor-pointer rounded-full p-[7px] text-text-muted transition-colors hover:bg-bg-surface"
                   >
                     <X className="h-[16px] w-[16px]" />
                   </button>
@@ -484,7 +484,7 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
           )}
 
           {/* Desktop channel list + user bar */}
-          <div className="hidden md:flex w-[260px] border-r border-border-subtle bg-bg-base shrink-0 flex-col">
+          <div className="hidden w-[270px] shrink-0 flex-col border-r border-border-subtle bg-bg-base md:flex">
             <ChannelList channels={channels} dmChannels={dmChannels} userId={profile.id} hiddenChannelIds={profile.hidden_channel_ids || []} />
             <UserBar profile={profile} />
           </div>
@@ -502,7 +502,7 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
           </div>
 
           {/* Member list */}
-          <div className="hidden xl:flex w-[260px] border-l border-border-subtle bg-bg-base shrink-0 flex-col">
+          <div className="hidden w-[260px] shrink-0 flex-col border-l border-border-subtle bg-bg-base xl:flex">
             <MemberList members={members} />
           </div>
         </div>

@@ -6,7 +6,7 @@ import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
 import { useChatStore, useChannelState, type FullMessage, type ReactionMap } from "./chat-store";
 
-const CHAT_LANE_CLASSNAME = "w-full max-w-[960px] mx-auto";
+const CHAT_LANE_CLASSNAME = "w-full max-w-[860px] mx-auto";
 
 interface MessageAreaProps {
   channelId: string;
@@ -79,8 +79,9 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
     return (
       <div className="flex justify-center py-[12px]">
         <button
+          type="button"
           onClick={loadMore}
-          className="text-[12px] text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+          className="cursor-pointer rounded-full border border-border-default bg-bg-surface px-[12px] py-[6px] text-[12px] font-medium text-primary-400 transition-colors hover:bg-bg-surface-hover hover:text-primary-500"
         >
           Charger les messages précédents
         </button>
@@ -122,14 +123,14 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-base">
+    <div className="flex h-full flex-col bg-bg-base">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
         {/* Keep a readable lane on wide screens while preserving the existing chat flow. */}
-        <div className={`${CHAT_LANE_CLASSNAME} pt-[8px] pb-[8px] flex flex-col min-h-full`}>
+        <div className={`${CHAT_LANE_CLASSNAME} flex min-h-full flex-col px-[6px] py-[10px] sm:px-[12px]`}>
           {hasMoreNode}
           {messageItems}
           <div ref={bottomRef} />
