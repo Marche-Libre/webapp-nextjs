@@ -707,7 +707,7 @@ export function MessageInput({
           disabled={inputDisabled}
           placeholder="Écrire un message..."
           rows={1}
-          className="max-h-[120px] min-h-[28px] flex-1 resize-none bg-transparent py-[4px] text-[15px] leading-[20px] text-text-primary placeholder:text-text-muted focus:outline-none"
+          className="max-h-[120px] min-h-[28px] min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-[4px] text-[15px] leading-[20px] text-text-primary placeholder:text-text-muted focus:outline-none"
         />
         <button
           type="button"
