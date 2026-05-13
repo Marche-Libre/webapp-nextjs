@@ -1,27 +1,103 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
-import { Suspense } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { getAuthCallbackUrl } from "@/lib/auth-url";
+import {
+  AUTH_ENTRY_PROFILE_SELECT,
+  getAuthEntryDestination,
+} from "@/lib/auth-entry";
+import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
+
+const ERROR_MESSAGE_DEFAULT =
+  "Impossible de démarrer la connexion X. Réessayez dans un instant.";
+
+const getSignInErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return ERROR_MESSAGE_DEFAULT;
+};
 
 function RejoindreContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const ref = searchParams.get("ref")?.replace("@", "") || "";
+  const referralHandle = useMemo(
+    () => searchParams.get("ref")?.replace("@", "") || "",
+    [searchParams],
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSignUp = () => {
-    // Store referral handle in cookie so the server-side callback can read it
-    if (ref) {
-      document.cookie = `ml-referral=${ref};path=/;max-age=3600;SameSite=Lax`;
-    }
+  const admissionIntro = referralHandle ? (
+    <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
+      Votre demande d’admission mentionnera l’invitation de{" "}
+      <span className="text-accent font-medium">@{referralHandle}</span>
+    </p>
+  ) : (
+    <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
+      Club privé en bêta privée, avec admission revue manuellement
+    </p>
+  );
+  const referralContext = referralHandle ? (
+    <p className="text-xs text-accent/60 text-center mt-3 leading-relaxed">
+      Ce contexte sera joint à votre demande, sans approbation automatique.
+    </p>
+  ) : null;
+
+  const handleSignUp = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
     const supabase = createClient();
-    supabase.auth.signInWithOAuth({
-      provider: "x",
-      options: { redirectTo: getAuthCallbackUrl() },
-    });
-  };
+
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw userError;
+      }
+
+      if (userData.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select(AUTH_ENTRY_PROFILE_SELECT)
+          .eq("id", userData.user.id)
+          .single();
+
+        router.replace(getAuthEntryDestination(profile));
+        return;
+      }
+
+      // Store referral handle in cookie so the server-side callback can read it
+      if (referralHandle) {
+        document.cookie = `ml-referral=${referralHandle};path=/;max-age=3600;SameSite=Lax`;
+      }
+
+      const { data: signInData, error } = await supabase.auth.signInWithOAuth({
+        provider: "x",
+        options: {
+          redirectTo: getAuthCallbackUrl(),
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error || !signInData.url) {
+        throw error ??
+          new Error("Le lien d'authentification n'a pas pu être généré.");
+      }
+
+      window.sessionStorage.setItem(X_OAUTH_URL_SESSION_KEY, signInData.url);
+      router.replace("/auth/x/continue");
+    } catch (requestError) {
+      setErrorMessage(getSignInErrorMessage(requestError));
+    } finally {
+      setLoading(false);
+    }
+  }, [referralHandle, router]);
 
   return (
     <div className="min-h-dvh bg-base-200 flex items-center justify-center px-4 py-6">
@@ -50,32 +126,28 @@ function RejoindreContent() {
           Demander l’accès à MarchéLibre
         </h1>
 
-        {ref ? (
-          <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
-            Votre demande d’admission mentionnera l’invitation de{" "}
-            <span className="text-accent font-medium">@{ref}</span>
-          </p>
-        ) : (
-          <p className="text-sm text-base-content/45 text-center mt-1.5 mb-6">
-            Club privé en bêta privée, avec admission revue manuellement
-          </p>
-        )}
+        {admissionIntro}
 
+        {errorMessage ? (
+          <p className="text-sm text-error text-center mb-3" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={handleSignUp}
-          className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all cursor-pointer"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2.5 rounded-lg bg-[#000000] px-4 py-3 text-sm font-medium text-[#ffffff] hover:bg-[#1a1a1a] transition-all cursor-pointer disabled:opacity-40"
         >
-          <XLogo className="w-4 h-4" />
+          {loading ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <XLogo className="w-4 h-4" />
+          )}
           Continuer avec X
         </button>
 
-        {ref && (
-          <p className="text-xs text-accent/60 text-center mt-3 leading-relaxed">
-            Ce contexte sera joint à votre demande, sans approbation
-            automatique.
-          </p>
-        )}
+        {referralContext}
 
         <p className="text-xs text-base-content/40 text-center mt-4 leading-relaxed max-w-[300px] mx-auto">
           Votre identifiant X démarre la demande d’admission et sert d’identité

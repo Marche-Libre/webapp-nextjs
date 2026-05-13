@@ -99,6 +99,23 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("c.write_permission = 'all'");
   });
 
+  it("enforces the US3 canonical launch channel taxonomy", () => {
+    const taxonomyMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("us3_launch_channel_taxonomy"),
+    );
+    const migrationText = taxonomyMigration?.text ?? "";
+
+    expect(migrationText).toContain("'general'");
+    expect(migrationText).toContain("'business'");
+    expect(migrationText).toContain("'politique'");
+    expect(migrationText).toContain("'divers'");
+    expect(migrationText).toContain("'jobs'");
+    expect(migrationText).toContain("'admin_only'");
+    expect(migrationText).toContain("('recrutement', 'jobs')");
+    expect(migrationText).toContain("('random', 'divers')");
+    expect(migrationText).toContain("slug IN ('recrutement', 'aide', 'random')");
+  });
+
   it("adds local database guards for chat writes and private channel membership", () => {
     const hardeningMigration = migrationSources().find(({ text }) =>
       text.includes("prevent_sensitive_profile_update"),
@@ -110,7 +127,6 @@ describe("authorization hardening", () => {
     );
     expect(migrationText).toContain("COALESCE(p.chat_banned, FALSE) = FALSE");
     expect(migrationText).toContain("chat_muted_until IS NULL");
-    expect(migrationText).toContain("image_url IS NULL");
     expect(migrationText).toContain("is_private = FALSE");
     expect(migrationText).toContain("public.channel_members");
     expect(migrationText).toContain(
@@ -129,6 +145,95 @@ describe("authorization hardening", () => {
       'DROP POLICY IF EXISTS "Approved users can create channel memberships" ON public.channel_members',
     );
     expect(migrationText).toContain('CREATE POLICY "Admins can create channel memberships"');
+  });
+
+  it("stores chat images with private signed media paths", () => {
+    const messageInput = source("src/components/chat/message-input.tsx");
+    const messageBubble = source("src/components/chat/message-bubble.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(messageInput).toContain('const CHAT_MEDIA_BUCKET = "medias"');
+    expect(messageInput).toContain("storage.from(CHAT_MEDIA_BUCKET)");
+    expect(messageInput).toContain("MESSAGE_WITH_AUTHOR_SELECT");
+    expect(messageInput).toContain("onMessageConfirmed?.(optimisticId, insertedMessage as FullMessage | null)");
+    expect(messageInput).toContain("ImagePlus");
+    expect(messageInput).toContain("handleImageFileSelected");
+    expect(messageInput).toContain("handlePaste");
+    expect(messageInput).toContain("setError(`Échec du téléversement de l'image");
+    expect(messageBubble).toContain("storage.from(\"medias\")");
+    expect(messageBubble).toContain("createSignedUrl");
+    expect(migrationText).toContain('CREATE POLICY "Users can upload chat media"');
+    expect(migrationText).toContain('CREATE POLICY "Users can read chat media"');
+    expect(migrationText).toContain("private.can_current_user_access_chat_media_path");
+    expect(migrationText).toContain("COALESCE(c.write_permission, 'all') = 'all'");
+    expect(migrationText).toContain("COALESCE(c.read_permission, 'all') = 'all'");
+    expect(migrationText).toContain("split_part(image_url, '/', 1) = 'chat'");
+    expect(migrationText).toContain('CREATE POLICY "Approved users can send messages to allowed channels"');
+    expect(migrationText).toContain("bucket_id = 'medias'");
+  });
+
+  it("supports admin-only chat message pinning", () => {
+    const messageBubble = source("src/components/chat/message-bubble.tsx");
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(migrationText).toContain("ADD COLUMN IF NOT EXISTS is_pinned");
+    expect(migrationText).toContain("idx_messages_channel_pinned_created");
+    expect(migrationText).toContain("idx_messages_one_pinned_per_channel");
+    expect(migrationText).toContain("NEW.is_pinned IS DISTINCT FROM OLD.is_pinned");
+    expect(migrationText).toContain("message_pin_admin_only");
+    expect(messageBubble).toContain("if (!isAdmin) return;");
+    expect(messageBubble).toContain('.eq("channel_id", channelId)');
+    expect(messageBubble).toContain("Failed to clear existing pinned message");
+    expect(messageBubble).toContain("Failed to update message pin state");
+    expect(messageBubble).toContain("Impossible de modifier l'épinglage");
+    expect(messageArea).toContain("Message épinglé");
+    expect(messageArea).toContain("PinnedMessageBanner");
+    expect(messageArea).toContain("data-message-id={msg.id}");
+    expect(messageArea).toContain("document.getElementById(getMessageDomId(messageId))");
+    expect(messageArea).toContain("scrollIntoView({ behavior: \"smooth\", block: \"center\" })");
+    expect(messageArea).toContain("MESSAGE_HIGHLIGHT_CLASSNAMES");
+    expect(messageArea).toContain("scheduleScrollToMessage(pinnedMessage.id)");
+  });
+
+  it("loads message context before jumping to unloaded chat messages", () => {
+    const chatStore = source("src/components/chat/chat-store.tsx");
+
+    expect(chatStore).toContain("const MESSAGE_JUMP_CONTEXT_LIMIT = 25");
+    expect(chatStore).toContain("async function jumpToMessage");
+    expect(chatStore).toContain(".lt(\"created_at\", targetMessage.created_at)");
+    expect(chatStore).toContain(".gt(\"created_at\", targetMessage.created_at)");
+    expect(chatStore).toContain(".limit(MESSAGE_JUMP_CONTEXT_LIMIT)");
+    expect(chatStore).toContain("messages: mergeMessages(prev.messages, windowMessages)");
+    expect(chatStore).toContain("pinnedMessage: FullMessage | null");
+  });
+
+  it("adds a floating shortcut back to the latest chat messages", () => {
+    const messageArea = source("src/components/chat/message-area.tsx");
+
+    expect(messageArea).toContain("const CHAT_BOTTOM_THRESHOLD_PX = 100");
+    expect(messageArea).toContain("const [showScrollToLatest, setShowScrollToLatest] = useState(false)");
+    expect(messageArea).toContain("function resolveIsAtBottom");
+    expect(messageArea).toContain("function resolveScrollToLatestPosition");
+    expect(messageArea).toContain("const composerLaneRef = useRef<HTMLDivElement>(null)");
+    expect(messageArea).toContain("window.innerWidth - composerLaneRect.right + SCROLL_TO_LATEST_COMPOSER_GAP_PX");
+    expect(messageArea).toContain("window.innerHeight - composerLaneRect.top + SCROLL_TO_LATEST_COMPOSER_GAP_PX");
+    expect(messageArea).toContain("pointer-events-none fixed z-20");
+    expect(messageArea).toContain("aria-label={scrollToLatestAriaLabel}");
+    expect(messageArea).toContain("<ArrowDown className=\"h-[16px] w-[16px]\" />");
+    expect(messageArea).toContain("bottomRef.current?.scrollIntoView({ behavior: \"smooth\", block: \"end\" })");
+    expect(messageArea).toContain("const [hasNewLatestMessage, setHasNewLatestMessage] = useState(false)");
+    expect(messageArea).toContain("const latestMessageIdRef = useRef<string | null>(null)");
+    expect(messageArea).toContain("const latestMessageNotificationEffect");
+    expect(messageArea).toContain("const latestMessageId = useMemo(() => {");
+    expect(messageArea).toContain("setShowScrollToLatest(true);");
+    expect(messageArea).toContain("setHasNewLatestMessage(true)");
+    expect(messageArea).toContain("Aller aux nouveaux messages");
+    expect(messageArea).toContain("h-[8px] w-[8px] rounded-full");
   });
 
   it("replaces recursive channel member visibility with a private RLS helper", () => {
@@ -159,15 +264,6 @@ describe("authorization hardening", () => {
     expect(memberProfile).not.toContain("SendDmButton");
   });
 
-  it("does not upload chat images to public storage URLs", () => {
-    const messageInput = source("src/components/chat/message-input.tsx");
-
-    expect(messageInput).not.toContain('from("chat-images")');
-    expect(messageInput).not.toContain("getPublicUrl");
-    expect(messageInput).not.toContain("handleImageSelect");
-    expect(messageInput).not.toContain("ImagePlus");
-  });
-
   it("requires approved and onboarded admin state for server-side admin mutations", () => {
     const adminActions = source("src/app/(app)/admin/actions.ts");
 
@@ -179,14 +275,54 @@ describe("authorization hardening", () => {
 
   it("only notifies mentions after a successful message insert", () => {
     const messageInput = source("src/components/chat/message-input.tsx");
-    const sendResultBlock = messageInput.slice(
-      messageInput.indexOf("if (error)"),
-      messageInput.indexOf("setSending(false)"),
-    );
-    const [errorBranch, successBranch] = sendResultBlock.split("} else {");
+    const insertErrorStart = messageInput.indexOf("if (insertError)");
+    const insertElseIndex = messageInput.indexOf("} else {", insertErrorStart);
+    const sendResultBlock = messageInput.slice(insertErrorStart);
+    const [errorBranch, successBranch] = insertElseIndex === -1
+      ? [sendResultBlock, ""]
+      : sendResultBlock.split("} else {");
 
     expect(errorBranch).not.toContain("notifyMentions");
     expect(successBranch).toContain("notifyMentions");
+  });
+
+  it("uses canonical chat slug links for chat mention notifications", () => {
+    const messageInput = source("src/components/chat/message-input.tsx");
+    const notificationProvider = source("src/components/notifications/notification-provider.tsx");
+
+    expect(messageInput).toContain("const mentionNotificationLink = useMemo(() => {");
+    expect(messageInput).toContain("if (channelSlug) return `/chat/${channelSlug}`;");
+    expect(messageInput).toContain("link: mentionNotificationLink");
+    expect(notificationProvider).toContain("resolveChatLinkTarget");
+    expect(notificationProvider).toContain("kind: \"channel_slug\"");
+    expect(notificationProvider).toContain(".eq(\"slug\", channelTarget.value)");
+  });
+
+  it("blocks the composer UI when the active channel is not writable", () => {
+    const chatLayout = source("src/components/chat/chat-layout.tsx");
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const messageInput = source("src/components/chat/message-input.tsx");
+
+    expect(chatLayout).toContain("const activeChannelCanWrite = useMemo(() => {");
+    expect(chatLayout).toContain("activeChannel.write_permission === \"all\" || Boolean(isAdmin)");
+    expect(chatLayout).toContain("Seuls les admins peuvent publier dans Jobs.");
+    expect(chatLayout).toContain("canWrite={activeChannelCanWrite}");
+    expect(messageArea).toContain("canWrite: boolean;");
+    expect(messageInput).toContain("if (!canWrite) return;");
+    expect(messageInput).toContain("const inputDisabled = isBusy || !canWrite;");
+    expect(messageInput).toContain("{!canWrite && noPermissionMessage && (");
+  });
+
+  it("filters global message search to canonical launch chat channels", () => {
+    const chatLayoutPage = source("src/app/(app)/chat/layout.tsx");
+    const header = source("src/components/layout/header.tsx");
+
+    expect(chatLayoutPage).toContain("LAUNCH_CHAT_CHANNEL_SLUGS");
+    expect(chatLayoutPage).toContain(".in(\"slug\", [...LAUNCH_CHAT_CHANNEL_SLUGS])");
+    expect(header).toContain("LAUNCH_CHAT_CHANNEL_SLUGS");
+    expect(header).toContain('.from("channels")');
+    expect(header).toContain(".in(\"slug\", [...LAUNCH_CHAT_CHANNEL_SLUGS])");
+    expect(header).toContain(".in(\"channel_id\", launchChannelIds)");
   });
 
   it("prevents users from reacting to their own chat messages", () => {

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatLayout } from "@/components/chat/chat-layout";
+import { LAUNCH_CHAT_CHANNEL_SLUGS, sortLaunchChatChannels } from "@/lib/chat/channels";
 import type { Channel, Message, Profile } from "@/lib/types/database";
 
 type MessageWithAuthor = Message & {
@@ -28,11 +29,11 @@ export default async function ChatLayoutPage({
     .from("channels")
     .select("*")
     .eq("is_private", false)
-    .order("created_at", { ascending: true });
+    .in("slug", [...LAUNCH_CHAT_CHANNEL_SLUGS]);
   if (channelsError) {
     console.error("Failed to load public chat channels", channelsError);
   }
-  const publicChannels = (channels || []) as Channel[];
+  const publicChannels = sortLaunchChatChannels((channels || []) as Channel[]);
 
   // Fetch DM channels for the current user
   const { data: dmMemberships } = await supabase

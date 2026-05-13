@@ -81,6 +81,8 @@ export type Channel = {
   description: string | null;
   created_by: string | null;
   is_private: boolean;
+  read_permission: "all" | "admin_only";
+  write_permission: "all" | "admin_only";
   created_at: string;
 };
 

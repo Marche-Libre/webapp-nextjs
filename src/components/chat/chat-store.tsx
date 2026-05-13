@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useRef, useEffect, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
@@ -18,6 +18,7 @@ export type ReactionMap = Record<string, ReactionEntry[]>;
 
 type ChannelState = {
   messages: FullMessage[];
+  pinnedMessage: FullMessage | null;
   reactions: ReactionMap;
   hasMore: boolean;
   loaded: boolean;
@@ -28,6 +29,18 @@ type StoreState = {
   activePanel: { isOpen: boolean; slug: string };
 };
 
+const EMPTY_CHANNEL_STATE: ChannelState = {
+  messages: [],
+  pinnedMessage: null,
+  reactions: {},
+  hasMore: true,
+  loaded: false,
+};
+
+const MESSAGE_WITH_AUTHOR_SELECT = "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
+const CHANNEL_SYNC_INTERVAL_MS = 5000;
+const MESSAGE_JUMP_CONTEXT_LIMIT = 25;
+
 // ─── Store (singleton, lives outside React) ───
 
 function createChatStore(userId: string) {
@@ -37,7 +50,10 @@ function createChatStore(userId: string) {
   };
 
   const listeners = new Set<() => void>();
+  const channelListeners = new Map<string, Set<() => void>>();
   const subscriptions = new Map<string, ReturnType<ReturnType<typeof createClient>["channel"]>>();
+  const channelWatchCounts = new Map<string, number>();
+  const channelSyncIntervals = new Map<string, ReturnType<typeof setInterval>>();
   const supabase = createClient();
 
   function emit() {
@@ -55,8 +71,25 @@ function createChatStore(userId: string) {
     return () => listeners.delete(listener);
   }
 
+  function subscribeChannel(channelId: string, listener: () => void) {
+    const channelSet = channelListeners.get(channelId) ?? new Set<() => void>();
+    channelSet.add(listener);
+    channelListeners.set(channelId, channelSet);
+
+    return () => {
+      channelSet.delete(listener);
+      if (channelSet.size === 0) channelListeners.delete(channelId);
+    };
+  }
+
+  function emitChannel(channelId: string) {
+    const channelSet = channelListeners.get(channelId);
+    if (!channelSet) return;
+    channelSet.forEach((listener) => listener());
+  }
+
   function getChannel(channelId: string): ChannelState {
-    return state.channels[channelId] || { messages: [], reactions: {}, hasMore: true, loaded: false };
+    return state.channels[channelId] || EMPTY_CHANNEL_STATE;
   }
 
   function setChannel(channelId: string, updater: (prev: ChannelState) => ChannelState) {
@@ -67,6 +100,7 @@ function createChatStore(userId: string) {
         [channelId]: updater(getChannel(channelId)),
       },
     };
+    emitChannel(channelId);
     emit();
   }
 
@@ -101,6 +135,66 @@ function createChatStore(userId: string) {
     setChannel(channelId, (prev) => ({ ...prev, reactions: map }));
   }
 
+  async function fetchMessage(messageId: string) {
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("id", messageId)
+      .single();
+
+    return data as FullMessage | null;
+  }
+
+  async function fetchPinnedMessage(channelId: string) {
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("channel_id", channelId)
+      .eq("is_pinned", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return data as FullMessage | null;
+  }
+
+  async function refreshPinnedMessage(channelId: string) {
+    const pinnedMessage = await fetchPinnedMessage(channelId);
+
+    setChannel(channelId, (prev) => ({
+      ...prev,
+      pinnedMessage,
+    }));
+  }
+
+  async function syncLatestMessages(channelId: string) {
+    const ch = getChannel(channelId);
+    if (!ch.loaded) return;
+
+    const latestMessage = getLatestPersistedMessage(ch.messages);
+    if (!latestMessage) {
+      if (hasPendingOptimisticMessage(ch.messages)) return;
+      await loadChannel(channelId, true);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .eq("channel_id", channelId)
+      .gt("created_at", latestMessage.created_at)
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (!data || data.length === 0) return;
+
+    setChannel(channelId, (prev) => ({
+      ...prev,
+      messages: mergeMessages(prev.messages, data as FullMessage[]),
+    }));
+    void fetchReactions(channelId);
+  }
+
   // ─── Subscribe to realtime for a channel ───
 
   function subscribeToChannel(channelId: string) {
@@ -113,20 +207,17 @@ function createChatStore(userId: string) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const { data } = await supabase
-            .from("messages")
-            .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
-            .eq("id", payload.new.id)
-            .single();
+          const messageId = typeof payload.new.id === "string" ? payload.new.id : null;
+          if (!messageId) return;
+          const data = await fetchMessage(messageId);
 
           if (data) {
             setChannel(channelId, (prev) => {
-              const withoutOptimistic = prev.messages.filter((m) => {
-                if (!m.id.startsWith("optimistic-")) return true;
-                return !(m.content === (data as FullMessage).content && m.author_id === (data as FullMessage).author_id);
-              });
-              if (withoutOptimistic.find((m) => m.id === (data as FullMessage).id)) return { ...prev, messages: withoutOptimistic };
-              return { ...prev, messages: [...withoutOptimistic, data as FullMessage] };
+              return {
+                ...prev,
+                messages: mergeMessages(prev.messages, [data]),
+                pinnedMessage: data.is_pinned ? data : prev.pinnedMessage,
+              };
             });
           }
         }
@@ -135,32 +226,85 @@ function createChatStore(userId: string) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
         async (payload) => {
-          const { data } = await supabase
-            .from("messages")
-            .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
-            .eq("id", payload.new.id)
-            .single();
+          const messageId = typeof payload.new.id === "string" ? payload.new.id : null;
+          if (!messageId) return;
+          const data = await fetchMessage(messageId);
 
           if (data) {
             setChannel(channelId, (prev) => ({
               ...prev,
-              messages: prev.messages.map((m) => m.id === (data as FullMessage).id ? data as FullMessage : m),
+              messages: prev.messages.map((m) => m.id === data.id ? data : m),
+              pinnedMessage: resolveUpdatedPinnedMessage(prev.pinnedMessage, data),
             }));
           }
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          void syncLatestMessages(channelId);
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn("Chat realtime subscription issue", { channelId, status, error });
+          void syncLatestMessages(channelId);
+        }
+      });
 
     // Reactions subscription
     const reactChannel = supabase
       .channel(`reactions:${channelId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
-        fetchReactions(channelId);
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, (payload) => {
+        const messageId = getReactionMessageId(payload);
+        if (!messageId) return;
+        const hasMessage = getChannel(channelId).messages.some((message) => message.id === messageId);
+        if (!hasMessage) return;
+        void fetchReactions(channelId);
       })
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn("Chat reactions realtime subscription issue", { channelId, status, error });
+        }
+      });
 
     subscriptions.set(channelId, msgChannel);
     subscriptions.set(`reactions:${channelId}`, reactChannel);
+  }
+
+  function watchChannel(channelId: string) {
+    const watchCount = channelWatchCounts.get(channelId) ?? 0;
+    channelWatchCounts.set(channelId, watchCount + 1);
+    subscribeToChannel(channelId);
+    startChannelSync(channelId);
+    void syncLatestMessages(channelId);
+
+    return () => {
+      const nextCount = (channelWatchCounts.get(channelId) ?? 1) - 1;
+      if (nextCount > 0) {
+        channelWatchCounts.set(channelId, nextCount);
+        return;
+      }
+
+      channelWatchCounts.delete(channelId);
+      stopChannelSync(channelId);
+    };
+  }
+
+  function startChannelSync(channelId: string) {
+    if (channelSyncIntervals.has(channelId)) return;
+
+    const interval = setInterval(() => {
+      void syncLatestMessages(channelId);
+    }, CHANNEL_SYNC_INTERVAL_MS);
+    channelSyncIntervals.set(channelId, interval);
+  }
+
+  function stopChannelSync(channelId: string) {
+    const interval = channelSyncIntervals.get(channelId);
+    if (!interval) return;
+
+    clearInterval(interval);
+    channelSyncIntervals.delete(channelId);
   }
 
   // ─── Public actions ───
@@ -171,21 +315,23 @@ function createChatStore(userId: string) {
     if (ch.loaded) return; // Already loaded
     setChannel(channelId, () => ({
       messages,
+      pinnedMessage: getPinnedMessageFromMessages(messages),
       reactions: {},
       hasMore: messages.length >= 50,
       loaded: true,
     }));
     subscribeToChannel(channelId);
     setTimeout(() => fetchReactions(channelId), 100);
+    void refreshPinnedMessage(channelId);
   }
 
   async function loadChannel(channelId: string, forceRefresh = false) {
     const ch = getChannel(channelId);
     if (ch.loaded && !forceRefresh) return; // Already cached
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .eq("channel_id", channelId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -194,6 +340,7 @@ function createChatStore(userId: string) {
 
     setChannel(channelId, () => ({
       messages: ordered,
+      pinnedMessage: getPinnedMessageFromMessages(ordered),
       reactions: {},
       hasMore: (data?.length || 0) >= 50,
       loaded: true,
@@ -202,6 +349,7 @@ function createChatStore(userId: string) {
     subscribeToChannel(channelId);
     // Fetch reactions after messages are set
     setTimeout(() => fetchReactions(channelId), 100);
+    void refreshPinnedMessage(channelId);
   }
 
   async function loadOlderMessages(channelId: string) {
@@ -211,7 +359,7 @@ function createChatStore(userId: string) {
     const oldest = ch.messages[0];
     const { data } = await supabase
       .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .eq("channel_id", channelId)
       .lt("created_at", oldest.created_at)
       .order("created_at", { ascending: false })
@@ -221,6 +369,7 @@ function createChatStore(userId: string) {
       setChannel(channelId, (prev) => ({
         ...prev,
         messages: [...(data as FullMessage[]).reverse(), ...prev.messages],
+        pinnedMessage: getPinnedMessageFromMessages(data as FullMessage[]) ?? prev.pinnedMessage,
         hasMore: data.length >= 50,
       }));
       // Fetch reactions for new messages
@@ -338,18 +487,56 @@ function createChatStore(userId: string) {
   }
 
   async function refreshMessage(channelId: string, messageId: string) {
-    const { data } = await supabase
-      .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
-      .eq("id", messageId)
-      .single();
+    const data = await fetchMessage(messageId);
 
     if (data) {
       setChannel(channelId, (prev) => ({
         ...prev,
-        messages: prev.messages.map((m) => m.id === messageId ? data as FullMessage : m),
+        messages: prev.messages.map((m) => m.id === messageId ? data : m),
+        pinnedMessage: resolveUpdatedPinnedMessage(prev.pinnedMessage, data),
       }));
     }
+  }
+
+  async function jumpToMessage(channelId: string, messageId: string) {
+    const ch = getChannel(channelId);
+    if (ch.messages.some((message) => message.id === messageId)) return true;
+
+    const targetMessage = await fetchMessage(messageId);
+    if (!targetMessage || targetMessage.channel_id !== channelId) return false;
+
+    const [{ data: before }, { data: after }] = await Promise.all([
+      supabase
+        .from("messages")
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .eq("channel_id", channelId)
+        .lt("created_at", targetMessage.created_at)
+        .order("created_at", { ascending: false })
+        .limit(MESSAGE_JUMP_CONTEXT_LIMIT),
+      supabase
+        .from("messages")
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .eq("channel_id", channelId)
+        .gt("created_at", targetMessage.created_at)
+        .order("created_at", { ascending: true })
+        .limit(MESSAGE_JUMP_CONTEXT_LIMIT),
+    ]);
+
+    const windowMessages = [
+      ...((before || []) as FullMessage[]).reverse(),
+      targetMessage,
+      ...((after || []) as FullMessage[]),
+    ];
+
+    setChannel(channelId, (prev) => ({
+      ...prev,
+      messages: mergeMessages(prev.messages, windowMessages),
+      pinnedMessage: targetMessage.is_pinned ? targetMessage : prev.pinnedMessage,
+      loaded: true,
+    }));
+    void fetchReactions(channelId);
+
+    return true;
   }
 
   // Panel state
@@ -368,13 +555,29 @@ function createChatStore(userId: string) {
     emit();
   }
 
+  function destroy() {
+    for (const channel of subscriptions.values()) {
+      void supabase.removeChannel(channel);
+    }
+    for (const interval of channelSyncIntervals.values()) {
+      clearInterval(interval);
+    }
+    subscriptions.clear();
+    channelWatchCounts.clear();
+    channelSyncIntervals.clear();
+    listeners.clear();
+    channelListeners.clear();
+  }
+
   return {
     getState,
     subscribe,
+    subscribeChannel,
     getChannel,
     seedChannel,
     loadChannel,
     subscribeToChannel,
+    watchChannel,
     loadOlderMessages,
     addOptimisticMessage,
     markMessageFailed,
@@ -382,10 +585,84 @@ function createChatStore(userId: string) {
     removeOptimistic,
     toggleReaction,
     refreshMessage,
+    jumpToMessage,
     openPanel,
     closePanel,
     togglePanel,
+    destroy,
   };
+}
+
+function getReactionMessageId(payload: { new?: { message_id?: unknown }; old?: { message_id?: unknown } }) {
+  const messageId = payload.new?.message_id ?? payload.old?.message_id;
+  return typeof messageId === "string" ? messageId : null;
+}
+
+function getLatestPersistedMessage(messages: FullMessage[]) {
+  let latestMessage: FullMessage | null = null;
+
+  for (const message of messages) {
+    if (message.id.startsWith("optimistic-")) continue;
+    if (!latestMessage || compareMessages(message, latestMessage) > 0) {
+      latestMessage = message;
+    }
+  }
+
+  return latestMessage;
+}
+
+function hasPendingOptimisticMessage(messages: FullMessage[]) {
+  return messages.some((message) => message.id.startsWith("optimistic-") && message._status === "sending");
+}
+
+function getPinnedMessageFromMessages(messages: FullMessage[]) {
+  for (const message of messages) {
+    if (message.is_pinned) return message;
+  }
+
+  return null;
+}
+
+function resolveUpdatedPinnedMessage(currentPinnedMessage: FullMessage | null, updatedMessage: FullMessage) {
+  if (updatedMessage.is_pinned) return updatedMessage;
+  if (currentPinnedMessage?.id === updatedMessage.id) return null;
+  return currentPinnedMessage;
+}
+
+function mergeMessages(currentMessages: FullMessage[], incomingMessages: FullMessage[]) {
+  const incomingById = new Map(incomingMessages.map((message) => [message.id, message]));
+  const optimisticIdsToRemove = new Set<string>();
+
+  for (const optimisticMessage of currentMessages) {
+    if (!optimisticMessage.id.startsWith("optimistic-")) continue;
+
+    for (const incomingMessage of incomingMessages) {
+      if (
+        optimisticMessage.content === incomingMessage.content &&
+        optimisticMessage.author_id === incomingMessage.author_id
+      ) {
+        optimisticIdsToRemove.add(optimisticMessage.id);
+      }
+    }
+  }
+
+  const mergedById = new Map<string, FullMessage>();
+  for (const message of currentMessages) {
+    if (optimisticIdsToRemove.has(message.id)) continue;
+    mergedById.set(message.id, incomingById.get(message.id) ?? message);
+  }
+
+  for (const message of incomingMessages) {
+    mergedById.set(message.id, message);
+  }
+
+  return [...mergedById.values()].sort(compareMessages);
+}
+
+function compareMessages(a: FullMessage, b: FullMessage) {
+  const createdAtDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  if (createdAtDiff !== 0) return createdAtDiff;
+  return a.id.localeCompare(b.id);
 }
 
 // ─── React Context ───
@@ -395,13 +672,14 @@ type ChatStoreType = ReturnType<typeof createChatStore>;
 const ChatStoreContext = createContext<ChatStoreType | null>(null);
 
 export function ChatStoreProvider({ userId, children }: { userId: string; children: ReactNode }) {
-  const storeRef = useRef<ChatStoreType | null>(null);
-  if (!storeRef.current) {
-    storeRef.current = createChatStore(userId);
-  }
+  const [store] = useState(() => createChatStore(userId));
+
+  useEffect(() => {
+    return store.destroy;
+  }, [store]);
 
   return (
-    <ChatStoreContext.Provider value={storeRef.current}>
+    <ChatStoreContext.Provider value={store}>
       {children}
     </ChatStoreContext.Provider>
   );
@@ -422,8 +700,14 @@ export function useChatState() {
 // Hook to get a channel's state reactively
 export function useChannelState(channelId: string) {
   const store = useChatStore();
-  const state = useSyncExternalStore(store.subscribe, store.getState, store.getState);
-  return state.channels[channelId] || { messages: [], reactions: {}, hasMore: true, loaded: false };
+  const subscribe = useCallback((listener: () => void) => {
+    return store.subscribeChannel(channelId, listener);
+  }, [channelId, store]);
+  const getSnapshot = useCallback(() => {
+    return store.getChannel(channelId);
+  }, [channelId, store]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 // Hook for panel state

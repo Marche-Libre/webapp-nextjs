@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-  UserPlus,
   User,
   Settings,
   ShieldCheck,
   LogOut,
   X,
-  Bell,
   PanelLeftClose,
   ChevronUp,
   Star,
+  MessageCircle,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,6 +21,7 @@ import { useFavorites } from "@/components/favorites/favorites-context";
 import type { Profile } from "@/lib/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { NotificationEntry } from "@/components/notifications/notification-entry";
 
 interface SidebarProps {
   profile: Profile;
@@ -30,92 +31,71 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-import { MessageCircle } from "lucide-react";
+type SidebarNavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+};
 
-const communaute = [
+const communaute: SidebarNavItem[] = [
   { name: "Chat", href: "/chat", icon: MessageCircle },
 ];
 
-const reseau = [
-  { name: "Parrainages", href: "/parrainages", icon: UserPlus },
+const administration: SidebarNavItem[] = [
+  { name: "Administration", href: "/admin", icon: ShieldCheck, exact: true },
+  { name: "Gestion des utilisateurs", href: "/admin/users", icon: Users },
 ];
 
-const navigation = [
-  { name: "Notifications", href: "/notifications", icon: Bell },
-];
+function isSidebarNavItemActive(pathname: string, item: SidebarNavItem) {
+  if (item.exact) {
+    return pathname === item.href;
+  }
+
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [unreadCount, setUnreadCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { favorites, remove } = useFavorites();
 
-  const handleLogout = async () => {
+  const handleCloseUserMenu = useCallback(() => {
+    setUserMenuOpen(false);
+  }, []);
+
+  const handleToggleUserMenu = useCallback(() => {
+    setUserMenuOpen((current) => !current);
+  }, []);
+
+  const handleNavigateFromUserControls = useCallback(() => {
+    setUserMenuOpen(false);
+    onClose();
+  }, [onClose]);
+
+  const handleLogout = useCallback(async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/connexion");
-  };
+  }, [router]);
 
   // Close user menu on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
+        handleCloseUserMenu();
       }
     };
     if (userMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [userMenuOpen]);
+  }, [handleCloseUserMenu, userMenuOpen]);
 
-  useEffect(() => {
-    const supabase = createClient();
-
-    // Initial load
-    const load = async () => {
-      const { count } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", profile.id)
-        .eq("is_read", false);
-      if (count !== null) setUnreadCount(count);
-    };
-    load();
-
-    // Realtime subscription for new/updated notifications
-    const channel = supabase
-      .channel("notifications-unread")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${profile.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const row = payload.new as { is_read: boolean };
-            if (!row.is_read) setUnreadCount((c) => c + 1);
-          } else if (payload.eventType === "UPDATE") {
-            const row = payload.new as { is_read: boolean };
-            const old = payload.old as { is_read: boolean };
-            if (!old.is_read && row.is_read) setUnreadCount((c) => Math.max(0, c - 1));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [profile.id]);
-
-  const renderLink = (item: { name: string; href: string; icon: React.ComponentType<{ className?: string }> }) => {
-    const isActive = pathname.startsWith(item.href);
+  const renderLink = (item: SidebarNavItem) => {
+    const isActive = isSidebarNavItemActive(pathname, item);
     return (
       <Link
         key={item.href}
@@ -131,16 +111,11 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
       >
         <item.icon className="h-[18px] w-[18px] shrink-0" />
         <span className="truncate">{item.name}</span>
-        {item.href === "/notifications" && unreadCount > 0 && (
-          <span className="ml-auto h-[18px] min-w-[18px] px-[4px] rounded-full bg-error text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
       </Link>
     );
   };
 
-  const renderSection = (label: string, items: typeof communaute) => (
+  const renderSection = (label: string, items: SidebarNavItem[]) => (
     <>
       <p className="px-[12px] mb-[8px] mt-[16px] text-[11px] leading-[16px] font-semibold uppercase tracking-[0.08em] text-text-muted">
         {label}
@@ -231,10 +206,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
           )}
 
           {renderSection("Communauté", communaute)}
-          {renderSection("Réseau", reseau)}
-
-          <div className="my-[8px] border-t border-border-subtle" />
-          {navigation.map(renderLink)}
+          {profile.is_admin && renderSection("Administration", administration)}
         </nav>
 
         {/* Discord-style user bar */}
@@ -244,7 +216,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
             <div className="absolute bottom-full left-[8px] right-[8px] mb-[4px] bg-bg-base border border-border-default rounded-lg shadow-modal p-[4px] animate-in fade-in slide-in-from-bottom-2 duration-150">
               <Link
                 href="/profil"
-                onClick={() => { setUserMenuOpen(false); onClose(); }}
+                onClick={handleNavigateFromUserControls}
                 className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
               >
                 <User className="h-[16px] w-[16px]" />
@@ -252,7 +224,7 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
               </Link>
               <Link
                 href="/parametres"
-                onClick={() => { setUserMenuOpen(false); onClose(); }}
+                onClick={handleNavigateFromUserControls}
                 className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
               >
                 <Settings className="h-[16px] w-[16px]" />
@@ -261,11 +233,11 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
               {profile.is_admin && (
                 <Link
                   href="/admin"
-                  onClick={() => { setUserMenuOpen(false); onClose(); }}
+                  onClick={handleNavigateFromUserControls}
                   className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
                 >
                   <ShieldCheck className="h-[16px] w-[16px]" />
-                  Gestion admin
+                  Administration
                 </Link>
               )}
               <div className="my-[4px] border-t border-border-subtle" />
@@ -279,30 +251,36 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
             </div>
           )}
 
-          {/* User bar trigger */}
-          <button
-            onClick={() => setUserMenuOpen((v) => !v)}
-            className={cn(
-              "flex items-center gap-[10px] w-full px-[12px] py-[12px] hover:bg-bg-surface transition-colors cursor-pointer",
-              userMenuOpen && "bg-bg-surface"
-            )}
-          >
-            <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
-                {profile.full_name || `@${profile.x_handle}`}
-              </p>
-              {profile.full_name && profile.full_name.toLowerCase() !== profile.x_handle.toLowerCase() && (
-                <p className="text-[11px] leading-[14px] text-text-muted truncate">
-                  @{profile.x_handle}
-                </p>
+          <div className="flex items-center gap-[6px] px-[8px] py-[8px] border-t border-border-subtle">
+            <button
+              type="button"
+              onClick={handleToggleUserMenu}
+              className={cn(
+                "flex items-center gap-[10px] flex-1 min-w-0 px-[4px] py-[4px] rounded-md hover:bg-bg-surface transition-colors cursor-pointer",
+                userMenuOpen && "bg-bg-surface"
               )}
-            </div>
-            <ChevronUp className={cn(
-              "h-[14px] w-[14px] text-text-muted shrink-0 transition-transform duration-200",
-              !userMenuOpen && "rotate-180"
-            )} />
-          </button>
+            >
+              <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-[13px] leading-[18px] font-semibold text-text-primary truncate">
+                  {profile.full_name || `@${profile.x_handle}`}
+                </p>
+                {profile.full_name && profile.full_name.toLowerCase() !== profile.x_handle.toLowerCase() && (
+                  <p className="text-[11px] leading-[14px] text-text-muted truncate">
+                    @{profile.x_handle}
+                  </p>
+                )}
+              </div>
+              <ChevronUp className={cn(
+                "h-[14px] w-[14px] text-text-muted shrink-0 transition-transform duration-200",
+                !userMenuOpen && "rotate-180"
+              )} />
+            </button>
+            <NotificationEntry
+              compact
+              onNavigate={handleNavigateFromUserControls}
+            />
+          </div>
         </div>
       </aside>
     </>

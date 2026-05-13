@@ -13,18 +13,41 @@ interface PostEmbedProps {
   postId: string;
 }
 
+type ForumPostRow = {
+  title: string;
+  reply_count: number;
+  author: { x_handle: string } | { x_handle: string }[] | null;
+};
+
+type ForumPost = {
+  title: string;
+  reply_count: number;
+  author: { x_handle: string };
+};
+
+function normalizePost(row: ForumPostRow | null): ForumPost | null {
+  if (!row) return null;
+  const author = Array.isArray(row.author) ? row.author[0] ?? null : row.author;
+  if (!author) return null;
+  return {
+    title: row.title,
+    reply_count: row.reply_count,
+    author,
+  };
+}
+
 export function PostEmbed({ postId }: PostEmbedProps) {
-  const [post, setPost] = useState<{ title: string; reply_count: number; author: { x_handle: string } } | null>(null);
+  const [post, setPost] = useState<ForumPost | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase
+    void supabase
       .from("forum_posts")
       .select("title, reply_count, author:profiles!forum_posts_author_id_fkey(x_handle)")
       .eq("id", postId)
       .single()
       .then(({ data }) => {
-        if (data) setPost(data as any);
+        setPost(normalizePost(data as ForumPostRow | null));
       });
   }, [postId]);
 

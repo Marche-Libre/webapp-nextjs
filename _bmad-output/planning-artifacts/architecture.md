@@ -978,7 +978,7 @@ Member chat experience:
 
 Admin admission and access operations:
 
-- Routes: `src/app/(app)/admin`, `src/app/(app)/admin/utilisateurs`.
+- Routes: `src/app/(app)/admin`, `src/app/(app)/admin/users`.
 - Actions: `src/app/(app)/admin/actions.ts`.
 - Components: `src/components/admin`.
 - Requirements: FR23-FR31.
@@ -1002,7 +1002,7 @@ Authorization and protected access:
 
 Migration and beta operations:
 
-- Admin/user routes: `src/app/(app)/admin`, `src/app/(app)/admin/utilisateurs`.
+- Admin/user routes: `src/app/(app)/admin`, `src/app/(app)/admin/users`.
 - Profile/status helpers: `src/lib/profile-utils.ts`, generated database types.
 - Documentation: `_bmad-output/planning-artifacts/*`.
 - Requirements: FR43-FR47.

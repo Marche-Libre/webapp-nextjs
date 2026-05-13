@@ -35,7 +35,7 @@ so that pending, refused, logged-out, non-member, approved, and admin users cann
 - [x] Define route and layout expectations (AC: 1, 2, 3, 4, 5)
   - [x] Public/auth/status/legal/referral: `/`, `/connexion`, `/inscription`, `/rejoindre`, `/auth/*`, `/en-attente`, `/mentions-legales`, `/confidentialite`, `/cgu`.
   - [x] Onboarding and app routes: `/onboarding`, `/chat`, `/chat/[slug]`, `/tableau-de-bord`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/membres`, `/membres/[id]`, `/forum`, `/forum/[categorySlug]`, `/forum/posts/[postId]`, `/forum/posts/nouveau`.
-  - [x] Admin routes: `/admin`, `/admin/utilisateurs`, and any admin child route currently present.
+  - [x] Admin routes: `/admin`, `/admin/users`, and any admin child route currently present.
   - [x] Define legal pages as expected-public surfaces because FR2 requires public legal and terms access; record current middleware behavior as an implementation gap if logged-out access redirects.
   - [x] Record that direct legacy member routes remain preserved but member-only unless a future story explicitly changes them.
 - [x] Define data, direct query, and RLS expectations (AC: 1, 2, 5, 6)

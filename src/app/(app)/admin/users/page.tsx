@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApproveRejectButtons } from "@/components/admin/approve-reject-buttons";
 import { formatDate } from "@/lib/utils";
 
-export default async function UtilisateursPage() {
+export default async function UsersPage() {
   const supabase = await createClient();
 
   const { data: pendingUsersRaw } = await supabase

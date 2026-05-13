@@ -20,7 +20,7 @@ parts: 1
 - Primary post-admission destination is `/chat`, not `/forum`.
 - Forum is overfeatured legacy work from the original implementation; retained MVP communication model is closer to Telegram/WhatsApp with predefined channels/canals, currently created only by admins.
 - Feature expansion is frozen until blockers, owners, schema reproducibility, and beta go/no-go decisions are resolved.
-- Active MVP surfaces require clarification but currently include: `/`, `/rejoindre`, `/connexion`, `/inscription`, `/auth/callback`, `/en-attente`, `/onboarding`, `/chat`, `/chat/[slug]`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/admin`, `/admin/utilisateurs`, legal pages.
+- Active MVP surfaces require clarification but currently include: `/`, `/rejoindre`, `/connexion`, `/inscription`, `/auth/callback`, `/en-attente`, `/onboarding`, `/chat`, `/chat/[slug]`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/admin`, `/admin/users`, legal pages.
 - Legacy/frozen/tolerated surfaces: `/forum/**`, `/tableau-de-bord`, `/membres`; `/membres/[id]` requires decision as beta-visible member detail vs internal detail opened from search/chat.
 - Park or hide for MVP: forum expansion, standalone annuaire, jobs/offers marketplace promises, channel proposals, broad discovery beyond retained member search, AI matching, payments, mobile, non-X auth, rich profile redesign, advanced moderation backoffice.
 - Do not delete historical routes, tables, migrations, or admission data as part of MVP stabilization unless explicitly approved.
@@ -189,7 +189,7 @@ parts: 1
 
 ## Admin And Bootstrap Requirements
 - Admin area is required for MVP because admission is manually reviewed one by one.
-- Existing admin routes/actions appear to include `/admin`, `/admin/utilisateurs`, `approveUser`, and `rejectUser`; exact implementation must be audited before relying on them.
+- Existing admin routes/actions appear to include `/admin`, `/admin/users`, `approveUser`, and `rejectUser`; exact implementation must be audited before relying on them.
 - Admin MVP capabilities: view pending candidates, inspect required profile/admission/sponsor information, approve candidates, refuse candidates, and manage predefined chat channels/canals.
 - Admin channel capabilities should include adding and renaming group channels from the admin panel.
 - Admin actions must be server/database-authorized, idempotent where possible, auditable, and unavailable to non-admin users.

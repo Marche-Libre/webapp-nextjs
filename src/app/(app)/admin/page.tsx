@@ -44,7 +44,7 @@ export default async function AdminPage() {
           label="Total"
           value={totalCount ?? 0}
         />
-        <Link href="/admin/utilisateurs">
+        <Link href="/admin/users">
           <StatCard
             icon={<Clock className="h-5 w-5 text-warning" />}
             label="En attente"
@@ -70,7 +70,7 @@ export default async function AdminPage() {
         </CardHeader>
         <div className="space-y-[4px]">
           <Link
-            href="/admin/utilisateurs"
+            href="/admin/users"
             className="flex items-center gap-[12px] p-[12px] rounded-lg hover:bg-bg-surface transition-colors duration-150 text-sm"
           >
             <Clock className="h-5 w-5 text-warning" />

@@ -36,7 +36,7 @@ No route, redirect, middleware, or behavior change is applied here.
 - `/membres`
 - `/membres/[id]`
 - `/admin`
-- `/admin/utilisateurs`
+- `/admin/users`
 - `/tableau-de-bord`
 
 ---
@@ -65,7 +65,7 @@ No route, redirect, middleware, or behavior change is applied here.
 | `/forum/posts/nouveau` | member-only | legacy | Onboarding still creates forum intro content. |
 | `/forum/posts/[postId]` | member-only | legacy | Many links/notifications still target this. |
 | `/admin` | admin-only | admin-only | Redirects non-admin to `/forum` currently. |
-| `/admin/utilisateurs` | admin-only | admin-only | Approval actions exist. |
+| `/admin/users` | admin-only | admin-only | Approval actions exist. |
 | `/tableau-de-bord` | member-only | legacy | Forum-centric dashboard, not in MVP framing. |
 | `/api/geo/cities` | auth-only | unknown | Called client-side from onboarding; target access policy still to decide. |
 | `/cgu` | auth-only | public | Exists but middleware does not whitelist today. |
@@ -133,7 +133,7 @@ No route, redirect, middleware, or behavior change is applied here.
 
 - Pending user submits sponsor handle in `SponsorRequestForm`.
 - Sponsor-side requests visible in `/parrainages`.
-- Admin approval/rejection in `/admin/utilisateurs` via server actions.
+- Admin approval/rejection in `/admin/users` via server actions.
 - No explicit `account_approved` notification insertion observed in admin actions.
 
 ### 5.3 Onboarding
@@ -306,7 +306,7 @@ flowchart TD
 
 ## 9) Target MVP Route Map (intended)
 
-- Keep active: `/`, `/rejoindre`, `/connexion`, `/inscription`, `/auth/callback`, `/en-attente`, `/onboarding`, `/chat`, `/chat/[slug]`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/admin`, `/admin/utilisateurs`, legal pages.
+- Keep active: `/`, `/rejoindre`, `/connexion`, `/inscription`, `/auth/callback`, `/en-attente`, `/onboarding`, `/chat`, `/chat/[slug]`, `/profil`, `/parametres`, `/notifications`, `/parrainages`, `/admin`, `/admin/users`, legal pages.
 - Legacy/frozen: `/forum/**`, `/tableau-de-bord`, and standalone annuaire behavior at `/membres`.
 - Clarify explicitly whether `/membres/[id]` remains active as internal member detail.
 - Primary post-auth destination: `/chat` (not `/forum`).
