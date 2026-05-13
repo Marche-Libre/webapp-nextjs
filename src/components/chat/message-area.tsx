@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useChatStore, useChannelState, type FullMessage, type ReactionMap } from "./chat-store";
 
 const CHAT_LANE_CLASSNAME = "w-full max-w-[860px] mx-auto";
+const GROUP_MAX_GAP_MS = 10 * 60 * 1000;
 
 interface MessageAreaProps {
   channelId: string;
@@ -17,6 +18,21 @@ interface MessageAreaProps {
 
 type ChatStore = ReturnType<typeof useChatStore>;
 type MessageReactions = ReactionMap[string] | undefined;
+
+function parseTimestamp(value: string) {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function shouldJoinMessageGroup(previousMessage: FullMessage, nextMessage: FullMessage) {
+  if (previousMessage.author_id !== nextMessage.author_id) return false;
+
+  const previousTimestamp = parseTimestamp(previousMessage.created_at);
+  const nextTimestamp = parseTimestamp(nextMessage.created_at);
+  if (previousTimestamp === null || nextTimestamp === null) return false;
+
+  return Math.abs(nextTimestamp - previousTimestamp) <= GROUP_MAX_GAP_MS;
+}
 
 export function MessageArea({ channelId, userId, userProfile, isAdmin }: MessageAreaProps) {
   const store = useChatStore();
@@ -92,7 +108,13 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
   const messageItems = useMemo(() => {
     const items: ReactElement[] = [];
 
-    for (const msg of messages) {
+    for (let index = 0; index < messages.length; index += 1) {
+      const msg = messages[index];
+      const previousMessage = index > 0 ? messages[index - 1] : null;
+      const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+      const isFirstInGroup = !(previousMessage && shouldJoinMessageGroup(previousMessage, msg));
+      const isLastInGroup = !(nextMessage && shouldJoinMessageGroup(msg, nextMessage));
+
       items.push(
         <MessageBubbleRow
           key={msg.id}
@@ -102,6 +124,8 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
           message={msg}
           reactions={reactions[msg.id]}
           store={store}
+          isFirstInGroup={isFirstInGroup}
+          isLastInGroup={isLastInGroup}
         />
       );
     }
@@ -157,9 +181,20 @@ interface MessageBubbleRowProps {
   message: FullMessage;
   reactions?: MessageReactions;
   store: ChatStore;
+  isFirstInGroup: boolean;
+  isLastInGroup: boolean;
 }
 
-function MessageBubbleRow({ channelId, userId, isAdmin, message: msg, reactions, store }: MessageBubbleRowProps) {
+function MessageBubbleRow({
+  channelId,
+  userId,
+  isAdmin,
+  message: msg,
+  reactions,
+  store,
+  isFirstInGroup,
+  isLastInGroup,
+}: MessageBubbleRowProps) {
   const isOwnMessage = msg.author_id === userId;
 
   const handleReact = useCallback((emoji: string) => {
@@ -180,6 +215,8 @@ function MessageBubbleRow({ channelId, userId, isAdmin, message: msg, reactions,
       currentUserId={userId}
       isAdmin={isAdmin}
       onMessageUpdated={handleMessageUpdated}
+      isFirstInGroup={isFirstInGroup}
+      isLastInGroup={isLastInGroup}
     />
   );
 }

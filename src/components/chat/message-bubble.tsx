@@ -60,6 +60,8 @@ interface MessageBubbleProps {
   currentUserId?: string;
   isAdmin?: boolean;
   onMessageUpdated?: () => void;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
 }
 
 type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean };
@@ -67,6 +69,7 @@ type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const EMPTY_IMAGE_URLS: string[] = [];
 const MESSAGE_WIDTH_CLASSNAME = "max-w-[82%] sm:max-w-[620px]";
+const AVATAR_SLOT_CLASSNAME = "h-[40px] w-[40px] shrink-0";
 
 function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
@@ -128,7 +131,16 @@ function MessageReactionButton({
   );
 }
 
-export function MessageBubble({ message, reactions, onReact, currentUserId, isAdmin, onMessageUpdated }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  reactions,
+  onReact,
+  currentUserId,
+  isAdmin,
+  onMessageUpdated,
+  isFirstInGroup = true,
+  isLastInGroup = true,
+}: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [deleted, setDeleted] = useState(false);
@@ -146,6 +158,23 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   // Consider edited only if updated_at is more than 2 seconds after created_at
   const isEdited = message.updated_at && message.created_at
     && (new Date(message.updated_at).getTime() - new Date(message.created_at).getTime() > 2000);
+  const showAvatar = isLastInGroup || editing;
+  const showMessageMeta = isFirstInGroup || editing;
+  const rowSpacingClass = isFirstInGroup ? "pt-[8px] pb-[3px]" : "py-[2px]";
+  const headerSpacingClass = showMessageMeta ? "mb-[3px] px-[4px]" : "mb-[1px] px-[2px]";
+  const bubbleRadiusClass = useMemo(() => {
+    if (isFirstInGroup && isLastInGroup) return "rounded-[18px]";
+
+    if (isOwn) {
+      if (isFirstInGroup) return "rounded-[18px] rounded-br-[8px]";
+      if (isLastInGroup) return "rounded-[18px] rounded-tr-[8px]";
+      return "rounded-[18px] rounded-tr-[8px] rounded-br-[8px]";
+    }
+
+    if (isFirstInGroup) return "rounded-[18px] rounded-bl-[8px]";
+    if (isLastInGroup) return "rounded-[18px] rounded-tl-[8px]";
+    return "rounded-[18px] rounded-tl-[8px] rounded-bl-[8px]";
+  }, [isFirstInGroup, isLastInGroup, isOwn]);
   const forumMatch = message.content.match(FORUM_LINK_REGEX);
   const resolveContentParts = useCallback(() => {
     return renderContentWithMentions(message.content, isOwn);
@@ -288,25 +317,31 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   // TODO: Add revert option / rollback deletion
   if (deleted || (!message.content && !message.image_url)) {
     return (
-      <article className={cn("group flex items-end gap-[8px] px-[12px] py-[5px]", isOwn && "flex-row-reverse")}>
-        <UserHoverCard
-          authorId={message.author_id}
-          x_handle={message.author.x_handle}
-          full_name={message.author.full_name}
-          avatar_url={message.author.avatar_url}
-        >
-          <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
-        </UserHoverCard>
+      <article className={cn("group flex items-end gap-[8px] px-[12px] transition-colors", rowSpacingClass, isOwn && "flex-row-reverse")}>
+        {showAvatar ? (
+          <UserHoverCard
+            authorId={message.author_id}
+            x_handle={message.author.x_handle}
+            full_name={message.author.full_name}
+            avatar_url={message.author.avatar_url}
+          >
+            <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
+          </UserHoverCard>
+        ) : (
+          <div className={AVATAR_SLOT_CLASSNAME} aria-hidden />
+        )}
         <div className={cn("min-w-0", MESSAGE_WIDTH_CLASSNAME, isOwn && "flex flex-col items-end")}>
-          <header className={cn("mb-[3px] flex items-baseline gap-[8px] px-[4px]", isOwn && "justify-end text-right")}>
-            <span className="text-[13px] font-semibold text-text-primary">
-              @{message.author.x_handle}
-            </span>
-            <span className="text-[10px] text-text-muted">
-              {timeAgo(message.created_at)}
-            </span>
-          </header>
-          <p className={cn("rounded-[18px] bg-bg-surface px-[14px] py-[8px] text-[13px] italic text-text-muted", isOwn && "text-right")}>
+          {showMessageMeta && (
+            <header className={cn("flex items-baseline gap-[8px]", headerSpacingClass, isOwn && "justify-end text-right")}>
+              <span className="text-[13px] font-semibold text-text-primary">
+                @{message.author.x_handle}
+              </span>
+              <span className="text-[10px] text-text-muted">
+                {timeAgo(message.created_at)}
+              </span>
+            </header>
+          )}
+          <p className={cn("bg-bg-surface px-[14px] py-[8px] text-[13px] italic text-text-muted", bubbleRadiusClass, isOwn && "text-right")}>
             Ce message a été supprimé
           </p>
         </div>
@@ -317,21 +352,26 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   return (
     <article
       className={cn(
-        "group flex items-end gap-[8px] px-[12px] py-[5px] transition-colors",
+        "group flex items-end gap-[8px] px-[12px] transition-colors",
+        rowSpacingClass,
         isOwn ? "flex-row-reverse" : "hover:bg-bg-surface/20",
         message.is_pinned && (isOwn
           ? "border-r-2 border-primary-500 bg-primary-50/30"
           : "border-l-2 border-primary-500 bg-primary-50/30")
       )}
     >
-      <UserHoverCard
-        authorId={message.author_id}
-        x_handle={message.author.x_handle}
-        full_name={message.author.full_name}
-        avatar_url={message.author.avatar_url}
-      >
-        <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" className="cursor-pointer" />
-      </UserHoverCard>
+      {showAvatar ? (
+        <UserHoverCard
+          authorId={message.author_id}
+          x_handle={message.author.x_handle}
+          full_name={message.author.full_name}
+          avatar_url={message.author.avatar_url}
+        >
+          <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" className="cursor-pointer" />
+        </UserHoverCard>
+      ) : (
+        <div className={AVATAR_SLOT_CLASSNAME} aria-hidden />
+      )}
       <section
         className={cn(
           "min-w-0 flex flex-col",
@@ -340,7 +380,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
           isOwn && editing && "w-[75%]"
         )}
       >
-        <header className={cn("mb-[3px] flex items-center gap-[8px] px-[4px]", isOwn && "justify-end text-right")}>
+        <header className={cn("flex items-center gap-[8px]", headerSpacingClass, isOwn && "justify-end text-right")}>
           {isOwn && (
             <MessageHeaderActions
               canReact={canReact}
@@ -360,23 +400,27 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
               onReport={handleReport}
             />
           )}
-          {message.is_pinned && (
+          {showMessageMeta && message.is_pinned && (
             <Pin className="h-[11px] w-[11px] text-primary-500 shrink-0 translate-y-[1px]" />
           )}
-          <UserHoverCard
-            authorId={message.author_id}
-            x_handle={message.author.x_handle}
-            full_name={message.author.full_name}
-            avatar_url={message.author.avatar_url}
-          >
-            <span className="cursor-pointer text-[12px] font-semibold text-text-muted hover:text-text-secondary hover:underline">
-              @{message.author.x_handle}
+          {showMessageMeta && (
+            <UserHoverCard
+              authorId={message.author_id}
+              x_handle={message.author.x_handle}
+              full_name={message.author.full_name}
+              avatar_url={message.author.avatar_url}
+            >
+              <span className="cursor-pointer text-[12px] font-semibold text-text-muted hover:text-text-secondary hover:underline">
+                @{message.author.x_handle}
+              </span>
+            </UserHoverCard>
+          )}
+          {showMessageMeta && (
+            <span className="text-[10px] text-text-muted">
+              {timeAgo(message.created_at)}
             </span>
-          </UserHoverCard>
-          <span className="text-[10px] text-text-muted">
-            {timeAgo(message.created_at)}
-          </span>
-          {isEdited && !editing && (
+          )}
+          {showMessageMeta && isEdited && !editing && (
             <span className="text-[10px] text-text-muted italic">(modifié)</span>
           )}
           {!isOwn && (
@@ -415,7 +459,8 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
         ) : (
           <div
             className={cn(
-              "rounded-[18px] px-[14px] py-[9px] shadow-card",
+              "px-[14px] py-[9px] shadow-card",
+              bubbleRadiusClass,
               isOwn
                 ? "bg-primary-500 text-white"
                 : "border border-border-subtle bg-bg-surface-hover text-text-primary"
