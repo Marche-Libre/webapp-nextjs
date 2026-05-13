@@ -502,7 +502,7 @@ export function ChatLayout({ channels, dmChannels, members, profile, initialMess
           </div>
 
           {/* Member list */}
-          <div className="hidden lg:flex w-[260px] border-l border-border-subtle bg-bg-base shrink-0 flex-col">
+          <div className="hidden xl:flex w-[260px] border-l border-border-subtle bg-bg-base shrink-0 flex-col">
             <MemberList members={members} />
           </div>
         </div>

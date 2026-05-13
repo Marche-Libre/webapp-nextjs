@@ -6,6 +6,8 @@ import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
 import { useChatStore, useChannelState, type FullMessage, type ReactionMap } from "./chat-store";
 
+const CHAT_LANE_CLASSNAME = "w-full max-w-[960px] mx-auto";
+
 interface MessageAreaProps {
   channelId: string;
   userId: string;
@@ -126,22 +128,23 @@ export function MessageArea({ channelId, userId, userProfile, isAdmin }: Message
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
       >
-        {hasMoreNode}
-
-        {/* We want the message to start from top */}
-        <div className="pt-[8px] pb-[8px] flex flex-col min-h-full">
+        {/* Keep a readable lane on wide screens while preserving the existing chat flow. */}
+        <div className={`${CHAT_LANE_CLASSNAME} pt-[8px] pb-[8px] flex flex-col min-h-full`}>
+          {hasMoreNode}
           {messageItems}
+          <div ref={bottomRef} />
         </div>
-        <div ref={bottomRef} />
       </div>
 
-      <MessageInput
-        channelId={channelId}
-        userId={userId}
-        onOptimisticMessage={addOptimisticMessage}
-        onMessageConfirmed={handleMessageConfirmed}
-        onMessageFailed={handleMessageFailed}
-      />
+      <div className={CHAT_LANE_CLASSNAME}>
+        <MessageInput
+          channelId={channelId}
+          userId={userId}
+          onOptimisticMessage={addOptimisticMessage}
+          onMessageConfirmed={handleMessageConfirmed}
+          onMessageFailed={handleMessageFailed}
+        />
+      </div>
     </div>
   );
 }

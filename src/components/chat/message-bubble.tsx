@@ -56,6 +56,7 @@ type MessageReactionEntry = { emoji: string; count: number; hasReacted: boolean 
 
 const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const EMPTY_IMAGE_URLS: string[] = [];
+const MESSAGE_WIDTH_CLASSNAME = "max-w-[75%] sm:max-w-[620px]";
 
 function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
@@ -286,7 +287,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
         >
           <Avatar src={message.author.avatar_url} name={message.author.x_handle} size="md" />
         </UserHoverCard>
-        <div className={cn("min-w-0", isOwn ? "max-w-[75%] sm:max-w-[620px] flex flex-col items-end" : "flex-1")}>
+        <div className={cn("min-w-0", MESSAGE_WIDTH_CLASSNAME, isOwn && "flex flex-col items-end")}>
           <header className={cn("flex items-baseline gap-[8px]", isOwn && "justify-end text-right")}>
             <span className="text-[13px] font-semibold text-text-primary">
               @{message.author.x_handle}
@@ -324,7 +325,8 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
       <section
         className={cn(
           "min-w-0",
-          isOwn ? "max-w-[75%] sm:max-w-[620px] flex flex-col items-end" : "flex-1",
+          MESSAGE_WIDTH_CLASSNAME,
+          isOwn && "flex flex-col items-end",
           isOwn && editing && "w-[75%]"
         )}
       >
