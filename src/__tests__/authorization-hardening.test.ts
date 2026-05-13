@@ -131,6 +131,27 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain('CREATE POLICY "Admins can create channel memberships"');
   });
 
+  it("supports admin-only chat message pinning", () => {
+    const messageBubble = source("src/components/chat/message-bubble.tsx");
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(migrationText).toContain("ADD COLUMN IF NOT EXISTS is_pinned");
+    expect(migrationText).toContain("idx_messages_channel_pinned_created");
+    expect(migrationText).toContain("idx_messages_one_pinned_per_channel");
+    expect(migrationText).toContain("NEW.is_pinned IS DISTINCT FROM OLD.is_pinned");
+    expect(migrationText).toContain("message_pin_admin_only");
+    expect(messageBubble).toContain("if (!isAdmin) return;");
+    expect(messageBubble).toContain('.eq("channel_id", channelId)');
+    expect(messageBubble).toContain("Failed to clear existing pinned message");
+    expect(messageBubble).toContain("Failed to update message pin state");
+    expect(messageBubble).toContain("Impossible de modifier l'épinglage");
+    expect(messageArea).toContain("Message épinglé");
+    expect(messageArea).toContain("PinnedMessageBanner");
+  });
+
   it("replaces recursive channel member visibility with a private RLS helper", () => {
     const migrationText = migrationSources()
       .map(({ text }) => text)

@@ -51,6 +51,7 @@ function renderContentWithMentions(content: string, isOwn: boolean) {
 }
 
 interface MessageBubbleProps {
+  channelId: string;
   message: Message & {
     author: { x_handle: string; full_name: string; avatar_url: string | null };
     _status?: "sending" | "failed";
@@ -132,6 +133,7 @@ function MessageReactionButton({
 }
 
 export function MessageBubble({
+  channelId,
   message,
   reactions,
   onReact,
@@ -214,12 +216,56 @@ export function MessageBubble({
   }, [message.id, onMessageUpdated, supabase]);
 
   const handleTogglePin = useCallback(async () => {
-    await supabase
+    if (!isAdmin) return;
+
+    setSaving(true);
+
+    if (message.is_pinned) {
+      const { error } = await supabase
+        .from("messages")
+        .update({ is_pinned: false })
+        .eq("id", message.id)
+        .eq("channel_id", channelId);
+      setSaving(false);
+
+      if (error) {
+        console.error("Failed to update message pin state", error);
+        alert("Impossible de modifier l'épinglage du message pour le moment.");
+        return;
+      }
+
+      onMessageUpdated?.();
+      return;
+    }
+
+    const { error: clearExistingPinError } = await supabase
       .from("messages")
-      .update({ is_pinned: !message.is_pinned })
-      .eq("id", message.id);
+      .update({ is_pinned: false })
+      .eq("channel_id", channelId)
+      .eq("is_pinned", true);
+
+    if (clearExistingPinError) {
+      setSaving(false);
+      console.error("Failed to clear existing pinned message", clearExistingPinError);
+      alert("Impossible de modifier l'épinglage du message pour le moment.");
+      return;
+    }
+
+    const { error: setPinError } = await supabase
+      .from("messages")
+      .update({ is_pinned: true })
+      .eq("id", message.id)
+      .eq("channel_id", channelId);
+    setSaving(false);
+
+    if (setPinError) {
+      console.error("Failed to update message pin state", setPinError);
+      alert("Impossible de modifier l'épinglage du message pour le moment.");
+      return;
+    }
+
     onMessageUpdated?.();
-  }, [message.id, message.is_pinned, onMessageUpdated, supabase]);
+  }, [channelId, isAdmin, message.id, message.is_pinned, onMessageUpdated, supabase]);
 
   const handleReport = useCallback(async () => {
     const reason = prompt("Raison du signalement :");
@@ -546,9 +592,12 @@ function MessageHeaderActions({
     <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-[2px]">
       {isAdmin && (
         <button
+          type="button"
           onClick={onPin}
+          disabled={saving}
           className={`p-[4px] rounded hover:bg-bg-surface cursor-pointer transition-colors ${isPinned ? "text-primary-500" : "text-text-muted hover:text-text-secondary"}`}
           title={isPinned ? "Désépingler" : "Épingler"}
+          aria-label={isPinned ? "Désépingler le message" : "Épingler le message"}
         >
           <Pin className="h-[13px] w-[13px]" />
         </button>
