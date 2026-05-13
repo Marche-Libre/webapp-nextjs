@@ -8,8 +8,10 @@ import { ReactionPicker } from "./reaction-picker";
 import { Pencil, Trash2, Check, Flag, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types/database";
+import { extractFirstHttpUrl } from "@/lib/link-preview-url";
 import { PostEmbed } from "./post-embed";
 import { UserHoverCard } from "./user-hover-card";
+import { LinkPreview } from "./link-preview";
 
 const MENTION_REGEX = /@([A-Za-z0-9_]+)/g;
 
@@ -142,6 +144,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
   }, [message.image_url]);
   const contentParts = useMemo(() => resolveContentParts(), [resolveContentParts]);
   const imageUrls = useMemo(() => resolveImageUrls(), [resolveImageUrls]);
+  const previewUrl = useMemo(() => extractFirstHttpUrl(message.content), [message.content]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editContent.trim() || editContent === message.content) {
@@ -426,6 +429,7 @@ export function MessageBubble({ message, reactions, onReact, currentUserId, isAd
                 {imageItems}
               </div>
             )}
+            {previewUrl && <LinkPreview url={previewUrl} />}
             {forumMatch && <PostEmbed postId={forumMatch[1]} />}
           </>
         )}
