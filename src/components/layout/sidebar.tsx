@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   User,
-  Settings,
+  Sun,
+  Moon,
   ShieldCheck,
   LogOut,
   X,
@@ -22,6 +23,7 @@ import type { Profile } from "@/lib/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { NotificationEntry } from "@/components/notifications/notification-entry";
+import { useTheme } from "@/components/theme/theme-provider";
 
 interface SidebarProps {
   profile: Profile;
@@ -58,6 +60,7 @@ function isSidebarNavItemActive(pathname: string, item: SidebarNavItem) {
 export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { favorites, remove } = useFavorites();
@@ -80,6 +83,10 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
     await supabase.auth.signOut();
     router.push("/connexion");
   }, [router]);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [setTheme, theme]);
 
   // Close user menu on click outside
   useEffect(() => {
@@ -222,14 +229,18 @@ export function Sidebar({ profile, open, collapsed, onClose, onToggleCollapse }:
                 <User className="h-[16px] w-[16px]" />
                 Mon profil
               </Link>
-              <Link
-                href="/parametres"
-                onClick={handleNavigateFromUserControls}
+              <button
+                type="button"
+                onClick={handleToggleTheme}
                 className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
               >
-                <Settings className="h-[16px] w-[16px]" />
-                Paramètres
-              </Link>
+                {theme === "dark" ? (
+                  <Sun className="h-[16px] w-[16px]" />
+                ) : (
+                  <Moon className="h-[16px] w-[16px]" />
+                )}
+                {theme === "dark" ? "Mode clair" : "Mode sombre"}
+              </button>
               {profile.is_admin && (
                 <Link
                   href="/admin"

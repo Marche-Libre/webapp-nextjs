@@ -5,44 +5,26 @@ import type { Profile, ProfileVisibility, SpecialtyCategory, Specialty } from "@
 const DEFAULT_VISIBILITY: ProfileVisibility = {
   first_name: true,
   last_name: true,
-  phone: false,
-  email: false,
+  phone: true,
+  email: true,
   location: true,
   specialty: true,
   bio: true,
   years_experience: true,
   links: true,
-  daily_rate: false,
+  daily_rate: true,
   website: true,
   skills: true,
 };
 
 export function getVisibility(profile: Profile): ProfileVisibility {
-  return { ...DEFAULT_VISIBILITY, ...(profile.visibility as Partial<ProfileVisibility> | null) };
+  void profile;
+  return { ...DEFAULT_VISIBILITY };
 }
 
 export function applyVisibility(profile: Profile, isOwnProfile: boolean): Profile {
-  if (isOwnProfile) return profile;
-  const v = getVisibility(profile);
-  const p = { ...profile };
-
-  if (!v.first_name) p.first_name = null;
-  if (!v.last_name) p.last_name = null;
-  if (!v.phone) p.phone = null;
-  if (!v.email) p.email = "";
-  if (!v.location) p.location = null;
-  if (!v.specialty) { p.specialty_ids = []; p.specialty_category_id = null; }
-  if (!v.bio) p.bio = null;
-  if (!v.years_experience) p.years_experience = null;
-  if (!v.links) p.links = null;
-  if (!v.daily_rate) p.daily_rate = null;
-  if (!v.website) p.website = null;
-  if (!v.skills) p.skills = [];
-
-  // Recalculate full_name from visible parts
-  p.full_name = [p.first_name, p.last_name].filter(Boolean).join(" ");
-
-  return p;
+  void isOwnProfile;
+  return profile;
 }
 
 // ─── Country flag ───

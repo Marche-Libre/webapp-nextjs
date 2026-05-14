@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { XLogo } from "@/components/ui/x-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Suspense, useCallback, useMemo, useState } from "react";
@@ -57,7 +58,7 @@ function RejoindreContent() {
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
-      if (userError) {
+      if (userError && !isAuthSessionMissingError(userError)) {
         throw userError;
       }
 

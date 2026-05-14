@@ -15,7 +15,7 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-const SETTINGS_ROUTES = ["/profil", "/parametres", "/notifications", "/parrainages"];
+const SETTINGS_ROUTES = ["/profil", "/notifications", "/parrainages"];
 
 function MainArea({ profile, children }: { profile: Profile; children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

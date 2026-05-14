@@ -85,12 +85,12 @@ export async function GET(request: NextRequest) {
     if (referralHandle) {
       const { data: sponsor } = await supabase
         .from("profiles")
-        .select("id, is_admin, accept_referrals")
+        .select("id, is_admin")
         .eq("x_handle", referralHandle)
         .eq("status", "approved")
         .single();
 
-      if (sponsor && sponsor.accept_referrals !== false) {
+      if (sponsor) {
         let canSponsor = true;
 
         if (!sponsor.is_admin) {
