@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Globe, Briefcase, Clock } from "lucide-react";
 import { ProfileEditAll } from "@/components/profile/profile-edit-all";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { ProfileDangerZone } from "@/components/profile/profile-danger-zone";
 import { countryFlag, getProfileCompleteness, getSpecialtyDisplay } from "@/lib/profile-utils";
 
 export default async function ProfilPage() {
@@ -162,6 +163,8 @@ export default async function ProfilPage() {
 
       {/* Coordonnées + Liens */}
       <ProfileTabs profile={profile} />
+
+      <ProfileDangerZone />
     </div>
   );
 }

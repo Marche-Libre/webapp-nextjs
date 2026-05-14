@@ -19,6 +19,7 @@ const makeProfile = (overrides: Partial<Profile> = {}): Profile => ({
   last_name: "Doe",
   specialty_ids: [],
   specialty_category_id: null,
+  specialty_category_ids: [],
   location: null,
   bio: null,
   x_handle: "johndoe",
@@ -77,21 +78,27 @@ const makeCategories = (): (SpecialtyCategory & { specialties: Specialty[] })[] 
 // ─── Tests ───
 
 describe("getVisibility", () => {
-  it("returns default visibility when profile has no visibility set", () => {
-    const profile = makeProfile({ visibility: null as any });
+  it("returns all fields visible when profile has no visibility set", () => {
+    const profile = makeProfile({ visibility: null as unknown as Profile["visibility"] });
     const vis = getVisibility(profile);
     expect(vis.first_name).toBe(true);
-    expect(vis.phone).toBe(false);
-    expect(vis.daily_rate).toBe(false);
+    expect(vis.phone).toBe(true);
+    expect(vis.email).toBe(true);
+    expect(vis.daily_rate).toBe(true);
   });
 
-  it("merges profile visibility with defaults", () => {
+  it("ignores legacy hidden visibility preferences", () => {
     const profile = makeProfile({
-      visibility: { phone: true } as any,
+      visibility: {
+        first_name: true, last_name: true, phone: false, email: false,
+        location: true, specialty: true, bio: true, years_experience: true,
+        links: true, daily_rate: false, website: true, skills: true,
+      },
     });
     const vis = getVisibility(profile);
     expect(vis.phone).toBe(true);
-    expect(vis.first_name).toBe(true);
+    expect(vis.email).toBe(true);
+    expect(vis.daily_rate).toBe(true);
   });
 });
 
@@ -102,7 +109,7 @@ describe("applyVisibility", () => {
     expect(result.phone).toBe("+33123456789");
   });
 
-  it("hides phone when visibility is false", () => {
+  it("keeps phone visible when legacy visibility is false", () => {
     const profile = makeProfile({
       phone: "+33123456789",
       visibility: {
@@ -112,10 +119,10 @@ describe("applyVisibility", () => {
       },
     });
     const result = applyVisibility(profile, false);
-    expect(result.phone).toBeNull();
+    expect(result.phone).toBe("+33123456789");
   });
 
-  it("clears specialty when visibility is false", () => {
+  it("keeps specialty visible when legacy visibility is false", () => {
     const profile = makeProfile({
       specialty_ids: ["spec-1"],
       specialty_category_id: "cat-1",
@@ -126,11 +133,11 @@ describe("applyVisibility", () => {
       },
     });
     const result = applyVisibility(profile, false);
-    expect(result.specialty_ids).toEqual([]);
-    expect(result.specialty_category_id).toBeNull();
+    expect(result.specialty_ids).toEqual(["spec-1"]);
+    expect(result.specialty_category_id).toBe("cat-1");
   });
 
-  it("recalculates full_name from visible first/last name", () => {
+  it("keeps full_name and last name visible when legacy visibility is false", () => {
     const profile = makeProfile({
       first_name: "John",
       last_name: "Doe",
@@ -141,8 +148,8 @@ describe("applyVisibility", () => {
       },
     });
     const result = applyVisibility(profile, false);
-    expect(result.full_name).toBe("John");
-    expect(result.last_name).toBeNull();
+    expect(result.full_name).toBe("John Doe");
+    expect(result.last_name).toBe("Doe");
   });
 });
 
@@ -158,15 +165,15 @@ describe("countryFlag", () => {
 
 describe("getAvailabilityOption", () => {
   it("returns correct option for available", () => {
-    expect(getAvailabilityOption("available").label).toBe("Disponible");
+    expect(getAvailabilityOption("available").shortLabel).toBe("Disponible");
   });
 
   it("returns correct option for busy", () => {
-    expect(getAvailabilityOption("busy").label).toBe("En mission");
+    expect(getAvailabilityOption("busy").shortLabel).toBe("En mission");
   });
 
   it("defaults to available for unknown status", () => {
-    expect(getAvailabilityOption("unknown").label).toBe("Disponible");
+    expect(getAvailabilityOption("unknown").shortLabel).toBe("Disponible");
   });
 });
 

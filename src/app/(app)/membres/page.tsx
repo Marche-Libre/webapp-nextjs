@@ -20,7 +20,7 @@ export default async function MembresPage() {
       .order("sort_order", { ascending: true }),
   ]);
 
-  // Apply visibility: mask fields for other members
+  // Normalize legacy visibility preferences without masking public profile fields.
   // Only show members who have at least one specialty selected (profile "filled")
   const visibleMembres = (membres ?? [])
     .filter((m) => {

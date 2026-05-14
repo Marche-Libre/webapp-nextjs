@@ -31,8 +31,6 @@ interface ParrainagesTabsProps {
   receivedRequests: ReceivedRequest[];
   xHandle: string;
   isAdmin: boolean;
-  acceptReferrals: boolean;
-  userId: string;
   pendingCount: number;
   totalFilleuls: number;
 }
@@ -84,20 +82,12 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   );
 }
 
-export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, xHandle, isAdmin, acceptReferrals: initialAcceptReferrals, userId, pendingCount, totalFilleuls }: ParrainagesTabsProps) {
+export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, xHandle, isAdmin, pendingCount, totalFilleuls }: ParrainagesTabsProps) {
   const [activeTab, setActiveTab] = useState("sponsor");
   const [linkCopied, setLinkCopied] = useState(false);
-  const [acceptReferrals, setAcceptReferrals] = useState(initialAcceptReferrals);
 
   const isAtLimit = !isAdmin && (pendingCount >= MAX_PENDING || totalFilleuls >= MAX_TOTAL);
-  const linkActive = acceptReferrals && !isAtLimit;
-
-  const toggleReferrals = async () => {
-    const newVal = !acceptReferrals;
-    setAcceptReferrals(newVal);
-    const supabase = createClient();
-    await supabase.from("profiles").update({ accept_referrals: newVal }).eq("id", userId);
-  };
+  const linkActive = !isAtLimit;
 
   const pendingInvitations = sentInvitations.filter((inv) => inv.status === "pending");
   const pendingRequests = receivedRequests.filter((r) => r.status === "pending");
@@ -122,18 +112,7 @@ export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, x
                   <Link className="h-[16px] w-[16px] text-primary-500" />
                   <h3 className="text-[13px] font-semibold text-text-primary">Votre lien de parrainage</h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={toggleReferrals}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <span className={`text-xs font-medium ${acceptReferrals ? "text-primary-500" : "text-text-muted"}`}>
-                    {acceptReferrals ? "Actif" : "Désactivé"}
-                  </span>
-                  <div className={`relative w-8 h-[18px] rounded-full transition-colors ${acceptReferrals ? "bg-primary-500" : "bg-bg-surface"}`}>
-                    <div className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white transition-transform ${acceptReferrals ? "left-[16px]" : "left-[2px]"}`} />
-                  </div>
-                </button>
+                {linkActive && <Badge variant="success">Actif</Badge>}
               </div>
 
               {linkActive ? (
@@ -160,13 +139,9 @@ export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, x
                     </p>
                   )}
                 </>
-              ) : isAtLimit ? (
+              ) : (
                 <p className="text-[12px] text-warning">
                   Vous avez atteint la limite de parrainages ({pendingCount} en attente, {totalFilleuls} filleuls). Approuvez ou refusez les demandes en attente pour libérer des places.
-                </p>
-              ) : (
-                <p className="text-[12px] text-text-muted">
-                  Votre lien est désactivé. Activez-le pour permettre à de nouveaux professionnels de vous rejoindre.
                 </p>
               )}
             </div>

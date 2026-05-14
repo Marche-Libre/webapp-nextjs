@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
-import { ChevronUp, Hash, LogOut, Menu, Search, Settings, ShieldCheck, User, X } from "lucide-react";
+import { ChevronUp, Hash, LogOut, Menu, Moon, Search, ShieldCheck, Sun, User, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +15,7 @@ import { NotificationEntry } from "@/components/notifications/notification-entry
 import { ChatChannelProvider, useActiveChannel } from "./chat-channel-context";
 import { useChatStore, type FullMessage } from "./chat-store";
 import { Spinner } from "@/components/ui/spinner";
+import { useTheme } from "@/components/theme/theme-provider";
 
 /* Context to let child pages open the channel drawer on mobile */
 const ChannelDrawerContext = createContext<{ open: () => void }>({ open: () => {} });
@@ -53,6 +54,7 @@ interface ChatLayoutProps {
 
 function UserBar({ profile, onNavigate }: { profile: Profile; onNavigate?: () => void }) {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -77,6 +79,10 @@ function UserBar({ profile, onNavigate }: { profile: Profile; onNavigate?: () =>
     router.push("/connexion");
   }, [router]);
 
+  const handleToggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [setTheme, theme]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) handleCloseMenu();
@@ -99,14 +105,18 @@ function UserBar({ profile, onNavigate }: { profile: Profile; onNavigate?: () =>
             <User className="h-[16px] w-[16px]" />
             Mon profil
           </Link>
-          <Link
-            href="/parametres"
-            onClick={handleNavigate}
+          <button
+            type="button"
+            onClick={handleToggleTheme}
             className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-md text-[13px] font-medium text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors"
           >
-            <Settings className="h-[16px] w-[16px]" />
-            Paramètres
-          </Link>
+            {theme === "dark" ? (
+              <Sun className="h-[16px] w-[16px]" />
+            ) : (
+              <Moon className="h-[16px] w-[16px]" />
+            )}
+            {theme === "dark" ? "Mode clair" : "Mode sombre"}
+          </button>
           {profile.is_admin && (
             <Link
               href="/admin"

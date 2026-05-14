@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Bell, Settings, User, UserPlus } from "lucide-react";
+import { ArrowLeft, Bell, LogOut, User, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/components/notifications/notification-provider";
+import { createClient } from "@/lib/supabase/client";
 
 const settingsNav = [
   { label: "Mon profil", href: "/profil", icon: User },
-  { label: "Paramètres", href: "/parametres", icon: Settings },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Parrainages", href: "/parrainages", icon: UserPlus },
 ];
@@ -33,6 +33,11 @@ export function SettingsShell({ children }: SettingsShellProps) {
 
   const close = useCallback(() => {
     router.push("/chat");
+  }, [router]);
+  const logout = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/connexion");
   }, [router]);
   const unreadText = unreadCount > 99 ? "99+" : `${unreadCount}`;
   const isWideContentRoute = useMemo(() => {
@@ -114,6 +119,16 @@ export function SettingsShell({ children }: SettingsShellProps) {
             Réglages utilisateur
           </p>
           {settingsNav.map(renderDesktopNavItem)}
+        </div>
+        <div className="shrink-0 p-[12px] border-t border-border-subtle">
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-[10px] px-[12px] py-[8px] rounded-lg text-[13px] font-medium text-error hover:bg-error-bg transition-colors cursor-pointer w-full"
+          >
+            <LogOut className="h-[16px] w-[16px]" />
+            Se déconnecter
+          </button>
         </div>
       </div>
 

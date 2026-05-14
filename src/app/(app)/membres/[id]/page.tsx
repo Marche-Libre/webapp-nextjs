@@ -3,6 +3,14 @@ import { redirect, notFound } from "next/navigation";
 import { MemberProfile } from "@/components/membres/member-profile";
 import { applyVisibility } from "@/lib/profile-utils";
 
+type ForumPostPreview = {
+  id: string;
+  title: string;
+  reply_count: number;
+  created_at: string;
+  category: { name: string; color: string | null; slug: string } | null;
+};
+
 export default async function MemberProfilePage({
   params,
 }: {
@@ -30,7 +38,7 @@ export default async function MemberProfilePage({
 
   if (!member) notFound();
 
-  // Apply visibility
+  // Normalize legacy visibility preferences without masking public profile fields.
   const visibleMember = applyVisibility(member, member.id === user.id);
 
   // Fetch sponsor info if sponsored_by is set
@@ -51,6 +59,13 @@ export default async function MemberProfilePage({
     .eq("author_id", id)
     .order("created_at", { ascending: false })
     .limit(5);
+  const visibleRecentPosts: ForumPostPreview[] = (recentPosts ?? []).map((post) => ({
+    id: post.id,
+    title: post.title,
+    reply_count: post.reply_count,
+    created_at: post.created_at,
+    category: Array.isArray(post.category) ? post.category[0] ?? null : post.category,
+  }));
 
   // Check if current user has blocked this member
   const { data: blockRecord } = await supabase
@@ -64,7 +79,7 @@ export default async function MemberProfilePage({
     <MemberProfile
       member={visibleMember}
       sponsor={sponsor}
-      recentPosts={(recentPosts || []) as any}
+      recentPosts={visibleRecentPosts}
       currentUserId={user.id}
       isBlocked={!!blockRecord}
       categories={categoriesData ?? []}

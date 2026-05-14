@@ -29,7 +29,7 @@ import {
   FileText,
   type LucideIcon,
 } from "lucide-react";
-import type { Profile, ProfileVisibility, SpecialtyCategory } from "@/lib/types/database";
+import type { Profile, SpecialtyCategory } from "@/lib/types/database";
 
 type MemberPreview = {
   id: string;
@@ -108,15 +108,6 @@ export function OnboardingWizard({
   const [citySearchError, setCitySearchError] = useState<string | null>(null);
 
   const [bio, setBio] = useState(profile.bio || "");
-
-  // Visibility toggles
-  const [visibility, setVisibility] = useState<Partial<ProfileVisibility>>({
-    specialty: true,
-    location: true,
-    bio: true,
-  });
-  const toggleVis = (key: keyof ProfileVisibility) =>
-    setVisibility((v) => ({ ...v, [key]: !v[key] }));
 
   const location = city && country ? `${city}, ${country}` : city || country;
 
@@ -277,7 +268,6 @@ export function OnboardingWizard({
         specialty_ids: specialtyIds,
         specialty_category_id: selectedCatIds[0] || null,
         location: location || null,
-        visibility: { ...profile.visibility, ...visibility },
       })
       .eq("id", profile.id);
     setLoading(false);
@@ -289,7 +279,6 @@ export function OnboardingWizard({
     setLoading(true);
     await supabase.from("profiles").update({
       bio: bio || null,
-      visibility: { ...profile.visibility, ...visibility },
     }).eq("id", profile.id);
     setLoading(false);
     next();
@@ -385,23 +374,9 @@ export function OnboardingWizard({
       {step === 2 && (
         <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
           <div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-base-content tracking-tight">
-                Comment vous appelez-vous ?
-              </h2>
-              <button
-                type="button"
-                onClick={() => toggleVis("first_name")}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <span className={`text-xs font-medium ${visibility.first_name ? "text-accent" : "text-base-content/30"}`}>
-                  {visibility.first_name ? "Visible" : "Invisible"}
-                </span>
-                <div className={`relative w-8 h-[18px] rounded-full transition-colors ${visibility.first_name ? "bg-accent" : "bg-base-content/15"}`}>
-                  <div className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white transition-transform ${visibility.first_name ? "left-[16px]" : "left-[2px]"}`} />
-                </div>
-              </button>
-            </div>
+            <h2 className="text-2xl font-bold text-base-content tracking-tight">
+              Comment vous appelez-vous ?
+            </h2>
             <p className="text-base text-base-content/45 mt-2">
               Facultatif — votre handle <XLogo className="w-3 h-3 inline-block align-baseline" /> <span className="text-base-content/70 font-medium">@{profile.x_handle}</span> reste votre identité principale.
             </p>
@@ -509,23 +484,9 @@ export function OnboardingWizard({
       {step === 4 && (
         <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
           <div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-base-content tracking-tight">
-                Où êtes-vous basé ?
-              </h2>
-              <button
-                type="button"
-                onClick={() => toggleVis("location")}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <span className={`text-xs font-medium ${visibility.location ? "text-accent" : "text-base-content/30"}`}>
-                  {visibility.location ? "Visible" : "Invisible"}
-                </span>
-                <div className={`relative w-8 h-[18px] rounded-full transition-colors ${visibility.location ? "bg-accent" : "bg-base-content/15"}`}>
-                  <div className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white transition-transform ${visibility.location ? "left-[16px]" : "left-[2px]"}`} />
-                </div>
-              </button>
-            </div>
+            <h2 className="text-2xl font-bold text-base-content tracking-tight">
+              Où êtes-vous basé ?
+            </h2>
             <p className="text-base text-base-content/45 mt-2">
               Votre localisation aide les membres à vous trouver pour des collaborations locales.
             </p>
@@ -692,23 +653,9 @@ export function OnboardingWizard({
       {step === 5 && (
         <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
           <div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-base-content tracking-tight">
-                Décrivez-vous
-              </h2>
-              <button
-                type="button"
-                onClick={() => toggleVis("bio")}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <span className={`text-xs font-medium ${visibility.bio ? "text-accent" : "text-base-content/30"}`}>
-                  {visibility.bio ? "Visible" : "Invisible"}
-                </span>
-                <div className={`relative w-8 h-[18px] rounded-full transition-colors ${visibility.bio ? "bg-accent" : "bg-base-content/15"}`}>
-                  <div className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white transition-transform ${visibility.bio ? "left-[16px]" : "left-[2px]"}`} />
-                </div>
-              </button>
-            </div>
+            <h2 className="text-2xl font-bold text-base-content tracking-tight">
+              Décrivez-vous
+            </h2>
             <p className="text-base text-base-content/45 mt-2">
               Une courte bio aide les autres membres à mieux vous connaître.
             </p>

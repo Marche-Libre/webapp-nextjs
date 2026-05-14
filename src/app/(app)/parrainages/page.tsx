@@ -47,8 +47,6 @@ export default async function ParrainagesPage() {
         receivedRequests={receivedRequests || []}
         xHandle={profile.x_handle}
         isAdmin={profile.is_admin}
-        acceptReferrals={profile.accept_referrals ?? true}
-        userId={user.id}
         pendingCount={receivedRequests?.filter((r) => r.status === "pending").length ?? 0}
         totalFilleuls={filleuls?.filter((f) => f.status === "approved").length ?? 0}
       />
