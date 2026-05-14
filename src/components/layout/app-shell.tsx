@@ -41,7 +41,7 @@ function MainArea({ profile, children }: { profile: Profile; children: React.Rea
   // Chat full-screen: no sidebar, no header, just the chat page
   if (isChatRoute) {
     return (
-      <div className="flex h-screen overflow-hidden bg-bg-elevated">
+      <div className="flex h-[100svh] overflow-hidden bg-bg-elevated md:h-screen">
         <div className="flex-1 flex flex-col overflow-hidden">
           {children}
         </div>
