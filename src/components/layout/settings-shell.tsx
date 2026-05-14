@@ -14,7 +14,7 @@ const settingsNav = [
   { label: "Parrainages", href: "/parrainages", icon: UserPlus },
 ];
 
-const WIDE_CONTENT_ROUTES = ["/notifications", "/parrainages"];
+const WIDE_CONTENT_ROUTES = ["/notifications"];
 
 interface SettingsShellProps {
   children: React.ReactNode;
