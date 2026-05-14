@@ -7,6 +7,7 @@ import { ArrowLeft, Bell, LogOut, User, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/components/notifications/notification-provider";
 import { createClient } from "@/lib/supabase/client";
+import { AppInstallUpdatePanel } from "@/components/runtime/app-install-update-panel";
 
 const settingsNav = [
   { label: "Mon profil", href: "/profil", icon: User },
@@ -107,7 +108,7 @@ export function SettingsShell({ children }: SettingsShellProps) {
     <div className="fixed inset-0 z-[60] flex bg-bg-elevated">
       {/* Left nav */}
       <div className="hidden sm:flex w-[240px] shrink-0 flex-col border-r border-border-default bg-bg-base">
-        <div className="flex-1 overflow-y-auto px-[12px] py-[16px]">
+        <div className="flex flex-1 flex-col overflow-y-auto px-[12px] py-[16px]">
           <button
             onClick={close}
             className="flex items-center gap-[8px] px-[12px] py-[8px] mb-[12px] rounded-lg text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors cursor-pointer w-full"
@@ -119,6 +120,9 @@ export function SettingsShell({ children }: SettingsShellProps) {
             Réglages utilisateur
           </p>
           {settingsNav.map(renderDesktopNavItem)}
+          <div className="mt-auto pt-[24px]">
+            <AppInstallUpdatePanel />
+          </div>
         </div>
         <div className="shrink-0 p-[12px] border-t border-border-subtle">
           <button

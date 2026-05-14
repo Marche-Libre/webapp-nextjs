@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { FavoritesProvider } from "@/components/favorites/favorites-context";
+import { AppRuntimeProvider } from "@/components/runtime/app-runtime-provider";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -45,7 +46,11 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="h-full font-sans antialiased bg-bg-elevated text-text-primary">
-        <ThemeProvider><FavoritesProvider>{children}</FavoritesProvider></ThemeProvider>
+        <AppRuntimeProvider>
+          <ThemeProvider>
+            <FavoritesProvider>{children}</FavoritesProvider>
+          </ThemeProvider>
+        </AppRuntimeProvider>
       </body>
     </html>
   );
