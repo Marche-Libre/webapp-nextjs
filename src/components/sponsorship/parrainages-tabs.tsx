@@ -4,13 +4,12 @@ import { useState } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { InviteForm } from "@/components/sponsorship/invite-form";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { UserPlus, Users, Inbox, Check, X, Copy, Link } from "lucide-react";
+import { Users, Inbox, Check, X, Copy, Link } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import type { Invitation, SponsorshipRequest } from "@/lib/types/database";
+import type { SponsorshipRequest } from "@/lib/types/database";
 
 interface Filleul {
   id: string;
@@ -26,7 +25,6 @@ type ReceivedRequest = SponsorshipRequest & {
 };
 
 interface ParrainagesTabsProps {
-  sentInvitations: Invitation[];
   filleuls: Filleul[];
   receivedRequests: ReceivedRequest[];
   xHandle: string;
@@ -82,14 +80,12 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   );
 }
 
-export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, xHandle, isAdmin, pendingCount, totalFilleuls }: ParrainagesTabsProps) {
+export function ParrainagesTabs({ filleuls, receivedRequests, xHandle, isAdmin, pendingCount, totalFilleuls }: ParrainagesTabsProps) {
   const [activeTab, setActiveTab] = useState("sponsor");
   const [linkCopied, setLinkCopied] = useState(false);
 
   const isAtLimit = !isAdmin && (pendingCount >= MAX_PENDING || totalFilleuls >= MAX_TOTAL);
   const linkActive = !isAtLimit;
-
-  const pendingInvitations = sentInvitations.filter((inv) => inv.status === "pending");
   const pendingRequests = receivedRequests.filter((r) => r.status === "pending");
 
   const tabs = [
@@ -146,49 +142,6 @@ export function ParrainagesTabs({ sentInvitations, filleuls, receivedRequests, x
               )}
             </div>
 
-            <div className="space-y-[16px]">
-              <div className="flex items-start gap-[16px]">
-                <div className="h-[48px] w-[48px] rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
-                  <UserPlus className="h-[22px] w-[22px] text-primary-500" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="font-display text-[15px] font-semibold text-text-primary tracking-[-0.01em]">
-                    Ou invitez directement
-                  </h2>
-                  <p className="text-[13px] text-text-secondary mt-[2px]">
-                    Saisissez l&apos;identifiant X du professionnel que vous souhaitez parrainer.
-                    Il pourra rejoindre le réseau grâce à votre recommandation.
-                  </p>
-                </div>
-              </div>
-              <InviteForm />
-            </div>
-
-            {pendingInvitations.length > 0 && (
-              <div>
-                <h3 className="text-[13px] font-medium text-text-muted mb-[8px]">
-                  En attente d&apos;inscription ({pendingInvitations.length})
-                </h3>
-                <div className="space-y-[8px]">
-                  {pendingInvitations.map((inv) => (
-                    <div
-                      key={inv.id}
-                      className="flex items-center justify-between p-[12px] rounded-lg border border-border-default bg-bg-elevated/50"
-                    >
-                      <div>
-                        <p className="text-[13px] font-medium text-text-primary">
-                          @{inv.invited_x_handle}
-                        </p>
-                        <p className="text-[11px] text-text-muted">
-                          Invité le {formatDate(inv.created_at)}
-                        </p>
-                      </div>
-                      <Badge variant="warning">En attente</Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 

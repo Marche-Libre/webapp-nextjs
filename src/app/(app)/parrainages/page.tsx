@@ -18,13 +18,6 @@ export default async function ParrainagesPage() {
 
   if (!profile) redirect("/connexion");
 
-  // Get invitations sent by this user
-  const { data: sentInvitations } = await supabase
-    .from("invitations")
-    .select("*")
-    .eq("inviter_id", user.id)
-    .order("created_at", { ascending: false });
-
   // Get sponsored users (filleuls) — users who accepted our invitation
   const { data: filleuls } = await supabase
     .from("profiles")
@@ -42,7 +35,6 @@ export default async function ParrainagesPage() {
   return (
     <div className="space-y-[24px]">
       <ParrainagesTabs
-        sentInvitations={sentInvitations || []}
         filleuls={filleuls || []}
         receivedRequests={receivedRequests || []}
         xHandle={profile.x_handle}
