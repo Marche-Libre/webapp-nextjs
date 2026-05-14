@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isAuthSessionMissingError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { XLogo } from "@/components/ui/x-logo";
 import { getAuthCallbackUrl } from "@/lib/auth-url";
@@ -35,7 +36,7 @@ export function OAuthButtons() {
     try {
       const { data, error: userError } = await supabase.auth.getUser();
 
-      if (userError) {
+      if (userError && !isAuthSessionMissingError(userError)) {
         throw userError;
       }
 

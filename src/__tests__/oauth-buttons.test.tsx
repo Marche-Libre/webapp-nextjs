@@ -1,6 +1,7 @@
 import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { AuthSessionMissingError } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RejoindrePage from "@/app/rejoindre/page";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
@@ -29,7 +30,11 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: mocks.createClient,
 }));
 
-function mockSupabaseClient(userId: string | null, profile: ProfileResult) {
+function mockSupabaseClient(
+  userId: string | null,
+  profile: ProfileResult,
+  userError: Error | null = null,
+) {
   const single = vi.fn(async () => ({ data: profile, error: null }));
   const eq = vi.fn(() => ({ single }));
   const select = vi.fn(() => ({ eq }));
@@ -39,6 +44,7 @@ function mockSupabaseClient(userId: string | null, profile: ProfileResult) {
     data: {
       user: userId ? { id: userId } : null,
     },
+    error: userError,
   });
   mocks.signInWithOAuth.mockResolvedValue({
     data: {
@@ -109,7 +115,7 @@ beforeEach(() => {
 
 describe("OAuthButtons", () => {
   it("starts X OAuth for logged-out users", async () => {
-    mockSupabaseClient(null, null);
+    mockSupabaseClient(null, null, new AuthSessionMissingError());
 
     const { button, unmount } = renderOAuthButtons();
 
@@ -164,7 +170,7 @@ describe("OAuthButtons", () => {
 describe("RejoindrePage auth entry", () => {
   it("keeps referral storage and starts X OAuth for logged-out users", async () => {
     mocks.searchParams = "ref=@alice";
-    mockSupabaseClient(null, null);
+    mockSupabaseClient(null, null, new AuthSessionMissingError());
 
     const { button, unmount } = renderRejoindrePage();
 
