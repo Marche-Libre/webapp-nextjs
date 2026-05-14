@@ -2,11 +2,21 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatLayout } from "@/components/chat/chat-layout";
 import { LAUNCH_CHAT_CHANNEL_SLUGS, sortLaunchChatChannels } from "@/lib/chat/channels";
+import { PREVIEW_IMAGES, createPageMetadata } from "@/lib/site-metadata";
 import type { Channel, Message, Profile } from "@/lib/types/database";
 
 type MessageWithAuthor = Message & {
   author: Pick<Profile, "x_handle" | "full_name" | "avatar_url">;
 };
+
+export const metadata = createPageMetadata({
+  title: "Chat privé",
+  description:
+    "Le chat privé MarchéLibre réservé aux membres approuvés, organisé autour de salons professionnels.",
+  path: "/chat",
+  images: PREVIEW_IMAGES.chat,
+  imageAlt: "Chat privé MarchéLibre",
+});
 
 export default async function ChatLayoutPage({
   children,

@@ -1,9 +1,14 @@
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import type { Metadata } from "next";
+import { PREVIEW_IMAGES, createPageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Mentions légales | MarchéLibre",
-};
+export const metadata = createPageMetadata({
+  title: "Mentions légales",
+  description:
+    "Mentions légales de MarchéLibre : éditeur, hébergeurs, propriété intellectuelle, données personnelles et contact.",
+  path: "/mentions-legales",
+  images: PREVIEW_IMAGES.mentionsLegales,
+  imageAlt: "Mentions légales MarchéLibre",
+});
 
 export default function MentionsLegalesPage() {
   return (

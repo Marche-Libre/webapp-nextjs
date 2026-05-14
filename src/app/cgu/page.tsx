@@ -1,9 +1,14 @@
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import type { Metadata } from "next";
+import { PREVIEW_IMAGES, createPageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Conditions Générales d'Utilisation | MarchéLibre",
-};
+export const metadata = createPageMetadata({
+  title: "Conditions Générales d'Utilisation",
+  description:
+    "Les règles d'accès et d'utilisation de MarchéLibre, club privé en bêta privée pour professionnels libéraux.",
+  path: "/cgu",
+  images: PREVIEW_IMAGES.home,
+  imageAlt: "MarchéLibre, club privé en bêta privée pour professionnels libéraux",
+});
 
 export default function CGUPage() {
   return (
