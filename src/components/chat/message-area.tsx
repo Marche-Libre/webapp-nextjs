@@ -23,6 +23,8 @@ interface MessageAreaProps {
   channelSlug: string;
   canWrite: boolean;
   noPermissionMessage: string | null;
+  isOffline: boolean;
+  offlineMessage: string;
   userId: string;
   userProfile: { x_handle: string; full_name: string; avatar_url: string | null };
   isAdmin?: boolean;
@@ -81,6 +83,8 @@ export function MessageArea({
   channelSlug,
   canWrite,
   noPermissionMessage,
+  isOffline,
+  offlineMessage,
   userId,
   userProfile,
   isAdmin,
@@ -391,6 +395,8 @@ export function MessageArea({
           channelSlug={channelSlug}
           canWrite={canWrite}
           noPermissionMessage={noPermissionMessage}
+          isOffline={isOffline}
+          offlineMessage={offlineMessage}
           userId={userId}
           onOptimisticMessage={addOptimisticMessage}
           onMessageConfirmed={handleMessageConfirmed}

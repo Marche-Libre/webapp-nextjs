@@ -1,9 +1,14 @@
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import type { Metadata } from "next";
+import { PREVIEW_IMAGES, createPageMetadata } from "@/lib/site-metadata";
 
-export const metadata: Metadata = {
-  title: "Politique de confidentialité | MarchéLibre",
-};
+export const metadata = createPageMetadata({
+  title: "Politique de confidentialité",
+  description:
+    "Comment MarchéLibre collecte, utilise, stocke et protège les données personnelles de ses candidats et membres.",
+  path: "/confidentialite",
+  images: PREVIEW_IMAGES.confidentialite,
+  imageAlt: "Politique de confidentialité MarchéLibre",
+});
 
 export default function ConfidentialitePage() {
   return (

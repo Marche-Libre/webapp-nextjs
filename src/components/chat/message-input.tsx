@@ -18,6 +18,8 @@ interface MessageInputProps {
   channelSlug?: string;
   canWrite?: boolean;
   noPermissionMessage?: string | null;
+  isOffline?: boolean;
+  offlineMessage?: string | null;
   userId: string;
   onOptimisticMessage?: (content: string, imageUrl?: string) => string;
   onMessageConfirmed?: (
@@ -225,6 +227,8 @@ export function MessageInput({
   channelSlug,
   canWrite = true,
   noPermissionMessage = null,
+  isOffline = false,
+  offlineMessage = null,
   userId,
   onOptimisticMessage,
   onMessageConfirmed,
@@ -250,6 +254,7 @@ export function MessageInput({
 
   const sendMessage = useCallback(async () => {
     if (!canWrite) return;
+    if (isOffline) return;
     if (sending) return;
     const text = content.trim();
     if (!text && !imageFile) return;
@@ -343,6 +348,7 @@ export function MessageInput({
     onMessageConfirmed,
     onMessageFailed,
     onOptimisticMessage,
+    isOffline,
     sending,
     userId,
   ]);
@@ -632,11 +638,16 @@ export function MessageInput({
 
   const canSubmit = canWrite && (Boolean(content.trim()) || Boolean(imageFile));
   const isBusy = sending || uploadingImage;
-  const inputDisabled = isBusy || !canWrite;
+  const inputDisabled = isBusy || !canWrite || isOffline;
   const sendButtonDisabled = inputDisabled || !canSubmit;
   const emojiPickerTitle = emojiPickerOpen
     ? "Fermer la palette d'emojis"
     : "Ajouter un emoji";
+  const helperMessage = useMemo(() => {
+    if (isOffline && offlineMessage) return offlineMessage;
+    if (!canWrite && noPermissionMessage) return noPermissionMessage;
+    return null;
+  }, [canWrite, isOffline, noPermissionMessage, offlineMessage]);
 
   const imagePreview = useMemo(() => {
     if (!imagePreviewUrl) return null;
@@ -727,11 +738,7 @@ export function MessageInput({
         className="hidden"
       />
       {error && <p className="mt-[8px] text-[11px] text-error">{error}</p>}
-      {!canWrite && noPermissionMessage && (
-        <p className="mt-[8px] text-[11px] text-text-muted">
-          {noPermissionMessage}
-        </p>
-      )}
+      {helperMessage && <p className="mt-[8px] text-[11px] text-text-muted">{helperMessage}</p>}
     </div>
   );
 }

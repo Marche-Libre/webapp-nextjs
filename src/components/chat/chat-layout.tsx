@@ -16,6 +16,7 @@ import { ChatChannelProvider, useActiveChannel } from "./chat-channel-context";
 import { useChatStore, type FullMessage } from "./chat-store";
 import { Spinner } from "@/components/ui/spinner";
 import { useTheme } from "@/components/theme/theme-provider";
+import { OFFLINE_CHAT_MESSAGE, useNetworkStatus } from "@/components/runtime/app-runtime-provider";
 
 /* Context to let child pages open the channel drawer on mobile */
 const ChannelDrawerContext = createContext<{ open: () => void }>({ open: () => {} });
@@ -187,6 +188,7 @@ function ChatArea({
   initialChannelId?: string | null;
 }) {
   const { activeSlug } = useActiveChannel();
+  const { isOnline } = useNetworkStatus();
   const { open: openChannelDrawer } = useChannelDrawer();
   const store = useChatStore();
 
@@ -398,6 +400,8 @@ function ChatArea({
             channelSlug={activeChannel.slug}
             canWrite={activeChannelCanWrite}
             noPermissionMessage={activeChannelNoPermissionMessage}
+            isOffline={!isOnline}
+            offlineMessage={OFFLINE_CHAT_MESSAGE}
             userId={userId}
             userProfile={userProfile}
             isAdmin={isAdmin}
