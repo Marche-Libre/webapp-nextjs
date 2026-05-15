@@ -70,3 +70,16 @@ Before a production commit/release, recommend `patch`, `minor`, or `major`.
 The product owner decides.
 
 <!-- END:versioning-rules -->
+
+<!-- BEGIN:commit-rules -->
+
+# Commit Rules
+
+Commit title format:
+- `type(context) - short description`
+
+Commit body:
+- Use bullet points for implementation details.
+- Keep bullets concrete and scoped to the committed change.
+
+<!-- END:commit-rules -->

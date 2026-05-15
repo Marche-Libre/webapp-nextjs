@@ -133,8 +133,8 @@ export function useNetworkStatus() {
 }
 
 export function AppRuntimeProvider({ children }: { children: ReactNode }) {
-  const [isOnline, setIsOnline] = useState(getInitialOnlineStatus);
-  const [isStandalone, setIsStandalone] = useState(getInitialStandaloneStatus);
+  const [isOnline, setIsOnline] = useState(true);
+  const [isStandalone, setIsStandalone] = useState(false);
   const [installPromptAvailable, setInstallPromptAvailable] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const installPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
@@ -149,8 +149,16 @@ export function AppRuntimeProvider({ children }: { children: ReactNode }) {
     setIsOnline(false);
   }, []);
 
+  const syncOnlineStatus = useCallback(() => {
+    setIsOnline(getInitialOnlineStatus());
+  }, []);
+
   const handleStandaloneChange = useCallback((event: MediaQueryListEvent) => {
     setIsStandalone(event.matches);
+  }, []);
+
+  const syncStandaloneStatus = useCallback(() => {
+    setIsStandalone(getInitialStandaloneStatus());
   }, []);
 
   const handleBeforeInstallPrompt = useCallback((event: Event) => {
@@ -189,23 +197,27 @@ export function AppRuntimeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const onlineSyncTimeout = window.setTimeout(syncOnlineStatus, 0);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
     return () => {
+      window.clearTimeout(onlineSyncTimeout);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [handleOffline, handleOnline]);
+  }, [handleOffline, handleOnline, syncOnlineStatus]);
 
   useEffect(() => {
+    const standaloneSyncTimeout = window.setTimeout(syncStandaloneStatus, 0);
     const standaloneQuery = window.matchMedia("(display-mode: standalone)");
     standaloneQuery.addEventListener("change", handleStandaloneChange);
 
     return () => {
+      window.clearTimeout(standaloneSyncTimeout);
       standaloneQuery.removeEventListener("change", handleStandaloneChange);
     };
-  }, [handleStandaloneChange]);
+  }, [handleStandaloneChange, syncStandaloneStatus]);
 
   useEffect(() => {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);

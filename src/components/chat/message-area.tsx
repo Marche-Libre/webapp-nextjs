@@ -79,6 +79,15 @@ function resolveScrollToLatestPosition(composerLaneElement: HTMLDivElement) {
   };
 }
 
+function scrollElementToBottom(
+  element: HTMLDivElement | null,
+  behavior: ScrollBehavior = "smooth",
+) {
+  if (!element) return;
+
+  element.scrollIntoView({ behavior, block: "end" });
+}
+
 export function MessageArea({
   channelId,
   channelSlug,
@@ -135,6 +144,16 @@ export function MessageArea({
     syncBottomState(scrollRef.current);
   }, [syncBottomState]);
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    scrollElementToBottom(bottomRef.current, behavior);
+  }, []);
+
+  const scheduleScrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    window.requestAnimationFrame(() => {
+      scrollToBottom(behavior);
+    });
+  }, [scrollToBottom]);
+
   const loadMore = useCallback(async () => {
     if (loadingMore.current) return;
     loadingMore.current = true;
@@ -143,8 +162,13 @@ export function MessageArea({
   }, [channelId, store]);
 
   const addOptimisticMessage = useCallback((content: string, imageUrl?: string, selectedReplyTarget?: ReplyToMessage | null) => {
-    return store.addOptimisticMessage(channelId, content, userProfile, imageUrl, selectedReplyTarget);
-  }, [channelId, store, userProfile]);
+    const optimisticId = store.addOptimisticMessage(channelId, content, userProfile, imageUrl, selectedReplyTarget);
+    isAtBottom.current = true;
+    setShowScrollToLatest(false);
+    setHasNewLatestMessage(false);
+    scheduleScrollToBottom();
+    return optimisticId;
+  }, [channelId, scheduleScrollToBottom, store, userProfile]);
 
   const handleMessageConfirmed = useCallback((optimisticId: string, realMessage: FullMessage | null) => {
     store.confirmMessage(channelId, optimisticId, realMessage);
@@ -216,7 +240,11 @@ export function MessageArea({
     if (!canWrite || isOffline) return;
 
     setReplyTarget(projectReplyTarget(message));
-  }, [canWrite, isOffline]);
+    isAtBottom.current = true;
+    setShowScrollToLatest(false);
+    setHasNewLatestMessage(false);
+    scheduleScrollToBottom();
+  }, [canWrite, isOffline, scheduleScrollToBottom]);
 
   const handleCancelReply = useCallback(() => {
     setReplyTarget(null);
@@ -248,14 +276,14 @@ export function MessageArea({
   const autoScrollEffect = useCallback(() => {
     void messageCount;
     if (isAtBottom.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollToBottom();
     }
-  }, [messageCount]);
+  }, [messageCount, scrollToBottom]);
 
   const initialScrollEffect = useCallback(() => {
     if (!channelId) return;
-    bottomRef.current?.scrollIntoView();
-  }, [channelId]);
+    scrollToBottom("auto");
+  }, [channelId, scrollToBottom]);
 
   const syncBottomStateEffect = useCallback(() => {
     void messageCount;

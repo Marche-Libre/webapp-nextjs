@@ -2,24 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
-  CSSProperties,
   ChangeEvent,
   KeyboardEvent,
-  PointerEvent as ReactPointerEvent,
   ReactNode,
 } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn, timeAgo } from "@/lib/utils";
-import { ReactionPicker } from "./reaction-picker";
-import {
-  Check,
-  Flag,
-  MoreHorizontal,
-  Pencil,
-  Pin,
-  Reply,
-  Trash2,
-} from "lucide-react";
+import { Pin, Reply } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { MessageWithAuthor } from "@/lib/chat/messages";
 import {
@@ -32,6 +21,8 @@ import { PostEmbed } from "./post-embed";
 import { UserHoverCard } from "./user-hover-card";
 import { LinkPreview } from "./link-preview";
 import { MediaEmbed } from "./media-embed";
+import { MessageInlineActions } from "./message-bubble-actions";
+import { useReplySwipe } from "./use-reply-swipe";
 
 const MENTION_REGEX = /@([A-Za-z0-9_]+)/g;
 
@@ -102,10 +93,21 @@ const AVATAR_SLOT_CLASSNAME =
   "h-[32px] w-[32px] shrink-0 sm:h-[40px] sm:w-[40px]";
 const MESSAGE_AVATAR_CLASSNAME = "h-[32px] w-[32px] sm:h-[40px] sm:w-[40px]";
 const CHAT_IMAGE_SIGNED_URL_TTL_SECONDS = 3600;
-const REPLY_SWIPE_MAX_OFFSET_PX = 56;
+const REPLY_ACTION_LABEL = "Répondre";
 const REPLY_SWIPE_THRESHOLD_PX = 42;
-const REPLY_SWIPE_START_THRESHOLD_PX = 8;
-const REPLY_SWIPE_VERTICAL_CANCEL_PX = 12;
+const COPY_LABEL = "Copier";
+const COPY_SUCCESS_LABEL = "Copié";
+const COPY_EMPTY_LABEL = "Rien à copier";
+const COPY_UNAVAILABLE_LABEL = "Copie indisponible";
+const COPY_FAILED_LABEL = "Copie impossible";
+const COPY_FEEDBACK_DURATION_MS = 1600;
+
+type CopyFeedback =
+  | "idle"
+  | "copied"
+  | "empty"
+  | "unavailable"
+  | "failed";
 
 function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
@@ -208,14 +210,12 @@ export function MessageBubble({
   const [deleted, setDeleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>("idle");
   const [supabase] = useState(createClient);
   const [resolvedImageUrls, setResolvedImageUrls] = useState<string[]>([]);
-  const [replySwipeOffset, setReplySwipeOffset] = useState(0);
+  const mountedRef = useRef(true);
   const deleteConfirmTimeoutRef = useRef<number | null>(null);
-  const replySwipePointerIdRef = useRef<number | null>(null);
-  const replySwipeStartRef = useRef({ x: 0, y: 0 });
-  const replySwipeStartedRef = useRef(false);
-  const replySwipeOffsetRef = useRef(0);
+  const copyFeedbackTimeoutRef = useRef<number | null>(null);
 
   const isOwn = currentUserId === message.author_id;
   const canReact = useMemo(() => {
@@ -303,9 +303,17 @@ export function MessageBubble({
   const shouldShowLinkPreview = useMemo(() => {
     return Boolean(previewUrl && !directImageUrl && !mediaEmbed);
   }, [directImageUrl, mediaEmbed, previewUrl]);
-  const canReplyToMessage = useMemo(() => {
+  const isReplyable = useMemo(() => {
     return Boolean(onReply && !isSending && !isFailed && !editing);
   }, [editing, isFailed, isSending, onReply]);
+  const canReplyToMessage = useMemo(() => {
+    return isReplyable || Boolean(isAdmin);
+  }, [isAdmin, isReplyable]);
+  const canCopyMessage = true;
+  const canReportMessage = true;
+  const canEditMessage = isOwn && !editing;
+  const canDeleteMessage = isOwn && !editing;
+  const canPinMessage = Boolean(isAdmin);
   const replyPreviewText = useMemo(() => {
     if (message.reply_to) return resolveReplyPreviewText(message.reply_to);
     if (replyToMessageId) return REPLY_UNAVAILABLE_LABEL;
@@ -322,22 +330,22 @@ export function MessageBubble({
 
     return `Aller au message de ${message.reply_to.author.x_handle}`;
   }, [message.reply_to]);
-  const replySwipeDirection = useMemo(() => {
-    return isOwn ? -1 : 1;
-  }, [isOwn]);
-  const replySwipeTransformStyle = useMemo<CSSProperties | undefined>(() => {
-    if (replySwipeOffset <= 0) return undefined;
+  const copyLabel = useMemo(() => {
+    if (copyFeedback === "copied") return COPY_SUCCESS_LABEL;
+    if (copyFeedback === "empty") return COPY_EMPTY_LABEL;
+    if (copyFeedback === "unavailable") return COPY_UNAVAILABLE_LABEL;
+    if (copyFeedback === "failed") return COPY_FAILED_LABEL;
 
-    return {
-      transform: `translateX(${replySwipeOffset * replySwipeDirection}px)`,
-    };
-  }, [replySwipeDirection, replySwipeOffset]);
-  const replySwipeIndicatorStyle = useMemo<CSSProperties>(() => {
-    return {
-      opacity: Math.min(replySwipeOffset / REPLY_SWIPE_THRESHOLD_PX, 1),
-    };
-  }, [replySwipeOffset]);
+    return COPY_LABEL;
+  }, [copyFeedback]);
+  const copySucceeded = copyFeedback === "copied";
+  const trackMountedEffect = useCallback(() => {
+    mountedRef.current = true;
 
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const updateImageUrlsEffect = useCallback(() => {
     let isCancelled = false;
     const resolve = async () => {
@@ -359,6 +367,7 @@ export function MessageBubble({
     };
   }, [rawImageUrls, resolveImageUrls]);
 
+  useEffect(trackMountedEffect, [trackMountedEffect]);
   useEffect(updateImageUrlsEffect, [updateImageUrlsEffect]);
 
   const handleSaveEdit = useCallback(async () => {
@@ -371,6 +380,7 @@ export function MessageBubble({
       .from("messages")
       .update({ content: editContent, updated_at: new Date().toISOString() })
       .eq("id", message.id);
+    if (!mountedRef.current) return;
     setSaving(false);
     setEditing(false);
     onMessageUpdated?.();
@@ -382,6 +392,7 @@ export function MessageBubble({
       .from("messages")
       .update({ content: "", updated_at: new Date().toISOString() })
       .eq("id", message.id);
+    if (!mountedRef.current) return;
     setDeleted(true);
     setDeleteConfirming(false);
     setSaving(false);
@@ -399,6 +410,7 @@ export function MessageBubble({
         .update({ is_pinned: false })
         .eq("id", message.id)
         .eq("channel_id", channelId);
+      if (!mountedRef.current) return;
       setSaving(false);
 
       if (error) {
@@ -418,6 +430,7 @@ export function MessageBubble({
       .eq("is_pinned", true);
 
     if (clearExistingPinError) {
+      if (!mountedRef.current) return;
       setSaving(false);
       console.error(
         "Failed to clear existing pinned message",
@@ -432,6 +445,7 @@ export function MessageBubble({
       .update({ is_pinned: true })
       .eq("id", message.id)
       .eq("channel_id", channelId);
+    if (!mountedRef.current) return;
     setSaving(false);
 
     if (setPinError) {
@@ -451,6 +465,11 @@ export function MessageBubble({
   ]);
 
   const handleReport = useCallback(async () => {
+    if (!currentUserId) {
+      alert("Impossible de signaler ce message pour le moment.");
+      return;
+    }
+
     const reason = prompt("Raison du signalement :");
     if (!reason) return;
     await supabase.from("user_reports").insert({
@@ -461,6 +480,45 @@ export function MessageBubble({
     });
     alert("Signalement envoyé. Un administrateur examinera ce message.");
   }, [currentUserId, message.author_id, message.id, supabase]);
+
+  const clearCopyFeedbackTimeout = useCallback(() => {
+    if (copyFeedbackTimeoutRef.current === null) return;
+    window.clearTimeout(copyFeedbackTimeoutRef.current);
+    copyFeedbackTimeoutRef.current = null;
+  }, []);
+
+  const showCopyFeedback = useCallback(
+    (status: Exclude<CopyFeedback, "idle">) => {
+      clearCopyFeedbackTimeout();
+      setCopyFeedback(status);
+      copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+        setCopyFeedback("idle");
+        copyFeedbackTimeoutRef.current = null;
+      }, COPY_FEEDBACK_DURATION_MS);
+    },
+    [clearCopyFeedbackTimeout],
+  );
+
+  const handleCopyMessage = useCallback(async () => {
+    const textToCopy = message.content.trim();
+    if (!textToCopy) {
+      showCopyFeedback("empty");
+      return;
+    }
+
+    if (!navigator.clipboard?.writeText) {
+      showCopyFeedback("unavailable");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      showCopyFeedback("copied");
+    } catch (error) {
+      console.error("Failed to copy message text", error);
+      showCopyFeedback("failed");
+    }
+  }, [message.content, showCopyFeedback]);
 
   const handleEditContentChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -507,81 +565,24 @@ export function MessageBubble({
     onReply?.(message);
   }, [message, onReply]);
 
-  const updateReplySwipeOffset = useCallback((nextOffset: number) => {
-    replySwipeOffsetRef.current = nextOffset;
-    setReplySwipeOffset(nextOffset);
-  }, []);
-
-  const resetReplySwipe = useCallback(() => {
-    replySwipePointerIdRef.current = null;
-    replySwipeStartedRef.current = false;
-    updateReplySwipeOffset(0);
-  }, [updateReplySwipeOffset]);
-
   const handleReplyCitationClick = useCallback(() => {
     if (!replyToMessageId) return;
 
     onReplyClick?.(replyToMessageId);
   }, [onReplyClick, replyToMessageId]);
 
-  const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
-      if (!canReplyToMessage || event.pointerType === "mouse") return;
-
-      replySwipePointerIdRef.current = event.pointerId;
-      replySwipeStartRef.current = { x: event.clientX, y: event.clientY };
-      replySwipeStartedRef.current = false;
-      updateReplySwipeOffset(0);
-      event.currentTarget.setPointerCapture(event.pointerId);
-    },
-    [canReplyToMessage, updateReplySwipeOffset],
-  );
-
-  const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
-      if (replySwipePointerIdRef.current !== event.pointerId) return;
-
-      const deltaX = event.clientX - replySwipeStartRef.current.x;
-      const deltaY = event.clientY - replySwipeStartRef.current.y;
-      const directedDeltaX = deltaX * replySwipeDirection;
-      const absDeltaX = Math.abs(deltaX);
-      const absDeltaY = Math.abs(deltaY);
-
-      if (!replySwipeStartedRef.current) {
-        if (
-          absDeltaY > REPLY_SWIPE_VERTICAL_CANCEL_PX &&
-          absDeltaY > absDeltaX
-        ) {
-          resetReplySwipe();
-          return;
-        }
-
-        if (directedDeltaX < REPLY_SWIPE_START_THRESHOLD_PX) return;
-        replySwipeStartedRef.current = true;
-      }
-
-      event.preventDefault();
-      updateReplySwipeOffset(
-        Math.min(Math.max(directedDeltaX, 0), REPLY_SWIPE_MAX_OFFSET_PX),
-      );
-    },
-    [replySwipeDirection, resetReplySwipe, updateReplySwipeOffset],
-  );
-
-  const handlePointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
-      if (replySwipePointerIdRef.current !== event.pointerId) return;
-
-      const shouldReply =
-        replySwipeOffsetRef.current >= REPLY_SWIPE_THRESHOLD_PX;
-      resetReplySwipe();
-
-      if (shouldReply) {
-        handleReply();
-      }
-    },
-    [handleReply, resetReplySwipe],
-  );
+  const {
+    replySwipeIndicatorStyle,
+    replySwipeTransformStyle,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerEnd,
+  } = useReplySwipe({
+    enabled: canReplyToMessage,
+    isOwn,
+    onReply: handleReply,
+    triggerThresholdPx: REPLY_SWIPE_THRESHOLD_PX,
+  });
 
   const buildImageItems = useCallback(() => {
     if (displayedImageUrls.length === 0) return null;
@@ -685,8 +686,15 @@ export function MessageBubble({
     handleCancelDeleteConfirming,
   ]);
 
+  const cleanupCopyFeedbackTimeoutEffect = useCallback(() => {
+    return clearCopyFeedbackTimeout;
+  }, [clearCopyFeedbackTimeout]);
+
   useEffect(manageDeleteConfirmTimeoutEffect, [
     manageDeleteConfirmTimeoutEffect,
+  ]);
+  useEffect(cleanupCopyFeedbackTimeoutEffect, [
+    cleanupCopyFeedbackTimeoutEffect,
   ]);
 
   // Deleted message
@@ -869,16 +877,21 @@ export function MessageBubble({
           </div>
           <MessageInlineActions
             canReact={canReact}
-            currentUserId={currentUserId}
+            canCopy={canCopyMessage}
+            canDelete={canDeleteMessage}
+            canEdit={canEditMessage}
+            canPin={canPinMessage}
+            canReport={canReportMessage}
+            copyLabel={copyLabel}
+            copySucceeded={copySucceeded}
             deleteConfirming={deleteConfirming}
-            isAdmin={isAdmin}
-            isEditing={editing}
-            isOwn={isOwn}
             isPinned={Boolean(message.is_pinned)}
             isReplyable={canReplyToMessage}
+            replyLabel={REPLY_ACTION_LABEL}
             saving={saving}
             onCancelDelete={handleCancelDeleteConfirming}
             onConfirmDelete={handleStartDeleteConfirming}
+            onCopy={handleCopyMessage}
             onDelete={handleDelete}
             onEdit={handleStartEditing}
             onPin={handleTogglePin}
@@ -994,23 +1007,28 @@ export function MessageBubble({
             </div>
             <MessageInlineActions
               canReact={canReact}
-              currentUserId={currentUserId}
+              canCopy={canCopyMessage}
+              canDelete={canDeleteMessage}
+              canEdit={canEditMessage}
+              canPin={canPinMessage}
+              canReport={canReportMessage}
+              copyLabel={copyLabel}
+              copySucceeded={copySucceeded}
               deleteConfirming={deleteConfirming}
-              isAdmin={isAdmin}
-              isEditing={editing}
-              isOwn={isOwn}
               isPinned={Boolean(message.is_pinned)}
               isReplyable={canReplyToMessage}
+              replyLabel={REPLY_ACTION_LABEL}
               saving={saving}
               onCancelDelete={handleCancelDeleteConfirming}
               onConfirmDelete={handleStartDeleteConfirming}
+              onCopy={handleCopyMessage}
               onDelete={handleDelete}
               onEdit={handleStartEditing}
               onPin={handleTogglePin}
               onReact={handleReactionSelect}
               onReply={handleReply}
               onReport={handleReport}
-              className="hidden sm:flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100"
+              className="hidden sm:flex sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100"
             />
           </div>
         )}
@@ -1027,221 +1045,5 @@ export function MessageBubble({
         )}
       </section>
     </article>
-  );
-}
-
-function MessageInlineActions({
-  canReact,
-  className,
-  currentUserId,
-  deleteConfirming,
-  isAdmin,
-  isEditing,
-  isOwn,
-  isPinned,
-  isReplyable,
-  saving,
-  onCancelDelete,
-  onConfirmDelete,
-  onDelete,
-  onEdit,
-  onPin,
-  onReact,
-  onReply,
-  onReport,
-}: {
-  canReact: boolean;
-  className?: string;
-  currentUserId?: string;
-  deleteConfirming: boolean;
-  isAdmin?: boolean;
-  isEditing: boolean;
-  isOwn: boolean;
-  isPinned: boolean;
-  isReplyable: boolean;
-  saving: boolean;
-  onCancelDelete: () => void;
-  onConfirmDelete: () => void;
-  onDelete: () => void;
-  onEdit: () => void;
-  onPin: () => void;
-  onReact: (emoji: string) => void;
-  onReply: () => void;
-  onReport: () => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const hasMenuActions =
-    isReplyable ||
-    Boolean(isAdmin) ||
-    (isOwn && !isEditing) ||
-    (!isOwn && Boolean(currentUserId));
-  const closeMenuOnOutsidePointerDown = useCallback((event: PointerEvent) => {
-    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-      setMenuOpen(false);
-    }
-  }, []);
-  const handleToggleMenu = useCallback(() => {
-    setMenuOpen((current) => !current);
-  }, []);
-  const handlePin = useCallback(() => {
-    onPin();
-    setMenuOpen(false);
-  }, [onPin]);
-  const handleReply = useCallback(() => {
-    onReply();
-    setMenuOpen(false);
-  }, [onReply]);
-  const handleEdit = useCallback(() => {
-    onEdit();
-    setMenuOpen(false);
-  }, [onEdit]);
-  const handleReport = useCallback(() => {
-    onReport();
-    setMenuOpen(false);
-  }, [onReport]);
-  const handleDelete = useCallback(() => {
-    onDelete();
-    setMenuOpen(false);
-  }, [onDelete]);
-  const handleConfirmDelete = useCallback(() => {
-    onConfirmDelete();
-  }, [onConfirmDelete]);
-  const handleCancelDelete = useCallback(() => {
-    onCancelDelete();
-    setMenuOpen(false);
-  }, [onCancelDelete]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    document.addEventListener("pointerdown", closeMenuOnOutsidePointerDown);
-    return () => {
-      document.removeEventListener(
-        "pointerdown",
-        closeMenuOnOutsidePointerDown,
-      );
-    };
-  }, [closeMenuOnOutsidePointerDown, menuOpen]);
-
-  if (!canReact && !hasMenuActions) return null;
-
-  return (
-    <div
-      className={cn(
-        "relative flex shrink-0 items-center gap-[2px] transition-opacity",
-        className,
-      )}
-    >
-      {canReact && <ReactionPicker onSelect={onReact} />}
-      {hasMenuActions && (
-        <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            onClick={handleToggleMenu}
-            className="cursor-pointer rounded-full p-[5px] text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary"
-            aria-label="Plus d'actions"
-            title="Plus d'actions"
-          >
-            <MoreHorizontal className="h-[14px] w-[14px]" />
-          </button>
-          {menuOpen && (
-            <div className="fixed bottom-[calc(env(safe-area-inset-bottom)_+_72px)] left-[12px] right-[12px] z-50 rounded-lg border border-border-default bg-bg-elevated p-[4px] shadow-modal sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-[6px] sm:w-[184px]">
-              {isReplyable && (
-                <ActionMenuButton
-                  icon={<Reply className="h-[13px] w-[13px]" />}
-                  onClick={handleReply}
-                >
-                  Répondre
-                </ActionMenuButton>
-              )}
-              {isAdmin && (
-                <ActionMenuButton
-                  icon={<Pin className="h-[13px] w-[13px]" />}
-                  onClick={handlePin}
-                  disabled={saving}
-                >
-                  {isPinned ? "Désépingler" : "Épingler"}
-                </ActionMenuButton>
-              )}
-              {isOwn && !isEditing && (
-                <ActionMenuButton
-                  icon={<Pencil className="h-[13px] w-[13px]" />}
-                  onClick={handleEdit}
-                >
-                  Modifier
-                </ActionMenuButton>
-              )}
-              {isOwn && !isEditing && !deleteConfirming && (
-                <ActionMenuButton
-                  icon={<Trash2 className="h-[13px] w-[13px]" />}
-                  onClick={handleConfirmDelete}
-                  disabled={saving}
-                  variant="danger"
-                >
-                  Supprimer
-                </ActionMenuButton>
-              )}
-              {isOwn && !isEditing && deleteConfirming && (
-                <>
-                  <ActionMenuButton
-                    icon={<Check className="h-[13px] w-[13px]" />}
-                    onClick={handleDelete}
-                    disabled={saving}
-                    variant="danger"
-                  >
-                    Confirmer
-                  </ActionMenuButton>
-                  <ActionMenuButton onClick={handleCancelDelete}>
-                    Annuler
-                  </ActionMenuButton>
-                </>
-              )}
-              {!isOwn && currentUserId && (
-                <ActionMenuButton
-                  icon={<Flag className="h-[13px] w-[13px]" />}
-                  onClick={handleReport}
-                  variant="danger"
-                >
-                  Signaler
-                </ActionMenuButton>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ActionMenuButton({
-  children,
-  disabled,
-  icon,
-  onClick,
-  variant = "default",
-}: {
-  children: ReactNode;
-  disabled?: boolean;
-  icon?: ReactNode;
-  onClick: () => void;
-  variant?: "default" | "danger";
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "flex w-full cursor-pointer items-center gap-[8px] rounded-md px-[10px] py-[8px] text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "danger"
-          ? "text-error hover:bg-error-bg"
-          : "text-text-secondary hover:bg-bg-surface hover:text-text-primary",
-      )}
-    >
-      {icon}
-      <span>{children}</span>
-    </button>
   );
 }
