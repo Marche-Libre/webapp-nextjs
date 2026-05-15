@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Shield } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
@@ -9,21 +10,44 @@ export function AccessModal() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const open = searchParams.get("auth") === "access";
+  const search = searchParams.toString();
 
-  const close = () => {
-    const nextParams = new URLSearchParams(searchParams.toString());
+  return (
+    <AccessModalContent
+      key={search}
+      pathname={pathname}
+      router={router}
+      search={search}
+    />
+  );
+}
+
+type AccessModalContentProps = {
+  pathname: string | null;
+  router: ReturnType<typeof useRouter>;
+  search: string;
+};
+
+function AccessModalContent({ pathname, router, search }: AccessModalContentProps) {
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
+  const hasAccessAuthParam = searchParams.get("auth") === "access";
+  const [dismissed, setDismissed] = useState(false);
+  const open = hasAccessAuthParam && !dismissed;
+
+  const handleClose = useCallback(() => {
+    setDismissed(true);
+    const nextParams = new URLSearchParams(search);
     nextParams.delete("auth");
     const query = nextParams.toString();
     router.replace(query ? `${pathname}?${query}` : pathname || "/", {
       scroll: false,
     });
-  };
+  }, [pathname, router, search]);
 
   return (
     <Modal
       open={open}
-      onClose={close}
+      onClose={handleClose}
       title="Demander l’accès"
       className="max-w-[420px]"
     >

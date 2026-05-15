@@ -42,6 +42,8 @@ export function Modal({ open, onClose, children, title, className }: ModalProps)
               {title}
             </h3>
             <button
+              type="button"
+              aria-label="Fermer"
               onClick={onClose}
               className="p-1.5 rounded-md hover:bg-bg-surface text-text-muted cursor-pointer transition-colors duration-150"
             >
