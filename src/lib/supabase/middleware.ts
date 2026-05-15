@@ -121,38 +121,49 @@ export async function updateSession(request: NextRequest) {
     const isOnboarded = profile?.onboarding_completed === true;
     const hasKnownStatus = isApproved || isRejected || isPending;
 
-    if (!hasKnownStatus && pathname !== "/en-attente") {
+    if (!hasKnownStatus && pathname !== "/" && pathname !== "/en-attente") {
       const url = request.nextUrl.clone();
       url.pathname = "/en-attente";
       return NextResponse.redirect(url);
     }
 
     // Rejected users stay on the status boundary so the app can show a clear refusal state.
-    if (isRejected && pathname !== "/en-attente" && pathname !== "/connexion") {
+    if (
+      isRejected &&
+      pathname !== "/" &&
+      pathname !== "/en-attente" &&
+      pathname !== "/connexion"
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/en-attente";
       return NextResponse.redirect(url);
     }
 
     // Pending users can only see /en-attente
-    if (isPending && pathname !== "/en-attente") {
+    if (isPending && pathname !== "/" && pathname !== "/en-attente") {
       const url = request.nextUrl.clone();
       url.pathname = "/en-attente";
       return NextResponse.redirect(url);
     }
 
     // Approved but not onboarded → force onboarding
-    if (isApproved && !isOnboarded && pathname !== "/onboarding") {
+    if (
+      isApproved &&
+      !isOnboarded &&
+      pathname !== "/" &&
+      pathname !== "/onboarding"
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
       return NextResponse.redirect(url);
     }
 
-    // Fully onboarded users on landing/auth pages → redirect to app
+    // Fully onboarded users on auth/status/setup pages → redirect to app.
+    // Keep the marketing landing page visible even when a member is signed in.
     if (
       isApproved &&
       isOnboarded &&
-      (authEntryRoutes.includes(pathname) ||
+      ((authEntryRoutes.includes(pathname) && pathname !== "/") ||
         pathname === "/en-attente" ||
         pathname === "/onboarding")
     ) {

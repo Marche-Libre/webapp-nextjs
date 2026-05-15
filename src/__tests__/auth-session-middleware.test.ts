@@ -138,12 +138,12 @@ describe("auth session middleware routing matrix", () => {
   it("treats unknown statuses as non-member and routes to /en-attente", async () => {
     mockProfile = { status: "mystery", onboarding_completed: false };
 
+    await expectAllowed("/");
     await expectAllowed("/en-attente");
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
     const nonMemberRoutes = [
-      "/",
       "/connexion",
       "/inscription",
       "/rejoindre",
@@ -159,12 +159,12 @@ describe("auth session middleware routing matrix", () => {
   it("keeps pending users on /en-attente and out of member/admin routes", async () => {
     mockProfile = { status: "pending", onboarding_completed: false };
 
+    await expectAllowed("/");
     await expectAllowed("/en-attente");
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
     const blockedRoutes = [
-      "/",
       "/connexion",
       "/inscription",
       "/rejoindre",
@@ -180,13 +180,13 @@ describe("auth session middleware routing matrix", () => {
   it("keeps rejected users on explicit status routes while blocking member/admin routes", async () => {
     mockProfile = { status: "rejected", onboarding_completed: false };
 
+    await expectAllowed("/");
     await expectAllowed("/connexion");
     await expectAllowed("/en-attente");
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
     const blockedRoutes = [
-      "/",
       "/inscription",
       "/rejoindre",
       "/onboarding",
@@ -201,12 +201,12 @@ describe("auth session middleware routing matrix", () => {
   it("routes approved but not onboarded users to /onboarding, including admin attempts", async () => {
     mockProfile = { status: "approved", onboarding_completed: false };
 
+    await expectAllowed("/");
     await expectAllowed("/onboarding");
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
     const onboardingRedirectRoutes = [
-      "/",
       "/connexion",
       "/inscription",
       "/rejoindre",
@@ -219,11 +219,16 @@ describe("auth session middleware routing matrix", () => {
     );
   });
 
-  it("routes approved and onboarded users from entry/status/onboarding routes to /chat", async () => {
+  it("keeps the landing page accessible for approved and onboarded users", async () => {
+    mockProfile = { status: "approved", onboarding_completed: true };
+
+    await expectAllowed("/");
+  });
+
+  it("routes approved and onboarded users from auth/status/onboarding routes to /chat", async () => {
     mockProfile = { status: "approved", onboarding_completed: true };
 
     const chatEntryRedirectRoutes = [
-      "/",
       "/connexion",
       "/inscription",
       "/rejoindre",
