@@ -98,6 +98,7 @@ export type Message = {
   author_id: string;
   content: string;
   image_url: string | null;
+  reply_to_message_id: string | null;
   is_pinned: boolean;
   created_at: string;
   updated_at: string;

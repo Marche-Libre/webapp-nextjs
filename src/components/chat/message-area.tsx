@@ -6,6 +6,7 @@ import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
 import { useChatStore, useChannelState, type FullMessage, type ReactionMap } from "./chat-store";
+import { projectReplyTarget, type ReplyToMessage } from "@/lib/chat/messages";
 import { timeAgo } from "@/lib/utils";
 
 const CHAT_LANE_CLASSNAME = "w-full max-w-[860px] mx-auto";
@@ -78,6 +79,15 @@ function resolveScrollToLatestPosition(composerLaneElement: HTMLDivElement) {
   };
 }
 
+function scrollElementToBottom(
+  element: HTMLDivElement | null,
+  behavior: ScrollBehavior = "smooth",
+) {
+  if (!element) return;
+
+  element.scrollIntoView({ behavior, block: "end" });
+}
+
 export function MessageArea({
   channelId,
   channelSlug,
@@ -91,6 +101,7 @@ export function MessageArea({
 }: MessageAreaProps) {
   const store = useChatStore();
   const { messages, pinnedMessage, reactions, hasMore, loaded } = useChannelState(channelId);
+  const [replyTarget, setReplyTarget] = useState<ReplyToMessage | null>(null);
   const [showScrollToLatest, setShowScrollToLatest] = useState(false);
   const [hasNewLatestMessage, setHasNewLatestMessage] = useState(false);
   const [scrollToLatestPosition, setScrollToLatestPosition] = useState<{ bottom: number; right: number } | null>(null);
@@ -104,6 +115,11 @@ export function MessageArea({
   const latestMessageIdRef = useRef<string | null>(null);
 
   const messageCount = messages.length;
+  const activeReplyTarget = useMemo(() => {
+    if (replyTarget?.channel_id !== channelId) return null;
+
+    return replyTarget;
+  }, [channelId, replyTarget]);
   const latestMessageId = useMemo(() => {
     if (!messages.length) return null;
 
@@ -128,6 +144,16 @@ export function MessageArea({
     syncBottomState(scrollRef.current);
   }, [syncBottomState]);
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    scrollElementToBottom(bottomRef.current, behavior);
+  }, []);
+
+  const scheduleScrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    window.requestAnimationFrame(() => {
+      scrollToBottom(behavior);
+    });
+  }, [scrollToBottom]);
+
   const loadMore = useCallback(async () => {
     if (loadingMore.current) return;
     loadingMore.current = true;
@@ -135,9 +161,14 @@ export function MessageArea({
     loadingMore.current = false;
   }, [channelId, store]);
 
-  const addOptimisticMessage = useCallback((content: string, imageUrl?: string) => {
-    return store.addOptimisticMessage(channelId, content, userProfile, imageUrl);
-  }, [channelId, store, userProfile]);
+  const addOptimisticMessage = useCallback((content: string, imageUrl?: string, selectedReplyTarget?: ReplyToMessage | null) => {
+    const optimisticId = store.addOptimisticMessage(channelId, content, userProfile, imageUrl, selectedReplyTarget);
+    isAtBottom.current = true;
+    setShowScrollToLatest(false);
+    setHasNewLatestMessage(false);
+    scheduleScrollToBottom();
+    return optimisticId;
+  }, [channelId, scheduleScrollToBottom, store, userProfile]);
 
   const handleMessageConfirmed = useCallback((optimisticId: string, realMessage: FullMessage | null) => {
     store.confirmMessage(channelId, optimisticId, realMessage);
@@ -196,6 +227,29 @@ export function MessageArea({
     scheduleScrollToMessage(pinnedMessage.id);
   }, [channelId, pinnedMessage, scheduleScrollToMessage, store]);
 
+  const handleReplyClick = useCallback(async (messageId: string) => {
+    const found = await store.jumpToMessage(channelId, messageId);
+    if (!found) return;
+
+    isAtBottom.current = false;
+    setShowScrollToLatest(true);
+    scheduleScrollToMessage(messageId);
+  }, [channelId, scheduleScrollToMessage, store]);
+
+  const handleReply = useCallback((message: FullMessage) => {
+    if (!canWrite || isOffline) return;
+
+    setReplyTarget(projectReplyTarget(message));
+    isAtBottom.current = true;
+    setShowScrollToLatest(false);
+    setHasNewLatestMessage(false);
+    scheduleScrollToBottom();
+  }, [canWrite, isOffline, scheduleScrollToBottom]);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyTarget(null);
+  }, []);
+
   const handleScrollToLatest = useCallback(() => {
     clearMessageHighlight();
     isAtBottom.current = true;
@@ -222,14 +276,14 @@ export function MessageArea({
   const autoScrollEffect = useCallback(() => {
     void messageCount;
     if (isAtBottom.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollToBottom();
     }
-  }, [messageCount]);
+  }, [messageCount, scrollToBottom]);
 
   const initialScrollEffect = useCallback(() => {
     if (!channelId) return;
-    bottomRef.current?.scrollIntoView();
-  }, [channelId]);
+    scrollToBottom("auto");
+  }, [channelId, scrollToBottom]);
 
   const syncBottomStateEffect = useCallback(() => {
     void messageCount;
@@ -325,12 +379,14 @@ export function MessageArea({
           store={store}
           isFirstInGroup={isFirstInGroup}
           isLastInGroup={isLastInGroup}
+          onReply={handleReply}
+          onReplyClick={handleReplyClick}
         />
       );
     }
 
     return items;
-  }, [channelId, isAdmin, messages, reactions, store, userId]);
+  }, [channelId, handleReply, handleReplyClick, isAdmin, messages, reactions, store, userId]);
 
   useEffect(loadChannelEffect, [loadChannelEffect]);
   useEffect(watchChannelEffect, [watchChannelEffect]);
@@ -398,6 +454,8 @@ export function MessageArea({
           isOffline={isOffline}
           offlineMessage={offlineMessage}
           userId={userId}
+          replyTarget={activeReplyTarget}
+          onCancelReply={handleCancelReply}
           onOptimisticMessage={addOptimisticMessage}
           onMessageConfirmed={handleMessageConfirmed}
           onMessageFailed={handleMessageFailed}
@@ -416,6 +474,8 @@ interface MessageBubbleRowProps {
   store: ChatStore;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;
+  onReply: (message: FullMessage) => void;
+  onReplyClick: (messageId: string) => void;
 }
 
 function MessageBubbleRow({
@@ -427,6 +487,8 @@ function MessageBubbleRow({
   store,
   isFirstInGroup,
   isLastInGroup,
+  onReply,
+  onReplyClick,
 }: MessageBubbleRowProps) {
   const isOwnMessage = msg.author_id === userId;
 
@@ -456,6 +518,8 @@ function MessageBubbleRow({
         onMessageUpdated={handleMessageUpdated}
         isFirstInGroup={isFirstInGroup}
         isLastInGroup={isLastInGroup}
+        onReply={onReply}
+        onReplyClick={onReplyClick}
       />
     </div>
   );

@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MessagesSquare, Users, MessageCircle } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Users, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { ProfileCompletionRing } from "@/components/onboarding/profile-completion-ring";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -19,24 +18,10 @@ export default async function TableauDeBordPage() {
     .eq("id", user.id)
     .single();
 
-  const [
-    { count: postsCount },
-    { count: membresCount },
-  ] = await Promise.all([
-    supabase
-      .from("forum_posts")
-      .select("*", { count: "exact", head: true }),
-    supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "approved"),
-  ]);
-
-  const { data: recentPosts } = await supabase
-    .from("forum_posts")
-    .select("id, title, created_at, reply_count, author:profiles!forum_posts_author_id_fkey(x_handle), category:forum_categories(name, slug, color)")
-    .order("created_at", { ascending: false })
-    .limit(5);
+  const { count: membresCount } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "approved");
 
   return (
     <div className="space-y-[24px]">
@@ -53,12 +38,7 @@ export default async function TableauDeBordPage() {
       {profile && <ProfileCompletionRing profile={profile as Profile} />}
 
       {/* Stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
-        <StatCard
-          icon={<MessagesSquare className="h-5 w-5 text-primary-600" />}
-          label="Posts sur le forum"
-          value={postsCount ?? 0}
-        />
+      <div className="grid sm:grid-cols-2 gap-[16px]">
         <StatCard
           icon={<Users className="h-5 w-5 text-primary-500" />}
           label="Membres vérifiés"
@@ -71,50 +51,6 @@ export default async function TableauDeBordPage() {
           href="/chat"
         />
       </div>
-
-      {/* Recent forum posts */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="font-display tracking-[-0.02em]">Derniers posts du forum</CardTitle>
-          <Link
-            href="/forum"
-            className="text-[13px] text-primary-600 hover:underline font-medium"
-          >
-            Tout voir
-          </Link>
-        </CardHeader>
-        {recentPosts && recentPosts.length > 0 ? (
-          <div className="space-y-[4px]">
-            {recentPosts.map((p) => {
-              const category = p.category as unknown as { name: string; slug: string; color: string } | null;
-              const author = p.author as unknown as { x_handle: string } | null;
-              return (
-                <Link
-                  key={p.id}
-                  href={`/forum/posts/${p.id}`}
-                  className="flex items-center justify-between p-[12px] rounded-lg hover:bg-bg-surface transition-colors duration-150"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">
-                      {p.title}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      @{author?.x_handle} · {p.reply_count} réponse{p.reply_count !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  {category && (
-                    <Badge variant="primary">{category.name}</Badge>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-text-muted">
-            Aucun post sur le forum pour le moment.
-          </p>
-        )}
-      </Card>
     </div>
   );
 }

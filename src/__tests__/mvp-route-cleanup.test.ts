@@ -26,6 +26,24 @@ describe("MVP route cleanup", () => {
     expect(source("src/components/layout/sidebar.tsx")).toContain('href="/chat"');
   });
 
+  it("keeps settings routes while rendering a vertical mobile account nav with install priority", () => {
+    const appShell = source("src/components/layout/app-shell.tsx");
+    const settingsShell = source("src/components/layout/settings-shell.tsx");
+    const installPanel = source("src/components/runtime/app-install-update-panel.tsx");
+
+    expect(appShell).toContain("<SettingsShell profile={profile}>{children}</SettingsShell>");
+    expect(settingsShell).not.toContain("overflow-x-auto scrollbar-hide");
+    expect(settingsShell).toContain(">Compte</p>");
+    expect(settingsShell).toContain('<AppInstallUpdatePanel variant="priority" hideWhenIdle />');
+    expect(installPanel).toContain('hideWhenIdle && !hasAction');
+    expect(settingsShell).toContain('label: "Mon profil"');
+    expect(settingsShell).toContain('href: "/profil"');
+    expect(settingsShell).toContain('label: "Notifications"');
+    expect(settingsShell).toContain('href: "/notifications"');
+    expect(settingsShell).toContain('label: "Parrainages"');
+    expect(settingsShell).toContain('href: "/parrainages"');
+  });
+
   it("removes the deprecated channel-list back affordance from chat", () => {
     const channelList = source("src/components/chat/channel-list.tsx");
 
@@ -107,6 +125,69 @@ describe("MVP route cleanup", () => {
     expect(onboardingWizard).not.toContain("forum_posts");
     expect(onboardingWizard).not.toContain("presentationsCategoryId");
     expect(onboardingWizard).not.toContain("espace Pr\u00e9sentations");
+  });
+
+  it("redirects direct Forum and publication routes to chat", () => {
+    for (const routeFile of [
+      "src/app/(app)/forum/page.tsx",
+      "src/app/(app)/forum/[categorySlug]/page.tsx",
+      "src/app/(app)/forum/posts/[postId]/page.tsx",
+      "src/app/(app)/forum/posts/nouveau/page.tsx",
+    ]) {
+      const routeSource = source(routeFile);
+
+      expect(routeSource).toContain('import { redirect } from "next/navigation"');
+      expect(routeSource).toContain('redirect("/chat")');
+      expect(routeSource).not.toContain("forum_posts");
+      expect(routeSource).not.toContain("forum_categories");
+      expect(routeSource).not.toContain("NewPostForm");
+    }
+  });
+
+  it("does not expose publications through member profiles, chat embeds, or dashboard widgets", () => {
+    const memberProfileDrawer = source("src/components/membres/member-profile-drawer.tsx");
+    const memberProfile = source("src/components/membres/member-profile.tsx");
+    const messageBubble = source("src/components/chat/message-bubble.tsx");
+    const postEmbed = source("src/components/chat/post-embed.tsx");
+    const dashboard = source("src/app/(app)/tableau-de-bord/page.tsx");
+
+    expect(memberProfileDrawer).not.toContain("forum_posts");
+    expect(memberProfileDrawer).not.toContain("fetchRecentPosts");
+    expect(memberProfileDrawer).not.toContain("Publications récentes");
+    expect(memberProfile).not.toContain("Publications récentes");
+    expect(memberProfile).not.toContain('href={`/forum/posts/${post.id}`}');
+    expect(messageBubble).not.toContain("PostEmbed");
+    expect(messageBubble).not.toContain("FORUM_LINK_REGEX");
+    expect(postEmbed).not.toContain("forum_posts");
+    expect(postEmbed).toContain("return null");
+    expect(dashboard).not.toContain("forum_posts");
+    expect(dashboard).not.toContain("Derniers posts du forum");
+    expect(dashboard).not.toContain('href="/forum"');
+  });
+
+  it("keeps public member profile identity linked to the X profile", () => {
+    const memberProfileDrawer = source("src/components/membres/member-profile-drawer.tsx");
+    const memberProfile = source("src/components/membres/member-profile.tsx");
+
+    expect(memberProfileDrawer).toContain("https://x.com/");
+    expect(memberProfileDrawer).toContain("xProfileUrl");
+    expect(memberProfile).toContain("https://x.com/");
+    expect(memberProfile).toContain("xProfileUrl");
+  });
+
+  it("does not expose member report or block controls", () => {
+    const memberProfileDrawer = source("src/components/membres/member-profile-drawer.tsx");
+    const memberProfile = source("src/components/membres/member-profile.tsx");
+    const membersContent = source("src/components/membres/membres-content.tsx");
+
+    for (const profileSource of [memberProfileDrawer, memberProfile, membersContent]) {
+      expect(profileSource).not.toContain("ReportBlockMenu");
+      expect(profileSource).not.toContain("MemberMenu");
+      expect(profileSource).not.toContain("Signaler");
+      expect(profileSource).not.toContain("Bloquer");
+      expect(profileSource).not.toContain("user_reports");
+      expect(profileSource).not.toContain("user_blocks");
+    }
   });
 
   it("shows rejected users an explicit refused state instead of a silent login redirect", () => {

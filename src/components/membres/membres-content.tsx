@@ -1,82 +1,41 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import { MapPin, Users, MoreHorizontal, Flag, Ban, X, List, LayoutGrid, ChevronLeft, ChevronRight, ArrowDownAZ, ArrowUpZA, Clock } from "lucide-react";
-import Link from "next/link";
+import { useState, useMemo } from "react";
+import { MapPin, Users, X, List, LayoutGrid, ChevronLeft, ChevronRight, ArrowDownAZ, ArrowUpZA, Clock } from "lucide-react";
 import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { HierarchicalFilterDropdown, FilterDropdown } from "@/components/ui/filter-dropdown";
 import type { CategoryWithSpecialties } from "@/components/ui/filter-dropdown";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { countryFlag } from "@/lib/profile-utils";
 import type { Profile } from "@/lib/types/database";
+import { MemberProfileTrigger } from "./member-profile-trigger";
+
+type DirectoryMemberProfile = Pick<
+  Profile,
+  | "id"
+  | "x_handle"
+  | "full_name"
+  | "avatar_url"
+  | "availability_status"
+  | "specialty_ids"
+  | "specialty_category_id"
+  | "specialty_category_ids"
+  | "location"
+  | "country_code"
+  | "skills"
+  | "bio"
+  | "status"
+  | "created_at"
+>;
 
 interface MembresContentProps {
-  membres: Profile[];
+  membres: DirectoryMemberProfile[];
   categories: CategoryWithSpecialties[];
   locations: string[];
-  currentUserId: string;
 }
 
 const PER_PAGE = 12;
-
-/* ─── Context menu ─── */
-
-function MemberMenu({ memberId, currentUserId }: { memberId: string; currentUserId: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    if (open) {
-      document.addEventListener("mousedown", handler);
-      return () => document.removeEventListener("mousedown", handler);
-    }
-  }, [open]);
-
-  if (memberId === currentUserId) return null;
-
-  const handleReport = async () => {
-    const reason = prompt("Raison du signalement :");
-    if (!reason) return;
-    const supabase = createClient();
-    await supabase.from("user_reports").insert({ reporter_id: currentUserId, reported_id: memberId, reason });
-    setOpen(false);
-    alert("Signalement envoyé.");
-  };
-
-  const handleBlock = async () => {
-    if (!confirm("Bloquer ce membre ?")) return;
-    const supabase = createClient();
-    await supabase.from("user_blocks").insert({ blocker_id: currentUserId, blocked_id: memberId });
-    setOpen(false);
-    alert("Membre bloqué.");
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="p-[6px] rounded-md hover:bg-bg-surface-hover text-text-muted cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
-      >
-        <MoreHorizontal className="h-[16px] w-[16px]" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-[4px] bg-bg-base border border-border-default rounded-lg shadow-modal p-[4px] z-20 w-[160px]">
-          <button onClick={handleReport} className="flex items-center gap-[8px] px-[12px] py-[8px] rounded-md text-[13px] text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors w-full cursor-pointer">
-            <Flag className="h-[14px] w-[14px]" />Signaler
-          </button>
-          <button onClick={handleBlock} className="flex items-center gap-[8px] px-[12px] py-[8px] rounded-md text-[13px] text-error hover:bg-error-bg transition-colors w-full cursor-pointer">
-            <Ban className="h-[14px] w-[14px]" />Bloquer
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ─── Pagination ─── */
 
@@ -126,17 +85,26 @@ function LetterSeparator({ letter }: { letter: string }) {
 
 /* ─── Member card (list) ─── */
 
-function MemberListItem({ m, currentUserId, specDisplay }: { m: Profile; currentUserId: string; specDisplay: { categoryName: string | null; specialtyNames: string[] } }) {
+function MemberListItem({ m, specDisplay }: { m: DirectoryMemberProfile; specDisplay: { categoryName: string | null; specialtyNames: string[] } }) {
   const skills = m.skills ?? [];
   const hasSpec = specDisplay.categoryName || specDisplay.specialtyNames.length > 0;
+  const profileSeed = useMemo(() => {
+    return {
+      x_handle: m.x_handle,
+      full_name: m.full_name,
+      avatar_url: m.avatar_url,
+    };
+  }, [m.avatar_url, m.full_name, m.x_handle]);
   return (
     <div className="group flex items-center gap-[14px] px-[14px] py-[12px] rounded-xl border border-transparent hover:border-border-default hover:bg-bg-surface transition-all duration-150">
-      <Link href={`/membres/${m.id}`}>
+      <MemberProfileTrigger memberId={m.id} seed={profileSeed} className="rounded-xl">
         <Avatar src={m.avatar_url} name={m.x_handle} size="md" availability={m.availability_status} />
-      </Link>
+      </MemberProfileTrigger>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-[8px] flex-wrap">
-          <Link href={`/membres/${m.id}`} className="text-[14px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors">@{m.x_handle}</Link>
+          <MemberProfileTrigger memberId={m.id} seed={profileSeed} className="min-w-0 rounded-md text-[14px] font-semibold text-text-primary transition-colors hover:text-primary-500">
+            <span className="truncate">@{m.x_handle}</span>
+          </MemberProfileTrigger>
           {m.full_name && <span className="text-[12px] text-text-muted shrink-0 hidden sm:inline">{m.full_name}</span>}
           <AvailabilityBadge status={m.availability_status} />
         </div>
@@ -159,8 +127,9 @@ function MemberListItem({ m, currentUserId, specDisplay }: { m: Profile; current
         )}
       </div>
       <div className="flex items-center gap-[4px] shrink-0">
-        <Link href={`/membres/${m.id}`} className="px-[14px] py-[6px] rounded-lg bg-primary-500 text-bg-base text-[12px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer hidden sm:block">Voir profil</Link>
-        <MemberMenu memberId={m.id} currentUserId={currentUserId} />
+        <MemberProfileTrigger memberId={m.id} seed={profileSeed} className="hidden rounded-lg bg-primary-500 px-[14px] py-[6px] text-[12px] font-semibold text-bg-base transition-colors hover:bg-primary-600 sm:block">
+          Voir profil
+        </MemberProfileTrigger>
       </div>
     </div>
   );
@@ -168,21 +137,28 @@ function MemberListItem({ m, currentUserId, specDisplay }: { m: Profile; current
 
 /* ─── Member card (grid) ─── */
 
-function MemberGridCard({ m, currentUserId, specDisplay }: { m: Profile; currentUserId: string; specDisplay: { categoryName: string | null; specialtyNames: string[] } }) {
+function MemberGridCard({ m, specDisplay }: { m: DirectoryMemberProfile; specDisplay: { categoryName: string | null; specialtyNames: string[] } }) {
   const skills = m.skills ?? [];
-  const hasSpec = specDisplay.categoryName || specDisplay.specialtyNames.length > 0;
+  const profileSeed = useMemo(() => {
+    return {
+      x_handle: m.x_handle,
+      full_name: m.full_name,
+      avatar_url: m.avatar_url,
+    };
+  }, [m.avatar_url, m.full_name, m.x_handle]);
   return (
     <div className="group flex flex-col rounded-xl border border-border-subtle hover:border-border-default bg-bg-base hover:bg-bg-surface transition-all duration-150">
       <div className="p-[20px] pb-[14px]">
         <div className="flex items-start gap-[12px]">
-          <Link href={`/membres/${m.id}`}>
+          <MemberProfileTrigger memberId={m.id} seed={profileSeed} className="rounded-xl">
             <Avatar src={m.avatar_url} name={m.x_handle} size="lg" availability={m.availability_status} />
-          </Link>
+          </MemberProfileTrigger>
           <div className="min-w-0 flex-1">
-            <Link href={`/membres/${m.id}`} className="text-[15px] font-semibold text-text-primary truncate hover:text-primary-500 transition-colors block">@{m.x_handle}</Link>
+            <MemberProfileTrigger memberId={m.id} seed={profileSeed} className="block max-w-full rounded-md text-[15px] font-semibold text-text-primary transition-colors hover:text-primary-500">
+              <span className="block truncate">@{m.x_handle}</span>
+            </MemberProfileTrigger>
             {m.full_name && <p className="text-[12px] text-text-muted mt-[2px]">{m.full_name}</p>}
           </div>
-          <MemberMenu memberId={m.id} currentUserId={currentUserId} />
         </div>
         <AvailabilityBadge status={m.availability_status} />
       </div>
@@ -203,7 +179,9 @@ function MemberGridCard({ m, currentUserId, specDisplay }: { m: Profile; current
       )}
       {m.bio && <p className="px-[20px] mt-[12px] text-[13px] text-text-secondary line-clamp-2 leading-relaxed">{m.bio}</p>}
       <div className="mt-auto p-[16px]">
-        <Link href={`/membres/${m.id}`} className="flex items-center justify-center w-full py-[8px] rounded-lg bg-primary-500 text-bg-base text-[13px] font-semibold hover:bg-primary-600 transition-colors cursor-pointer">Voir profil</Link>
+        <MemberProfileTrigger memberId={m.id} seed={profileSeed} className="flex w-full items-center justify-center rounded-lg bg-primary-500 py-[8px] text-[13px] font-semibold text-bg-base transition-colors hover:bg-primary-600">
+          Voir profil
+        </MemberProfileTrigger>
       </div>
     </div>
   );
@@ -211,7 +189,7 @@ function MemberGridCard({ m, currentUserId, specDisplay }: { m: Profile; current
 
 /* ─── Main ─── */
 
-export function MembresContent({ membres, categories, locations, currentUserId }: MembresContentProps) {
+export function MembresContent({ membres, categories, locations }: MembresContentProps) {
   const [selectedSpecialtyIds, setSelectedSpecialtyIds] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"recent" | "az" | "za">("recent");
@@ -230,7 +208,7 @@ export function MembresContent({ membres, categories, locations, currentUserId }
   }, [categories]);
 
   // Get structured display for a member's specialties
-  const getSpecDisplay = (m: Profile): { categoryName: string | null; specialtyNames: string[] } => {
+  const getSpecDisplay = (m: DirectoryMemberProfile): { categoryName: string | null; specialtyNames: string[] } => {
     const ids = m.specialty_ids ?? [];
     const names: string[] = [];
     let catName: string | null = null;
@@ -243,19 +221,6 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     }
     return { categoryName: catName, specialtyNames: names };
   };
-
-  // Build set of category IDs that have selected specialty IDs (for chip display)
-  const selectedCategoryIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const specId of selectedSpecialtyIds) {
-      const info = specialtyMap.get(specId);
-      if (info) {
-        const cat = categories.find((c) => c.name === info.category);
-        if (cat) ids.add(cat.id);
-      }
-    }
-    return ids;
-  }, [selectedSpecialtyIds, specialtyMap, categories]);
 
   const filtered = useMemo(() => {
     let result = membres;
@@ -291,7 +256,7 @@ export function MembresContent({ membres, categories, locations, currentUserId }
   // Group paginated members by first letter
   const grouped = useMemo(() => {
     if (!showAlphaGroups) return null;
-    const groups: { letter: string; members: Profile[] }[] = [];
+    const groups: { letter: string; members: DirectoryMemberProfile[] }[] = [];
     for (const m of paginated) {
       const letter = (m.x_handle?.[0] ?? "?").toUpperCase();
       const last = groups[groups.length - 1];
@@ -316,12 +281,12 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     return labels;
   }, [selectedSpecialtyIds, specialtyMap]);
 
-  const renderMembers = (members: Profile[]) => {
+  const renderMembers = (members: DirectoryMemberProfile[]) => {
     if (view === "list") {
       return (
         <div className="space-y-[4px]">
           {members.map((m) => (
-            <MemberListItem key={m.id} m={m} currentUserId={currentUserId} specDisplay={getSpecDisplay(m)} />
+            <MemberListItem key={m.id} m={m} specDisplay={getSpecDisplay(m)} />
           ))}
         </div>
       );
@@ -329,7 +294,7 @@ export function MembresContent({ membres, categories, locations, currentUserId }
     return (
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-[12px]">
         {members.map((m) => (
-          <MemberGridCard key={m.id} m={m} currentUserId={currentUserId} specDisplay={getSpecDisplay(m)} />
+          <MemberGridCard key={m.id} m={m} specDisplay={getSpecDisplay(m)} />
         ))}
       </div>
     );

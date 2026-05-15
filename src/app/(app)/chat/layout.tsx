@@ -2,12 +2,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatLayout } from "@/components/chat/chat-layout";
 import { LAUNCH_CHAT_CHANNEL_SLUGS, sortLaunchChatChannels } from "@/lib/chat/channels";
+import {
+  MESSAGE_WITH_AUTHOR_SELECT,
+  attachReplyTargets,
+  collectReplyToMessageIds,
+  mapMessageRowsToMessagesWithAuthor,
+  projectReplyTarget,
+  type MessageRow,
+  type MessageWithAuthor,
+} from "@/lib/chat/messages";
 import { PREVIEW_IMAGES, createPageMetadata } from "@/lib/site-metadata";
-import type { Channel, Message, Profile } from "@/lib/types/database";
-
-type MessageWithAuthor = Message & {
-  author: Pick<Profile, "x_handle" | "full_name" | "avatar_url">;
-};
+import type { Channel, Profile } from "@/lib/types/database";
 
 export const metadata = createPageMetadata({
   title: "Chat privé",
@@ -114,11 +119,23 @@ export default async function ChatLayoutPage({
   if (defaultChannel) {
     const { data: msgs } = await supabase
       .from("messages")
-      .select("*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
       .eq("channel_id", defaultChannel.id)
       .order("created_at", { ascending: false })
       .limit(50);
-    initialMessages = ((msgs || []) as MessageWithAuthor[]).reverse();
+    const messagesWithAuthors = mapMessageRowsToMessagesWithAuthor((msgs || []) as MessageRow[]).reverse();
+    const replyToMessageIds = collectReplyToMessageIds(messagesWithAuthors);
+    if (replyToMessageIds.length === 0) {
+      initialMessages = messagesWithAuthors;
+    } else {
+      const { data: replyRows } = await supabase
+        .from("messages")
+        .select(MESSAGE_WITH_AUTHOR_SELECT)
+        .eq("channel_id", defaultChannel.id)
+        .in("id", replyToMessageIds);
+      const replyTargets = mapMessageRowsToMessagesWithAuthor((replyRows || []) as MessageRow[]).map(projectReplyTarget);
+      initialMessages = attachReplyTargets(messagesWithAuthors, replyTargets);
+    }
   }
 
   return (

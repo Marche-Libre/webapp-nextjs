@@ -7,11 +7,19 @@ import type {
   KeyboardEvent,
   MouseEvent,
 } from "react";
-import { ImagePlus, Send, Smile, X } from "lucide-react";
+import { ImagePlus, Reply, Send, Smile, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { notifyMentions } from "@/lib/notifications";
 import { Avatar } from "@/components/ui/avatar";
 import type { FullMessage } from "./chat-store";
+import {
+  MESSAGE_WITH_AUTHOR_SELECT,
+  mapMessageRowToMessageWithAuthor,
+  projectReplyTarget,
+  resolveReplyPreviewText,
+  type MessageRow,
+  type ReplyToMessage,
+} from "@/lib/chat/messages";
 
 interface MessageInputProps {
   channelId: string;
@@ -21,7 +29,13 @@ interface MessageInputProps {
   isOffline?: boolean;
   offlineMessage?: string | null;
   userId: string;
-  onOptimisticMessage?: (content: string, imageUrl?: string) => string;
+  replyTarget?: ReplyToMessage | null;
+  onCancelReply?: () => void;
+  onOptimisticMessage?: (
+    content: string,
+    imageUrl?: string,
+    replyTarget?: ReplyToMessage | null,
+  ) => string;
   onMessageConfirmed?: (
     optimisticId: string,
     realMessage: FullMessage | null,
@@ -199,8 +213,14 @@ function MentionSuggestionItem({
 
 const MAX_CHAT_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const CHAT_MEDIA_BUCKET = "medias";
-const MESSAGE_WITH_AUTHOR_SELECT =
-  "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
+
+type MessageInsertPayload = {
+  channel_id: string;
+  author_id: string;
+  content: string;
+  image_url: string | null;
+  reply_to_message_id?: string;
+};
 
 function resolveImageFileExtension(fileName: string) {
   const segments = fileName.split(".");
@@ -230,6 +250,8 @@ export function MessageInput({
   isOffline = false,
   offlineMessage = null,
   userId,
+  replyTarget = null,
+  onCancelReply,
   onOptimisticMessage,
   onMessageConfirmed,
   onMessageFailed,
@@ -263,6 +285,7 @@ export function MessageInput({
     const optimisticId = onOptimisticMessage?.(
       text,
       selectedImagePreviewUrl || undefined,
+      replyTarget,
     );
     setError(null);
     setUploadingImage(Boolean(imageFile));
@@ -292,14 +315,19 @@ export function MessageInput({
       uploadedImageUrl = objectPath;
     }
 
+    const insertPayload: MessageInsertPayload = {
+      channel_id: channelId,
+      author_id: userId,
+      content: text,
+      image_url: uploadedImageUrl,
+    };
+    if (replyTarget) {
+      insertPayload.reply_to_message_id = replyTarget.id;
+    }
+
     const { data: insertedMessage, error: insertError } = await supabase
       .from("messages")
-      .insert({
-        channel_id: channelId,
-        author_id: userId,
-        content: text,
-        image_url: uploadedImageUrl,
-      })
+      .insert(insertPayload)
       .select(MESSAGE_WITH_AUTHOR_SELECT)
       .single();
 
@@ -321,10 +349,18 @@ export function MessageInput({
       }
       setContent("");
       setImagePreviewUrl(null);
+      onCancelReply?.();
+      const confirmedMessage = insertedMessage
+        ? (mapMessageRowToMessageWithAuthor(insertedMessage as MessageRow) as FullMessage)
+        : null;
+      if (confirmedMessage && replyTarget) {
+        confirmedMessage.reply_to = projectReplyTarget(replyTarget);
+        confirmedMessage.reply_to_message_id = replyTarget.id;
+      }
       if (optimisticId)
         onMessageConfirmed?.(
           optimisticId,
-          insertedMessage as FullMessage | null,
+          confirmedMessage,
         );
       if (text) {
         notifyMentions(supabase, {
@@ -348,7 +384,9 @@ export function MessageInput({
     onMessageConfirmed,
     onMessageFailed,
     onOptimisticMessage,
+    onCancelReply,
     isOffline,
+    replyTarget,
     sending,
     userId,
   ]);
@@ -379,6 +417,11 @@ export function MessageInput({
   const handleEmojiPickerToggle = useCallback(() => {
     setEmojiPickerOpen((previous) => !previous);
   }, []);
+
+  const handleCancelReply = useCallback(() => {
+    onCancelReply?.();
+    textareaRef.current?.focus();
+  }, [onCancelReply]);
 
   const applyImageSelection = useCallback(
     (selectedFile: File) => {
@@ -592,6 +635,12 @@ export function MessageInput({
         return;
       }
 
+      if (replyTarget && e.key === "Escape") {
+        e.preventDefault();
+        onCancelReply?.();
+        return;
+      }
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         void sendMessage();
@@ -603,6 +652,8 @@ export function MessageInput({
       handleEmojiPickerClose,
       insertMention,
       mentionQuery,
+      onCancelReply,
+      replyTarget,
       selectedIndex,
       sendMessage,
       suggestions,
@@ -635,6 +686,38 @@ export function MessageInput({
       />
     ));
   }, [insertMention, selectedIndex, suggestions]);
+
+  const replyPreviewText = useMemo(() => {
+    if (!replyTarget) return "";
+
+    return resolveReplyPreviewText(replyTarget);
+  }, [replyTarget]);
+  const replyPreview = useMemo(() => {
+    if (!replyTarget) return null;
+
+    return (
+      <div className="mb-[8px] flex items-start gap-[8px] rounded-[12px] border border-primary-200 bg-primary-50/70 px-[10px] py-[8px]">
+        <Reply className="mt-[2px] h-[14px] w-[14px] shrink-0 text-primary-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold text-primary-700">
+            Réponse à @{replyTarget.author.x_handle}
+          </p>
+          <p className="mt-[1px] line-clamp-2 whitespace-pre-wrap break-words text-[12px] leading-[16px] text-text-secondary">
+            {replyPreviewText}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleCancelReply}
+          className="inline-flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-surface hover:text-text-secondary"
+          aria-label="Annuler la réponse"
+          title="Annuler la réponse"
+        >
+          <X className="h-[14px] w-[14px]" />
+        </button>
+      </div>
+    );
+  }, [handleCancelReply, replyPreviewText, replyTarget]);
 
   const canSubmit = canWrite && (Boolean(content.trim()) || Boolean(imageFile));
   const isBusy = sending || uploadingImage;
@@ -686,6 +769,8 @@ export function MessageInput({
           <div className="grid grid-cols-8 gap-[4px]">{emojiPickerItems}</div>
         </div>
       )}
+
+      {replyPreview}
 
       <div className="flex min-h-[46px] items-end gap-[3px] rounded-[23px] border border-border-default bg-bg-surface-hover px-[14px] py-[8px] shadow-card transition-colors focus-within:border-primary-500 focus-within:shadow-focus">
         <button

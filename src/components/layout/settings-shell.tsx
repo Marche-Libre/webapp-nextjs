@@ -3,21 +3,25 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Bell, LogOut, User, UserPlus } from "lucide-react";
+import { ArrowLeft, Bell, LogOut, Moon, Sun, User, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { Avatar } from "@/components/ui/avatar";
 import { useNotifications } from "@/components/notifications/notification-provider";
 import { createClient } from "@/lib/supabase/client";
 import { AppInstallUpdatePanel } from "@/components/runtime/app-install-update-panel";
+import { useTheme } from "@/components/theme/theme-provider";
+import type { Profile } from "@/lib/types/database";
 
 const settingsNav = [
-  { label: "Mon profil", href: "/profil", icon: User },
-  { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Parrainages", href: "/parrainages", icon: UserPlus },
+  { label: "Mon profil", mobileLabel: "Profil", href: "/profil", icon: User },
+  { label: "Notifications", mobileLabel: "Notifications", href: "/notifications", icon: Bell },
+  { label: "Parrainages", mobileLabel: "Parrainages", href: "/parrainages", icon: UserPlus },
 ];
 
 const WIDE_CONTENT_ROUTES = ["/notifications"];
 
 interface SettingsShellProps {
+  profile: Profile;
   children: React.ReactNode;
 }
 
@@ -27,10 +31,11 @@ function isActiveRoute(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function SettingsShell({ children }: SettingsShellProps) {
+export function SettingsShell({ profile, children }: SettingsShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { unreadCount } = useNotifications();
+  const { theme, setTheme } = useTheme();
 
   const close = useCallback(() => {
     router.push("/chat");
@@ -40,10 +45,20 @@ export function SettingsShell({ children }: SettingsShellProps) {
     await supabase.auth.signOut();
     router.push("/connexion");
   }, [router]);
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [setTheme, theme]);
   const unreadText = unreadCount > 99 ? "99+" : `${unreadCount}`;
   const isWideContentRoute = useMemo(() => {
     return WIDE_CONTENT_ROUTES.some((route) => pathname.startsWith(route));
   }, [pathname]);
+  const profileDisplayName = useMemo(() => {
+    return profile.full_name || `@${profile.x_handle}`;
+  }, [profile.full_name, profile.x_handle]);
+  const shouldShowHandle = useMemo(() => {
+    if (!profile.full_name) return false;
+    return profile.full_name.toLowerCase() !== profile.x_handle.toLowerCase();
+  }, [profile.full_name, profile.x_handle]);
 
   const renderDesktopNavItem = useCallback((item: SettingsNavItem) => {
     const isActive = isActiveRoute(pathname, item.href);
@@ -73,27 +88,33 @@ export function SettingsShell({ children }: SettingsShellProps) {
   const renderMobileNavItem = useCallback((item: SettingsNavItem) => {
     const isActive = isActiveRoute(pathname, item.href);
     const showUnreadBadge = item.href === "/notifications" && unreadCount > 0;
+    const ariaCurrent = isActive ? "page" : undefined;
     return (
       <Link
         key={item.href}
         href={item.href}
+        aria-current={ariaCurrent}
         className={cn(
-          "inline-flex items-center gap-[6px] px-[12px] py-[6px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap",
+          "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] rounded-lg px-[4px] py-[7px] text-[11px] font-medium transition-colors",
           isActive
             ? "bg-primary-50 text-primary-700"
-            : "text-text-muted hover:text-text-primary"
+            : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
         )}
       >
-        <item.icon className="h-[14px] w-[14px]" />
-        <span>{item.label}</span>
-        {showUnreadBadge && (
-          <span className="h-[16px] min-w-[16px] px-[4px] rounded-full bg-error text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-            {unreadText}
-          </span>
-        )}
+        <span className="relative flex h-[20px] w-[20px] items-center justify-center">
+          <item.icon className="h-[17px] w-[17px] shrink-0" />
+          {showUnreadBadge && (
+            <span className="absolute -right-[9px] -top-[5px] flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-error px-[4px] text-[9px] font-bold leading-none text-white">
+              {unreadText}
+            </span>
+          )}
+        </span>
+        <span className="max-w-full truncate leading-[14px]">{item.mobileLabel}</span>
       </Link>
     );
   }, [pathname, unreadCount, unreadText]);
+  const desktopNavItems = useMemo(() => settingsNav.map(renderDesktopNavItem), [renderDesktopNavItem]);
+  const mobileNavItems = useMemo(() => settingsNav.map(renderMobileNavItem), [renderMobileNavItem]);
 
   // ESC to close
   useEffect(() => {
@@ -119,7 +140,7 @@ export function SettingsShell({ children }: SettingsShellProps) {
           <p className="px-[12px] mb-[8px] text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
             Réglages utilisateur
           </p>
-          {settingsNav.map(renderDesktopNavItem)}
+          {desktopNavItems}
           <div className="mt-auto pt-[24px]">
             <AppInstallUpdatePanel />
           </div>
@@ -138,25 +159,77 @@ export function SettingsShell({ children }: SettingsShellProps) {
 
       {/* Content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile: back + tabs */}
-        <div className="flex sm:hidden items-center gap-[8px] px-[16px] h-[56px] border-b border-border-subtle shrink-0">
-          <button
-            onClick={close}
-            className="p-[8px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors"
-          >
-            <ArrowLeft className="h-[18px] w-[18px]" />
-          </button>
-          <div className="flex items-center gap-[8px] overflow-x-auto scrollbar-hide">
-            {settingsNav.map(renderMobileNavItem)}
+        {/* Mobile: compact account surface */}
+        <div className="sm:hidden shrink-0 border-b border-border-subtle bg-bg-base">
+          <div className="space-y-[10px] px-[16px] py-[10px]">
+            <div className="flex items-center justify-between gap-[8px]">
+              <div className="flex items-center gap-[8px] min-w-0">
+                <button
+                  onClick={close}
+                  className="p-[8px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors"
+                  aria-label="Retour au chat"
+                >
+                  <ArrowLeft className="h-[18px] w-[18px]" />
+                </button>
+                <p className="truncate text-[14px] font-semibold text-text-primary">Compte</p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="p-[8px] rounded-lg hover:bg-bg-surface text-text-muted hover:text-text-primary cursor-pointer transition-colors shrink-0"
+                aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+                title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-[18px] w-[18px]" />
+                ) : (
+                  <Moon className="h-[18px] w-[18px]" />
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-stretch gap-[8px]">
+              <div className="flex min-w-0 flex-1 items-center gap-[10px] rounded-lg border border-border-default bg-bg-elevated/50 px-[10px] py-[6px]">
+                <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold text-text-primary">
+                    {profileDisplayName}
+                  </p>
+                  {shouldShowHandle && (
+                    <p className="truncate text-[11px] text-text-muted">@{profile.x_handle}</p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="flex w-[44px] shrink-0 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/50 text-error transition-colors hover:bg-error-bg cursor-pointer"
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+              >
+                <LogOut className="h-[17px] w-[17px]" />
+              </button>
+            </div>
+
+            <AppInstallUpdatePanel variant="priority" hideWhenIdle />
           </div>
         </div>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto p-[16px] sm:p-[32px] lg:p-[48px]">
+        <div className="flex-1 overflow-y-auto p-[16px] pb-[calc(96px_+_env(safe-area-inset-bottom))] sm:p-[32px] sm:pb-[32px] lg:p-[48px]">
           <div className={cn("mx-auto", isWideContentRoute ? "max-w-5xl" : "max-w-2xl")}>
             {children}
           </div>
         </div>
+
+        <nav
+          aria-label="Navigation compte"
+          className="sm:hidden fixed inset-x-0 bottom-0 z-[70] border-t border-border-default bg-bg-base/95 px-[10px] pt-[8px] pb-[calc(env(safe-area-inset-bottom)_+_8px)] shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur"
+        >
+          <div className="mx-auto flex max-w-2xl gap-[4px]">
+            {mobileNavItems}
+          </div>
+        </nav>
       </div>
     </div>
   );
