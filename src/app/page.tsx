@@ -10,6 +10,9 @@ import { AnimatedCTA } from "@/components/home/animated-cta";
 import { FloatingHeader } from "@/components/home/floating-header";
 import { LandingHeader } from "@/components/home/landing-header";
 import { CookieBanner } from "@/components/ui/cookie-banner";
+import packageJson from "../../package.json";
+
+const appVersion = packageJson.version;
 
 export default function HomePage() {
   return (
@@ -99,7 +102,8 @@ export default function HomePage() {
           {/* Bottom bar */}
           <div className="mt-8 pt-6 border-t border-neutral-content/10">
             <p className="text-xs text-neutral-content/35 text-center">
-              &copy; 2026 MarchéLibre &mdash; Tous droits réservés
+              &copy; 2026 MarchéLibre &mdash; Tous droits réservés &mdash;{" "}
+              Version {appVersion}
             </p>
           </div>
         </div>
