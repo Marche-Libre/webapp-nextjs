@@ -13,9 +13,9 @@ import { useTheme } from "@/components/theme/theme-provider";
 import type { Profile } from "@/lib/types/database";
 
 const settingsNav = [
-  { label: "Mon profil", href: "/profil", icon: User },
-  { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Parrainages", href: "/parrainages", icon: UserPlus },
+  { label: "Mon profil", mobileLabel: "Profil", href: "/profil", icon: User },
+  { label: "Notifications", mobileLabel: "Notifications", href: "/notifications", icon: Bell },
+  { label: "Parrainages", mobileLabel: "Parrainages", href: "/parrainages", icon: UserPlus },
 ];
 
 const WIDE_CONTENT_ROUTES = ["/notifications"];
@@ -88,24 +88,28 @@ export function SettingsShell({ profile, children }: SettingsShellProps) {
   const renderMobileNavItem = useCallback((item: SettingsNavItem) => {
     const isActive = isActiveRoute(pathname, item.href);
     const showUnreadBadge = item.href === "/notifications" && unreadCount > 0;
+    const ariaCurrent = isActive ? "page" : undefined;
     return (
       <Link
         key={item.href}
         href={item.href}
+        aria-current={ariaCurrent}
         className={cn(
-          "flex items-center gap-[10px] px-[12px] py-[10px] rounded-lg text-[13px] font-medium transition-colors",
+          "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-[3px] rounded-lg px-[4px] py-[7px] text-[11px] font-medium transition-colors",
           isActive
             ? "bg-primary-50 text-primary-700"
             : "text-text-secondary hover:bg-bg-surface hover:text-text-primary"
         )}
       >
-        <item.icon className="h-[16px] w-[16px] shrink-0" />
-        <span className="truncate">{item.label}</span>
-        {showUnreadBadge && (
-          <span className="ml-auto h-[16px] min-w-[16px] px-[4px] rounded-full bg-error text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-            {unreadText}
-          </span>
-        )}
+        <span className="relative flex h-[20px] w-[20px] items-center justify-center">
+          <item.icon className="h-[17px] w-[17px] shrink-0" />
+          {showUnreadBadge && (
+            <span className="absolute -right-[9px] -top-[5px] flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-error px-[4px] text-[9px] font-bold leading-none text-white">
+              {unreadText}
+            </span>
+          )}
+        </span>
+        <span className="max-w-full truncate leading-[14px]">{item.mobileLabel}</span>
       </Link>
     );
   }, [pathname, unreadCount, unreadText]);
@@ -155,7 +159,7 @@ export function SettingsShell({ profile, children }: SettingsShellProps) {
 
       {/* Content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile: vertical account surface */}
+        {/* Mobile: compact account surface */}
         <div className="sm:hidden shrink-0 border-b border-border-subtle bg-bg-base">
           <div className="space-y-[10px] px-[16px] py-[10px]">
             <div className="flex items-center justify-between gap-[8px]">
@@ -184,41 +188,48 @@ export function SettingsShell({ profile, children }: SettingsShellProps) {
               </button>
             </div>
 
-            <div className="flex items-center gap-[10px] rounded-lg border border-border-default bg-bg-elevated/50 px-[10px] py-[6px]">
-              <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold text-text-primary">
-                  {profileDisplayName}
-                </p>
-                {shouldShowHandle && (
-                  <p className="truncate text-[11px] text-text-muted">@{profile.x_handle}</p>
-                )}
+            <div className="flex items-stretch gap-[8px]">
+              <div className="flex min-w-0 flex-1 items-center gap-[10px] rounded-lg border border-border-default bg-bg-elevated/50 px-[10px] py-[6px]">
+                <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-semibold text-text-primary">
+                    {profileDisplayName}
+                  </p>
+                  {shouldShowHandle && (
+                    <p className="truncate text-[11px] text-text-muted">@{profile.x_handle}</p>
+                  )}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="flex w-[44px] shrink-0 items-center justify-center rounded-lg border border-border-default bg-bg-elevated/50 text-error transition-colors hover:bg-error-bg cursor-pointer"
+                aria-label="Se déconnecter"
+                title="Se déconnecter"
+              >
+                <LogOut className="h-[17px] w-[17px]" />
+              </button>
             </div>
 
             <AppInstallUpdatePanel variant="priority" hideWhenIdle />
-
-            <nav className="space-y-[6px]">
-              {mobileNavItems}
-            </nav>
-
-            <button
-              type="button"
-              onClick={logout}
-              className="flex w-full items-center gap-[10px] rounded-lg px-[12px] py-[10px] text-[13px] font-medium text-error transition-colors hover:bg-error-bg cursor-pointer"
-            >
-              <LogOut className="h-[16px] w-[16px]" />
-              Se déconnecter
-            </button>
           </div>
         </div>
 
         {/* Page content */}
-        <div className="flex-1 overflow-y-auto p-[16px] sm:p-[32px] lg:p-[48px]">
+        <div className="flex-1 overflow-y-auto p-[16px] pb-[calc(96px_+_env(safe-area-inset-bottom))] sm:p-[32px] sm:pb-[32px] lg:p-[48px]">
           <div className={cn("mx-auto", isWideContentRoute ? "max-w-5xl" : "max-w-2xl")}>
             {children}
           </div>
         </div>
+
+        <nav
+          aria-label="Navigation compte"
+          className="sm:hidden fixed inset-x-0 bottom-0 z-[70] border-t border-border-default bg-bg-base/95 px-[10px] pt-[8px] pb-[calc(env(safe-area-inset-bottom)_+_8px)] shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur"
+        >
+          <div className="mx-auto flex max-w-2xl gap-[4px]">
+            {mobileNavItems}
+          </div>
+        </nav>
       </div>
     </div>
   );
