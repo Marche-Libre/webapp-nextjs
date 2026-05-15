@@ -17,7 +17,6 @@ import {
 } from "@/lib/chat/messages";
 import { extractFirstHttpUrl } from "@/lib/link-preview-url";
 import { resolveMediaEmbed } from "@/lib/media-embed";
-import { PostEmbed } from "./post-embed";
 import { UserHoverCard } from "./user-hover-card";
 import { LinkPreview } from "./link-preview";
 import { MediaEmbed } from "./media-embed";
@@ -83,7 +82,6 @@ type MessageReactionEntry = {
   hasReacted: boolean;
 };
 
-const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const DIRECT_IMAGE_URL_REGEX =
   /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
 const EMPTY_IMAGE_URLS: string[] = [];
@@ -250,7 +248,6 @@ export function MessageBubble({
     if (isLastInGroup) return "rounded-[18px] rounded-tl-[8px]";
     return "rounded-[18px] rounded-tl-[8px] rounded-bl-[8px]";
   }, [isFirstInGroup, isLastInGroup, isOwn]);
-  const forumMatch = message.content.match(FORUM_LINK_REGEX);
   const rawImageUrls = useMemo(
     () => parseImageUrls(message.image_url),
     [message.image_url],
@@ -1003,7 +1000,6 @@ export function MessageBubble({
               {shouldShowLinkPreview && previewUrl && (
                 <LinkPreview url={previewUrl} />
               )}
-              {forumMatch && <PostEmbed postId={forumMatch[1]} />}
             </div>
             <MessageInlineActions
               canReact={canReact}

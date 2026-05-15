@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { Ban, Briefcase, Calendar, Clock, ExternalLink, Flag, Globe, MapPin, MessageSquare, MoreHorizontal, RefreshCw, Shield, X } from "lucide-react";
+import { Briefcase, Calendar, Clock, ExternalLink, Globe, MapPin, RefreshCw, Shield, X } from "lucide-react";
 import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
@@ -34,19 +33,12 @@ type PublicMemberProfile = {
 
 type CategoryWithSpecialties = SpecialtyCategory & { specialties: Specialty[] };
 type SponsorPreview = { x_handle: string } | null;
-type ForumPostPreview = {
-  id: string;
-  title: string;
-  reply_count: number;
-  created_at: string;
-  category: { name: string; color: string | null; slug: string } | null;
-};
 
 type DrawerLoadState =
-  | { status: "idle"; profile: null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; recentPosts: ForumPostPreview[]; currentUserId: string | null; isBlocked: boolean }
-  | { status: "loading"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; recentPosts: ForumPostPreview[]; currentUserId: string | null; isBlocked: boolean }
-  | { status: "ready"; profile: PublicMemberProfile; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; recentPosts: ForumPostPreview[]; currentUserId: string | null; isBlocked: boolean }
-  | { status: "error"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; recentPosts: ForumPostPreview[]; currentUserId: string | null; isBlocked: boolean };
+  | { status: "idle"; profile: null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview }
+  | { status: "loading"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview }
+  | { status: "ready"; profile: PublicMemberProfile; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview }
+  | { status: "error"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview };
 
 type MemberProfileDrawerProps = {
   memberId: string | null;
@@ -72,7 +64,6 @@ const FOCUSABLE_SELECTOR = [
 
 const profileCache = new Map<string, PublicMemberProfile>();
 let categoriesCache: CategoryWithSpecialties[] | null = null;
-const EMPTY_RECENT_POSTS: ForumPostPreview[] = [];
 
 function makeSeedProfile(memberId: string | null, seed: MemberProfileSeed | null): PublicMemberProfile | null {
   if (!memberId || !seed?.x_handle) return null;
@@ -184,46 +175,6 @@ async function fetchSponsor(supabase: SupabaseClient, sponsorId: string | null) 
   return { x_handle: data.x_handle };
 }
 
-async function fetchRecentPosts(supabase: SupabaseClient, memberId: string) {
-  const { data, error } = await supabase
-    .from("forum_posts")
-    .select("id, title, reply_count, created_at, category:forum_categories(name, color, slug)")
-    .eq("author_id", memberId)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  if (error) return EMPTY_RECENT_POSTS;
-
-  return (data ?? []).map((post) => ({
-    id: post.id,
-    title: post.title,
-    reply_count: post.reply_count,
-    created_at: post.created_at,
-    category: Array.isArray(post.category) ? post.category[0] ?? null : post.category,
-  }));
-}
-
-async function fetchCurrentUserId(supabase: SupabaseClient) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user?.id ?? null;
-}
-
-async function fetchBlockStatus(supabase: SupabaseClient, currentUserId: string | null, memberId: string) {
-  if (!currentUserId || currentUserId === memberId) return false;
-
-  const { data, error } = await supabase
-    .from("user_blocks")
-    .select("blocker_id")
-    .eq("blocker_id", currentUserId)
-    .eq("blocked_id", memberId)
-    .maybeSingle();
-
-  return Boolean(!error && data);
-}
-
 async function fetchCategories(supabase: SupabaseClient) {
   if (categoriesCache) return categoriesCache;
 
@@ -241,6 +192,10 @@ function getFocusableElements(container: HTMLElement | null) {
 
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
     .filter((element) => !element.hasAttribute("disabled") && element.offsetParent !== null);
+}
+
+function getXProfileUrl(xHandle: string) {
+  return `https://x.com/${xHandle.replace(/^@/, "")}`;
 }
 
 function LoadingProfile() {
@@ -282,117 +237,20 @@ function ErrorProfile({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function ReportBlockMenu({
-  currentUserId,
-  isBlocked,
-  memberId,
-}: {
-  currentUserId: string;
-  isBlocked: boolean;
-  memberId: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const closeMenuOnOutsidePointerDown = useCallback((event: PointerEvent) => {
-    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-      setOpen(false);
-    }
-  }, []);
-
-  const handleToggleMenu = useCallback(() => {
-    setOpen((current) => !current);
-  }, []);
-
-  const handleReport = useCallback(async () => {
-    const reason = window.prompt("Raison du signalement :");
-    if (!reason) return;
-
-    const supabase = createClient();
-    await supabase
-      .from("user_reports")
-      .insert({ reporter_id: currentUserId, reported_id: memberId, reason });
-    setOpen(false);
-    window.alert("Signalement envoyé.");
-  }, [currentUserId, memberId]);
-
-  const handleBlock = useCallback(async () => {
-    if (isBlocked) return;
-    if (!window.confirm("Bloquer ce membre ?")) return;
-
-    const supabase = createClient();
-    await supabase
-      .from("user_blocks")
-      .insert({ blocker_id: currentUserId, blocked_id: memberId });
-    setOpen(false);
-    window.alert("Membre bloqué.");
-  }, [currentUserId, isBlocked, memberId]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    document.addEventListener("pointerdown", closeMenuOnOutsidePointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", closeMenuOnOutsidePointerDown);
-    };
-  }, [closeMenuOnOutsidePointerDown, open]);
-
-  return (
-    <div ref={menuRef} className="relative">
-      <button
-        type="button"
-        onClick={handleToggleMenu}
-        className="cursor-pointer rounded-lg border border-border-default p-[8px] text-text-muted transition-colors hover:border-border-strong hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
-        aria-label="Actions membre"
-        aria-expanded={open}
-      >
-        <MoreHorizontal className="h-[16px] w-[16px]" />
-      </button>
-      {open ? (
-        <div className="absolute right-0 top-full z-20 mt-[4px] w-[168px] rounded-lg border border-border-default bg-bg-base p-[4px] shadow-modal">
-          <button
-            type="button"
-            onClick={handleReport}
-            className="flex w-full cursor-pointer items-center gap-[8px] rounded-md px-[12px] py-[8px] text-[13px] text-text-secondary transition-colors hover:bg-bg-surface hover:text-text-primary"
-          >
-            <Flag className="h-[14px] w-[14px]" />
-            Signaler
-          </button>
-          <button
-            type="button"
-            onClick={handleBlock}
-            disabled={isBlocked}
-            className="flex w-full cursor-pointer items-center gap-[8px] rounded-md px-[12px] py-[8px] text-[13px] text-error transition-colors hover:bg-error-bg disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Ban className="h-[14px] w-[14px]" />
-            {isBlocked ? "Déjà bloqué" : "Bloquer"}
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function ProfileContent({
   profile,
   categories,
   sponsor,
-  recentPosts,
-  currentUserId,
-  isBlocked,
 }: {
   profile: PublicMemberProfile;
   categories: CategoryWithSpecialties[];
   sponsor: SponsorPreview;
-  recentPosts: ForumPostPreview[];
-  currentUserId: string | null;
-  isBlocked: boolean;
 }) {
   const specDisplay = getSpecialtyDisplay(profile, categories);
   const skills = profile.skills ?? [];
   const links = profile.links ?? null;
   const hasLinks = links && Object.keys(links).length > 0;
-  const isOwnProfile = currentUserId === profile.id;
+  const xProfileUrl = getXProfileUrl(profile.x_handle);
   const categoryItems = specDisplay.categoryNames.map((name) => (
     <Badge key={name} variant="primary">{name}</Badge>
   ));
@@ -427,34 +285,6 @@ function ProfileContent({
       </a>
     ))
     : [];
-  const recentPostItems = recentPosts.map((post: ForumPostPreview) => {
-    const category = post.category;
-
-    return (
-      <Link
-        key={post.id}
-        href={`/forum/posts/${post.id}`}
-        className="flex items-center gap-[10px] rounded-lg px-[10px] py-[9px] transition-colors hover:bg-bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium text-text-primary">{post.title}</p>
-          <div className="mt-[2px] flex items-center gap-[6px]">
-            {category ? (
-              <span className="truncate text-[10px] font-medium text-primary-500">
-                {category.name}
-              </span>
-            ) : null}
-            <span className="shrink-0 text-[11px] text-text-muted">{formatDate(post.created_at)}</span>
-          </div>
-        </div>
-        <span className="flex shrink-0 items-center gap-[3px] text-[11px] text-text-muted">
-          <MessageSquare className="h-[12px] w-[12px]" />
-          {post.reply_count}
-        </span>
-      </Link>
-    );
-  });
-
   return (
     <div className="space-y-[20px] p-[20px]">
       <section className="space-y-[14px]">
@@ -467,38 +297,36 @@ function ProfileContent({
           />
           <div className="min-w-0 flex-1 pt-[2px]">
             <div className="flex flex-wrap items-center gap-[8px]">
-              <h2 className="truncate font-display text-[20px] font-bold tracking-[-0.02em] text-text-primary">
+              <a
+                href={xProfileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate font-display text-[20px] font-bold tracking-[-0.02em] text-text-primary transition-colors hover:text-primary-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+              >
                 @{profile.x_handle}
-              </h2>
+              </a>
               <Badge variant="success">Vérifié</Badge>
             </div>
             {profile.full_name ? (
               <p className="mt-[2px] truncate text-[14px] text-text-secondary">{profile.full_name}</p>
             ) : null}
+            {profile.location ? (
+              <p className="mt-[4px] flex items-center gap-[4px] text-[12px] text-text-muted">
+                <MapPin className="h-[12px] w-[12px]" />
+                {profile.country_code ? <span>{countryFlag(profile.country_code)}</span> : null}
+                <span className="truncate">{profile.location}</span>
+              </p>
+            ) : null}
             <div className="mt-[8px]">
               <AvailabilityBadge status={profile.availability_status ?? undefined} />
             </div>
           </div>
-          {currentUserId && !isOwnProfile ? (
-            <ReportBlockMenu
-              currentUserId={currentUserId}
-              isBlocked={isBlocked}
-              memberId={profile.id}
-            />
-          ) : null}
         </div>
 
-        {(categoryItems.length > 0 || specialtyItems.length > 0 || profile.location) ? (
+        {(categoryItems.length > 0 || specialtyItems.length > 0) ? (
           <div className="flex flex-wrap items-center gap-[6px]">
             {categoryItems}
             {specialtyItems}
-            {profile.location ? (
-              <span className="flex items-center gap-[4px] text-[12px] text-text-muted">
-                <MapPin className="h-[12px] w-[12px]" />
-                {profile.country_code ? <span>{countryFlag(profile.country_code)}</span> : null}
-                {profile.location}
-              </span>
-            ) : null}
           </div>
         ) : null}
 
@@ -575,14 +403,6 @@ function ProfileContent({
         </section>
       ) : null}
 
-      {recentPostItems.length > 0 ? (
-        <section className="space-y-[6px] border-t border-border-subtle pt-[18px]">
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted">
-            Publications récentes
-          </h3>
-          {recentPostItems}
-        </section>
-      ) : null}
     </div>
   );
 }
@@ -595,9 +415,6 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
     profile: null,
     categories: categoriesCache ?? [],
     sponsor: null,
-    recentPosts: EMPTY_RECENT_POSTS,
-    currentUserId: null,
-    isBlocked: false,
   });
 
   const isOpen = !!memberId;
@@ -612,16 +429,12 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
       profile: cachedProfile,
       categories: categoriesCache ?? [],
       sponsor: null,
-      recentPosts: EMPTY_RECENT_POSTS,
-      currentUserId: null,
-      isBlocked: false,
     });
 
     const supabase = createClient();
-    const [profile, categories, currentUserId] = await Promise.all([
+    const [profile, categories] = await Promise.all([
       fetchPublicMemberProfile(supabase, memberId),
       fetchCategories(supabase),
-      fetchCurrentUserId(supabase),
     ]);
 
     if (!profile) {
@@ -630,18 +443,11 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
         profile: cachedProfile,
         categories,
         sponsor: null,
-        recentPosts: EMPTY_RECENT_POSTS,
-        currentUserId,
-        isBlocked: false,
       });
       return;
     }
 
-    const [sponsor, recentPosts, isBlocked] = await Promise.all([
-      fetchSponsor(supabase, profile.sponsored_by),
-      fetchRecentPosts(supabase, memberId),
-      fetchBlockStatus(supabase, currentUserId, memberId),
-    ]);
+    const sponsor = await fetchSponsor(supabase, profile.sponsored_by);
 
     profileCache.set(memberId, profile);
     setLoadState({
@@ -649,9 +455,6 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
       profile,
       categories,
       sponsor,
-      recentPosts,
-      currentUserId,
-      isBlocked,
     });
   }, [memberId, seedProfile]);
 
@@ -747,9 +550,6 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
               profile={loadState.profile}
               categories={loadState.categories}
               sponsor={loadState.sponsor}
-              recentPosts={loadState.recentPosts}
-              currentUserId={loadState.currentUserId}
-              isBlocked={loadState.isBlocked}
             />
           ) : null}
           {loadState.status === "loading" && !loadState.profile ? <LoadingProfile /> : null}
@@ -758,9 +558,6 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
               profile={loadState.profile}
               categories={loadState.categories}
               sponsor={loadState.sponsor}
-              recentPosts={loadState.recentPosts}
-              currentUserId={loadState.currentUserId}
-              isBlocked={loadState.isBlocked}
             />
           ) : null}
           {loadState.status === "error" ? <ErrorProfile onRetry={handleRetry} /> : null}

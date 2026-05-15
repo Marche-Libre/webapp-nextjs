@@ -1,91 +1,28 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { MapPin, ExternalLink, MessageSquare, Calendar, Shield, MoreHorizontal, Flag, Ban, Globe, Briefcase, Clock } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
+import { MapPin, ExternalLink, Calendar, Shield, Globe, Briefcase, Clock } from "lucide-react";
 import { countryFlag, getSpecialtyDisplay } from "@/lib/profile-utils";
 import type { Profile, SpecialtyCategory, Specialty } from "@/lib/types/database";
-
-interface ForumPostPreview {
-  id: string;
-  title: string;
-  reply_count: number;
-  created_at: string;
-  category: { name: string; color: string | null; slug: string } | null;
-}
 
 interface MemberProfileProps {
   member: Profile;
   sponsor: { x_handle: string } | null;
-  recentPosts: ForumPostPreview[];
-  currentUserId: string;
-  isBlocked: boolean;
   categories: (SpecialtyCategory & { specialties: Specialty[] })[];
 }
 
-function ReportBlockMenu({ memberId, currentUserId }: { memberId: string; currentUserId: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    if (open) {
-      document.addEventListener("mousedown", handler);
-      return () => document.removeEventListener("mousedown", handler);
-    }
-  }, [open]);
-
-  const handleReport = async () => {
-    const reason = prompt("Raison du signalement :");
-    if (!reason) return;
-    const supabase = createClient();
-    await supabase.from("user_reports").insert({ reporter_id: currentUserId, reported_id: memberId, reason });
-    setOpen(false);
-    alert("Signalement envoyé.");
-  };
-
-  const handleBlock = async () => {
-    if (!confirm("Bloquer ce membre ?")) return;
-    const supabase = createClient();
-    await supabase.from("user_blocks").insert({ blocker_id: currentUserId, blocked_id: memberId });
-    setOpen(false);
-    alert("Membre bloqué.");
-  };
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="p-[8px] rounded-lg border border-border-default hover:border-border-strong text-text-muted hover:text-text-primary cursor-pointer transition-colors"
-      >
-        <MoreHorizontal className="h-[16px] w-[16px]" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-[4px] bg-bg-base border border-border-default rounded-lg shadow-modal p-[4px] z-20 w-[160px]">
-          <button onClick={handleReport} className="flex items-center gap-[8px] px-[12px] py-[8px] rounded-md text-[13px] text-text-secondary hover:bg-bg-surface hover:text-text-primary transition-colors w-full cursor-pointer">
-            <Flag className="h-[14px] w-[14px]" />Signaler
-          </button>
-          <button onClick={handleBlock} className="flex items-center gap-[8px] px-[12px] py-[8px] rounded-md text-[13px] text-error hover:bg-error-bg transition-colors w-full cursor-pointer">
-            <Ban className="h-[14px] w-[14px]" />Bloquer
-          </button>
-        </div>
-      )}
-    </div>
-  );
+function getXProfileUrl(xHandle: string) {
+  return `https://x.com/${xHandle.replace(/^@/, "")}`;
 }
 
-export function MemberProfile({ member, sponsor, recentPosts, currentUserId, categories }: MemberProfileProps) {
-  const isOwnProfile = member.id === currentUserId;
+export function MemberProfile({ member, sponsor, categories }: MemberProfileProps) {
   const links = member.links as Record<string, string> | null;
   const hasLinks = links && Object.keys(links).length > 0;
   const skills = member.skills ?? [];
   const specDisplay = getSpecialtyDisplay(member, categories);
+  const xProfileUrl = getXProfileUrl(member.x_handle);
 
   return (
     <div className="max-w-[640px] mx-auto space-y-[24px]">
@@ -100,13 +37,25 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, cat
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-[10px] flex-wrap">
-              <h1 className="font-display text-[20px] font-bold text-text-primary tracking-[-0.02em]">
+              <a
+                href={xProfileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-display text-[20px] font-bold text-text-primary tracking-[-0.02em] transition-colors hover:text-primary-500"
+              >
                 @{member.x_handle}
-              </h1>
+              </a>
               <AvailabilityBadge status={member.availability_status} />
             </div>
             {member.full_name && (
               <p className="text-[14px] text-text-secondary mt-[2px]">{member.full_name}</p>
+            )}
+            {member.location && (
+              <p className="mt-[4px] flex items-center gap-[4px] text-[12px] text-text-muted">
+                <MapPin className="h-[12px] w-[12px]" />
+                {member.country_code && <span>{countryFlag(member.country_code)}</span>}
+                <span className="truncate">{member.location}</span>
+              </p>
             )}
             <div className="flex items-center gap-[8px] mt-[8px] flex-wrap">
               {specDisplay.categoryName && (
@@ -120,13 +69,6 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, cat
                   {name}
                 </span>
               ))}
-              {member.location && (
-                <span className="flex items-center gap-[4px] text-[12px] text-text-muted">
-                  <MapPin className="h-[12px] w-[12px]" />
-                  {member.country_code && <span>{countryFlag(member.country_code)}</span>}
-                  {member.location}
-                </span>
-              )}
             </div>
 
             {/* Extra info */}
@@ -172,13 +114,6 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, cat
               </a>
             )}
           </div>
-
-          {/* Action buttons */}
-          {!isOwnProfile && (
-            <div className="flex items-center gap-[6px] shrink-0">
-              <ReportBlockMenu memberId={member.id} currentUserId={currentUserId} />
-            </div>
-          )}
         </div>
 
         {/* Bio */}
@@ -229,48 +164,6 @@ export function MemberProfile({ member, sponsor, recentPosts, currentUserId, cat
         </div>
       )}
 
-      {/* Recent forum posts */}
-      {recentPosts.length > 0 && (
-        <div className="bg-bg-base rounded-xl shadow-card p-[24px]">
-          <h2 className="text-[13px] font-semibold text-text-muted uppercase tracking-[0.06em] mb-[12px]">
-            Publications récentes
-          </h2>
-          <div className="space-y-[6px]">
-            {recentPosts.map((post) => {
-              const cat = post.category as { name: string; color: string | null; slug: string } | null;
-              return (
-                <Link
-                  key={post.id}
-                  href={`/forum/posts/${post.id}`}
-                  className="flex items-center gap-[12px] px-[12px] py-[10px] rounded-lg hover:bg-bg-surface transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-text-primary truncate">{post.title}</p>
-                    <div className="flex items-center gap-[8px] mt-[2px]">
-                      {cat && (
-                        <span
-                          className="text-[10px] font-medium px-[6px] py-[1px] rounded-full"
-                          style={{
-                            backgroundColor: `${cat.color || "#6b7280"}15`,
-                            color: cat.color || "#6b7280",
-                          }}
-                        >
-                          {cat.name}
-                        </span>
-                      )}
-                      <span className="text-[11px] text-text-muted">{formatDate(post.created_at)}</span>
-                    </div>
-                  </div>
-                  <span className="flex items-center gap-[3px] text-[11px] text-text-muted shrink-0">
-                    <MessageSquare className="h-[12px] w-[12px]" />
-                    {post.reply_count}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

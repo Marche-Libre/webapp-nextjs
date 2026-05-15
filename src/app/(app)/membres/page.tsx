@@ -83,7 +83,6 @@ export default async function MembresPage() {
       membres={visibleMembres}
       categories={categories ?? []}
       locations={locations}
-      currentUserId={user.id}
     />
   );
 }
