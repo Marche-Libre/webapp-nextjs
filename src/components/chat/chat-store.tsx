@@ -3,12 +3,21 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Message } from "@/lib/types/database";
+import {
+  MESSAGE_WITH_AUTHOR_SELECT,
+  attachReplyTargets,
+  collectReplyToMessageIds,
+  mapMessageRowToMessageWithAuthor,
+  mapMessageRowsToMessagesWithAuthor,
+  projectReplyTarget,
+  type MessageRow,
+  type MessageWithAuthor,
+  type ReplyToMessage,
+} from "@/lib/chat/messages";
 
 // ─── Types ───
 
-export type FullMessage = Message & {
-  author: { x_handle: string; full_name: string; avatar_url: string | null };
+export type FullMessage = MessageWithAuthor & {
   /** Only set on optimistic messages — "sending" | "failed" */
   _status?: "sending" | "failed";
 };
@@ -37,7 +46,6 @@ const EMPTY_CHANNEL_STATE: ChannelState = {
   loaded: false,
 };
 
-const MESSAGE_WITH_AUTHOR_SELECT = "*, author:profiles!messages_author_id_fkey(x_handle, full_name, avatar_url)";
 const CHANNEL_SYNC_INTERVAL_MS = 5000;
 const MESSAGE_JUMP_CONTEXT_LIMIT = 25;
 
@@ -142,7 +150,28 @@ function createChatStore(userId: string) {
       .eq("id", messageId)
       .single();
 
-    return data as FullMessage | null;
+    if (!data) return null;
+
+    const message = mapMessageRowToMessageWithAuthor(data as MessageRow) as FullMessage;
+    const hydratedMessages = await hydrateReplyTargets([message]);
+
+    return hydratedMessages[0] ?? message;
+  }
+
+  async function hydrateReplyTargets(messages: FullMessage[]) {
+    const replyToMessageIds = collectReplyToMessageIds(messages);
+    if (replyToMessageIds.length === 0) return messages;
+
+    const { data } = await supabase
+      .from("messages")
+      .select(MESSAGE_WITH_AUTHOR_SELECT)
+      .in("id", replyToMessageIds);
+
+    if (!data || data.length === 0) return messages;
+
+    const replyTargets = mapMessageRowsToMessagesWithAuthor(data as MessageRow[]).map(projectReplyTarget);
+
+    return attachReplyTargets(messages, replyTargets) as FullMessage[];
   }
 
   async function fetchPinnedMessage(channelId: string) {
@@ -155,7 +184,12 @@ function createChatStore(userId: string) {
       .limit(1)
       .maybeSingle();
 
-    return data as FullMessage | null;
+    if (!data) return null;
+
+    const message = mapMessageRowToMessageWithAuthor(data as MessageRow) as FullMessage;
+    const hydratedMessages = await hydrateReplyTargets([message]);
+
+    return hydratedMessages[0] ?? message;
   }
 
   async function refreshPinnedMessage(channelId: string) {
@@ -188,9 +222,10 @@ function createChatStore(userId: string) {
 
     if (!data || data.length === 0) return;
 
+    const latestMessages = await hydrateReplyTargets(mapMessageRowsToMessagesWithAuthor(data as MessageRow[]) as FullMessage[]);
     setChannel(channelId, (prev) => ({
       ...prev,
-      messages: mergeMessages(prev.messages, data as FullMessage[]),
+      messages: mergeMessages(prev.messages, latestMessages),
     }));
     void fetchReactions(channelId);
   }
@@ -336,7 +371,9 @@ function createChatStore(userId: string) {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    const ordered = ((data || []) as FullMessage[]).reverse();
+    const ordered = await hydrateReplyTargets(
+      mapMessageRowsToMessagesWithAuthor((data || []) as MessageRow[]).reverse() as FullMessage[],
+    );
 
     setChannel(channelId, () => ({
       messages: ordered,
@@ -366,15 +403,17 @@ function createChatStore(userId: string) {
       .limit(50);
 
     if (data && data.length > 0) {
+      const olderMessages = await hydrateReplyTargets(mapMessageRowsToMessagesWithAuthor(data as MessageRow[]) as FullMessage[]);
+
       setChannel(channelId, (prev) => ({
         ...prev,
-        messages: [...(data as FullMessage[]).reverse(), ...prev.messages],
-        pinnedMessage: getPinnedMessageFromMessages(data as FullMessage[]) ?? prev.pinnedMessage,
+        messages: [...olderMessages.reverse(), ...prev.messages],
+        pinnedMessage: getPinnedMessageFromMessages(olderMessages) ?? prev.pinnedMessage,
         hasMore: data.length >= 50,
       }));
       // Fetch reactions for new messages
       const newIds = data.map((m) => m.id);
-      const newAuthorIds = new Map((data as FullMessage[]).map((m) => [m.id, m.author_id]));
+      const newAuthorIds = new Map((data as MessageRow[]).map((m) => [m.id, m.author_id]));
       const { data: rxData } = await supabase
         .from("message_reactions")
         .select("message_id, user_id, emoji")
@@ -397,7 +436,13 @@ function createChatStore(userId: string) {
     }
   }
 
-  function addOptimisticMessage(channelId: string, content: string, userProfile: { x_handle: string; full_name: string; avatar_url: string | null }, imageUrl?: string): string {
+  function addOptimisticMessage(
+    channelId: string,
+    content: string,
+    userProfile: { x_handle: string; full_name: string; avatar_url: string | null },
+    imageUrl?: string,
+    replyTarget?: ReplyToMessage | null,
+  ): string {
     const id = `optimistic-${Date.now()}`;
     const optimistic = {
       id,
@@ -405,6 +450,9 @@ function createChatStore(userId: string) {
       author_id: userId,
       content,
       image_url: imageUrl || null,
+      reply_to_message_id: replyTarget?.id ?? null,
+      reply_to: replyTarget ? projectReplyTarget(replyTarget) : null,
+      is_pinned: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       author: userProfile,
@@ -522,10 +570,12 @@ function createChatStore(userId: string) {
         .limit(MESSAGE_JUMP_CONTEXT_LIMIT),
     ]);
 
+    const beforeMessages = await hydrateReplyTargets(mapMessageRowsToMessagesWithAuthor((before || []) as MessageRow[]) as FullMessage[]);
+    const afterMessages = await hydrateReplyTargets(mapMessageRowsToMessagesWithAuthor((after || []) as MessageRow[]) as FullMessage[]);
     const windowMessages = [
-      ...((before || []) as FullMessage[]).reverse(),
+      ...beforeMessages.reverse(),
       targetMessage,
-      ...((after || []) as FullMessage[]),
+      ...afterMessages,
     ];
 
     setChannel(channelId, (prev) => ({
@@ -639,7 +689,8 @@ function mergeMessages(currentMessages: FullMessage[], incomingMessages: FullMes
     for (const incomingMessage of incomingMessages) {
       if (
         optimisticMessage.content === incomingMessage.content &&
-        optimisticMessage.author_id === incomingMessage.author_id
+        optimisticMessage.author_id === incomingMessage.author_id &&
+        optimisticMessage.reply_to_message_id === incomingMessage.reply_to_message_id
       ) {
         optimisticIdsToRemove.add(optimisticMessage.id);
       }

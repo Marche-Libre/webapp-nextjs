@@ -155,14 +155,14 @@ describe("authorization hardening", () => {
       .join("\n");
 
     expect(messageInput).toContain('const CHAT_MEDIA_BUCKET = "medias"');
-    expect(messageInput).toContain("storage.from(CHAT_MEDIA_BUCKET)");
+    expect(messageInput).toContain(".from(CHAT_MEDIA_BUCKET)");
     expect(messageInput).toContain("MESSAGE_WITH_AUTHOR_SELECT");
-    expect(messageInput).toContain("onMessageConfirmed?.(optimisticId, insertedMessage as FullMessage | null)");
+    expect(messageInput).toContain("mapMessageRowToMessageWithAuthor(insertedMessage as MessageRow)");
     expect(messageInput).toContain("ImagePlus");
     expect(messageInput).toContain("handleImageFileSelected");
     expect(messageInput).toContain("handlePaste");
     expect(messageInput).toContain("setError(`Échec du téléversement de l'image");
-    expect(messageBubble).toContain("storage.from(\"medias\")");
+    expect(messageBubble).toContain(".from(\"medias\")");
     expect(messageBubble).toContain("createSignedUrl");
     expect(migrationText).toContain('CREATE POLICY "Users can upload chat media"');
     expect(migrationText).toContain('CREATE POLICY "Users can read chat media"');
@@ -198,6 +198,48 @@ describe("authorization hardening", () => {
     expect(messageArea).toContain("scrollIntoView({ behavior: \"smooth\", block: \"center\" })");
     expect(messageArea).toContain("MESSAGE_HIGHLIGHT_CLASSNAMES");
     expect(messageArea).toContain("scheduleScrollToMessage(pinnedMessage.id)");
+  });
+
+  it("supports chat message replies with same-channel database guards and pinned-message scrolling", () => {
+    const chatMessages = source("src/lib/chat/messages.ts");
+    const messageInput = source("src/components/chat/message-input.tsx");
+    const messageBubble = source("src/components/chat/message-bubble.tsx");
+    const messageArea = source("src/components/chat/message-area.tsx");
+    const chatStore = source("src/components/chat/chat-store.tsx");
+    const chatLayoutPage = source("src/app/(app)/chat/layout.tsx");
+    const migrationText = migrationSources()
+      .map(({ text }) => text)
+      .join("\n");
+
+    expect(migrationText).toContain("ADD COLUMN IF NOT EXISTS reply_to_message_id");
+    expect(migrationText).toContain("messages_reply_to_message_id_fkey");
+    expect(migrationText).toContain("messages_reply_to_not_self_check");
+    expect(migrationText).toContain("private.enforce_message_reply_channel");
+    expect(migrationText).toContain("message_reply_cross_channel");
+    expect(migrationText).toContain("message_reply_target_immutable");
+    expect(migrationText).toContain("idx_messages_channel_reply_to");
+    expect(chatMessages).toContain("collectReplyToMessageIds");
+    expect(chatMessages).toContain("attachReplyTargets");
+    expect(chatMessages).toContain("function normalizeReplyToMessage");
+    expect(chatMessages).toContain("export type ReplyToMessage = Pick");
+    expect(chatStore).toContain("mapMessageRowsToMessagesWithAuthor");
+    expect(chatStore).toContain("async function hydrateReplyTargets");
+    expect(chatStore).toContain("reply_to_message_id: replyTarget?.id ?? null");
+    expect(chatStore).toContain("optimisticMessage.reply_to_message_id === incomingMessage.reply_to_message_id");
+    expect(chatLayoutPage).toContain(".select(MESSAGE_WITH_AUTHOR_SELECT)");
+    expect(messageInput).toContain("insertPayload.reply_to_message_id = replyTarget.id");
+    expect(messageInput).toContain("Réponse à @{replyTarget.author.x_handle}");
+    expect(messageInput).toContain("onCancelReply?.()");
+    expect(messageBubble).toContain("Répondre");
+    expect(messageBubble).toContain("REPLY_SWIPE_THRESHOLD_PX");
+    expect(messageBubble).toContain("onPointerMove={handlePointerMove}");
+    expect(messageBubble).toContain("touch-pan-y");
+    expect(messageBubble).toContain("isReplyable || Boolean(isAdmin)");
+    expect(messageBubble).toContain("onReplyClick?.(replyToMessageId)");
+    expect(messageArea).toContain("const [replyTarget, setReplyTarget] = useState<ReplyToMessage | null>(null)");
+    expect(messageArea).toContain("store.jumpToMessage(channelId, messageId)");
+    expect(messageArea).toContain("scheduleScrollToMessage(messageId)");
+    expect(messageArea).toContain("replyTarget={activeReplyTarget}");
   });
 
   it("loads message context before jumping to unloaded chat messages", () => {
@@ -309,8 +351,8 @@ describe("authorization hardening", () => {
     expect(chatLayout).toContain("canWrite={activeChannelCanWrite}");
     expect(messageArea).toContain("canWrite: boolean;");
     expect(messageInput).toContain("if (!canWrite) return;");
-    expect(messageInput).toContain("const inputDisabled = isBusy || !canWrite;");
-    expect(messageInput).toContain("{!canWrite && noPermissionMessage && (");
+    expect(messageInput).toContain("const inputDisabled = isBusy || !canWrite || isOffline;");
+    expect(messageInput).toContain("if (!canWrite && noPermissionMessage) return noPermissionMessage;");
   });
 
   it("filters global message search to canonical launch chat channels", () => {

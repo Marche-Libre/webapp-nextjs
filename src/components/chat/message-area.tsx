@@ -6,6 +6,7 @@ import { MessageBubble } from "./message-bubble";
 import { MessageInput } from "./message-input";
 import { Spinner } from "@/components/ui/spinner";
 import { useChatStore, useChannelState, type FullMessage, type ReactionMap } from "./chat-store";
+import { projectReplyTarget, type ReplyToMessage } from "@/lib/chat/messages";
 import { timeAgo } from "@/lib/utils";
 
 const CHAT_LANE_CLASSNAME = "w-full max-w-[860px] mx-auto";
@@ -91,6 +92,7 @@ export function MessageArea({
 }: MessageAreaProps) {
   const store = useChatStore();
   const { messages, pinnedMessage, reactions, hasMore, loaded } = useChannelState(channelId);
+  const [replyTarget, setReplyTarget] = useState<ReplyToMessage | null>(null);
   const [showScrollToLatest, setShowScrollToLatest] = useState(false);
   const [hasNewLatestMessage, setHasNewLatestMessage] = useState(false);
   const [scrollToLatestPosition, setScrollToLatestPosition] = useState<{ bottom: number; right: number } | null>(null);
@@ -104,6 +106,11 @@ export function MessageArea({
   const latestMessageIdRef = useRef<string | null>(null);
 
   const messageCount = messages.length;
+  const activeReplyTarget = useMemo(() => {
+    if (replyTarget?.channel_id !== channelId) return null;
+
+    return replyTarget;
+  }, [channelId, replyTarget]);
   const latestMessageId = useMemo(() => {
     if (!messages.length) return null;
 
@@ -135,8 +142,8 @@ export function MessageArea({
     loadingMore.current = false;
   }, [channelId, store]);
 
-  const addOptimisticMessage = useCallback((content: string, imageUrl?: string) => {
-    return store.addOptimisticMessage(channelId, content, userProfile, imageUrl);
+  const addOptimisticMessage = useCallback((content: string, imageUrl?: string, selectedReplyTarget?: ReplyToMessage | null) => {
+    return store.addOptimisticMessage(channelId, content, userProfile, imageUrl, selectedReplyTarget);
   }, [channelId, store, userProfile]);
 
   const handleMessageConfirmed = useCallback((optimisticId: string, realMessage: FullMessage | null) => {
@@ -195,6 +202,25 @@ export function MessageArea({
     setShowScrollToLatest(true);
     scheduleScrollToMessage(pinnedMessage.id);
   }, [channelId, pinnedMessage, scheduleScrollToMessage, store]);
+
+  const handleReplyClick = useCallback(async (messageId: string) => {
+    const found = await store.jumpToMessage(channelId, messageId);
+    if (!found) return;
+
+    isAtBottom.current = false;
+    setShowScrollToLatest(true);
+    scheduleScrollToMessage(messageId);
+  }, [channelId, scheduleScrollToMessage, store]);
+
+  const handleReply = useCallback((message: FullMessage) => {
+    if (!canWrite || isOffline) return;
+
+    setReplyTarget(projectReplyTarget(message));
+  }, [canWrite, isOffline]);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyTarget(null);
+  }, []);
 
   const handleScrollToLatest = useCallback(() => {
     clearMessageHighlight();
@@ -325,12 +351,14 @@ export function MessageArea({
           store={store}
           isFirstInGroup={isFirstInGroup}
           isLastInGroup={isLastInGroup}
+          onReply={handleReply}
+          onReplyClick={handleReplyClick}
         />
       );
     }
 
     return items;
-  }, [channelId, isAdmin, messages, reactions, store, userId]);
+  }, [channelId, handleReply, handleReplyClick, isAdmin, messages, reactions, store, userId]);
 
   useEffect(loadChannelEffect, [loadChannelEffect]);
   useEffect(watchChannelEffect, [watchChannelEffect]);
@@ -398,6 +426,8 @@ export function MessageArea({
           isOffline={isOffline}
           offlineMessage={offlineMessage}
           userId={userId}
+          replyTarget={activeReplyTarget}
+          onCancelReply={handleCancelReply}
           onOptimisticMessage={addOptimisticMessage}
           onMessageConfirmed={handleMessageConfirmed}
           onMessageFailed={handleMessageFailed}
@@ -416,6 +446,8 @@ interface MessageBubbleRowProps {
   store: ChatStore;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;
+  onReply: (message: FullMessage) => void;
+  onReplyClick: (messageId: string) => void;
 }
 
 function MessageBubbleRow({
@@ -427,6 +459,8 @@ function MessageBubbleRow({
   store,
   isFirstInGroup,
   isLastInGroup,
+  onReply,
+  onReplyClick,
 }: MessageBubbleRowProps) {
   const isOwnMessage = msg.author_id === userId;
 
@@ -456,6 +490,8 @@ function MessageBubbleRow({
         onMessageUpdated={handleMessageUpdated}
         isFirstInGroup={isFirstInGroup}
         isLastInGroup={isLastInGroup}
+        onReply={onReply}
+        onReplyClick={onReplyClick}
       />
     </div>
   );

@@ -1,13 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
+import type {
+  CSSProperties,
+  ChangeEvent,
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn, timeAgo } from "@/lib/utils";
 import { ReactionPicker } from "./reaction-picker";
-import { Check, Flag, MoreHorizontal, Pencil, Pin, Trash2 } from "lucide-react";
+import {
+  Check,
+  Flag,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  Reply,
+  Trash2,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { Message } from "@/lib/types/database";
+import type { MessageWithAuthor } from "@/lib/chat/messages";
+import {
+  REPLY_UNAVAILABLE_LABEL,
+  resolveReplyPreviewText,
+} from "@/lib/chat/messages";
 import { extractFirstHttpUrl } from "@/lib/link-preview-url";
 import { resolveMediaEmbed } from "@/lib/media-embed";
 import { PostEmbed } from "./post-embed";
@@ -54,8 +72,7 @@ function renderContentWithMentions(content: string, isOwn: boolean) {
 
 interface MessageBubbleProps {
   channelId: string;
-  message: Message & {
-    author: { x_handle: string; full_name: string; avatar_url: string | null };
+  message: MessageWithAuthor & {
     _status?: "sending" | "failed";
   };
   reactions?: MessageReactionEntry[];
@@ -65,6 +82,8 @@ interface MessageBubbleProps {
   onMessageUpdated?: () => void;
   isFirstInGroup?: boolean;
   isLastInGroup?: boolean;
+  onReply?: (message: MessageWithAuthor) => void;
+  onReplyClick?: (messageId: string) => void;
 }
 
 type MessageReactionEntry = {
@@ -77,10 +96,16 @@ const FORUM_LINK_REGEX = /\/forum\/posts\/([a-f0-9-]+)/;
 const DIRECT_IMAGE_URL_REGEX =
   /^https?:\/\/\S+\.(?:apng|avif|gif|jpe?g|png|webp)(?:[?#]\S*)?$/i;
 const EMPTY_IMAGE_URLS: string[] = [];
-const MESSAGE_WIDTH_CLASSNAME = "w-full sm:max-w-[620px]";
-const AVATAR_SLOT_CLASSNAME = "h-[32px] w-[32px] shrink-0 sm:h-[40px] sm:w-[40px]";
+const MESSAGE_WIDTH_CLASSNAME = "w-full sm:max-w-[760px]";
+const MESSAGE_BUBBLE_MIN_WIDTH_CLASSNAME = "min-w-[80px] sm:min-w-[120px]";
+const AVATAR_SLOT_CLASSNAME =
+  "h-[32px] w-[32px] shrink-0 sm:h-[40px] sm:w-[40px]";
 const MESSAGE_AVATAR_CLASSNAME = "h-[32px] w-[32px] sm:h-[40px] sm:w-[40px]";
 const CHAT_IMAGE_SIGNED_URL_TTL_SECONDS = 3600;
+const REPLY_SWIPE_MAX_OFFSET_PX = 56;
+const REPLY_SWIPE_THRESHOLD_PX = 42;
+const REPLY_SWIPE_START_THRESHOLD_PX = 8;
+const REPLY_SWIPE_VERTICAL_CANCEL_PX = 12;
 
 function parseImageUrls(imageUrl: string | null) {
   if (!imageUrl) return EMPTY_IMAGE_URLS;
@@ -175,6 +200,8 @@ export function MessageBubble({
   onMessageUpdated,
   isFirstInGroup = true,
   isLastInGroup = true,
+  onReply,
+  onReplyClick,
 }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -183,7 +210,12 @@ export function MessageBubble({
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [supabase] = useState(createClient);
   const [resolvedImageUrls, setResolvedImageUrls] = useState<string[]>([]);
+  const [replySwipeOffset, setReplySwipeOffset] = useState(0);
   const deleteConfirmTimeoutRef = useRef<number | null>(null);
+  const replySwipePointerIdRef = useRef<number | null>(null);
+  const replySwipeStartRef = useRef({ x: 0, y: 0 });
+  const replySwipeStartedRef = useRef(false);
+  const replySwipeOffsetRef = useRef(0);
 
   const isOwn = currentUserId === message.author_id;
   const canReact = useMemo(() => {
@@ -191,6 +223,7 @@ export function MessageBubble({
   }, [onReact]);
   const isSending = message._status === "sending";
   const isFailed = message._status === "failed";
+  const replyToMessageId = message.reply_to_message_id;
   // Consider edited only if updated_at is more than 2 seconds after created_at
   const isEdited =
     message.updated_at &&
@@ -270,6 +303,40 @@ export function MessageBubble({
   const shouldShowLinkPreview = useMemo(() => {
     return Boolean(previewUrl && !directImageUrl && !mediaEmbed);
   }, [directImageUrl, mediaEmbed, previewUrl]);
+  const canReplyToMessage = useMemo(() => {
+    return Boolean(onReply && !isSending && !isFailed && !editing);
+  }, [editing, isFailed, isSending, onReply]);
+  const replyPreviewText = useMemo(() => {
+    if (message.reply_to) return resolveReplyPreviewText(message.reply_to);
+    if (replyToMessageId) return REPLY_UNAVAILABLE_LABEL;
+
+    return "";
+  }, [message.reply_to, replyToMessageId]);
+  const replyAuthorLabel = useMemo(() => {
+    if (!message.reply_to) return "Message cité";
+
+    return `@${message.reply_to.author.x_handle}`;
+  }, [message.reply_to]);
+  const replyCitationAriaLabel = useMemo(() => {
+    if (!message.reply_to) return "Aller au message cité";
+
+    return `Aller au message de ${message.reply_to.author.x_handle}`;
+  }, [message.reply_to]);
+  const replySwipeDirection = useMemo(() => {
+    return isOwn ? -1 : 1;
+  }, [isOwn]);
+  const replySwipeTransformStyle = useMemo<CSSProperties | undefined>(() => {
+    if (replySwipeOffset <= 0) return undefined;
+
+    return {
+      transform: `translateX(${replySwipeOffset * replySwipeDirection}px)`,
+    };
+  }, [replySwipeDirection, replySwipeOffset]);
+  const replySwipeIndicatorStyle = useMemo<CSSProperties>(() => {
+    return {
+      opacity: Math.min(replySwipeOffset / REPLY_SWIPE_THRESHOLD_PX, 1),
+    };
+  }, [replySwipeOffset]);
 
   const updateImageUrlsEffect = useCallback(() => {
     let isCancelled = false;
@@ -436,6 +503,86 @@ export function MessageBubble({
     [onReact],
   );
 
+  const handleReply = useCallback(() => {
+    onReply?.(message);
+  }, [message, onReply]);
+
+  const updateReplySwipeOffset = useCallback((nextOffset: number) => {
+    replySwipeOffsetRef.current = nextOffset;
+    setReplySwipeOffset(nextOffset);
+  }, []);
+
+  const resetReplySwipe = useCallback(() => {
+    replySwipePointerIdRef.current = null;
+    replySwipeStartedRef.current = false;
+    updateReplySwipeOffset(0);
+  }, [updateReplySwipeOffset]);
+
+  const handleReplyCitationClick = useCallback(() => {
+    if (!replyToMessageId) return;
+
+    onReplyClick?.(replyToMessageId);
+  }, [onReplyClick, replyToMessageId]);
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (!canReplyToMessage || event.pointerType === "mouse") return;
+
+      replySwipePointerIdRef.current = event.pointerId;
+      replySwipeStartRef.current = { x: event.clientX, y: event.clientY };
+      replySwipeStartedRef.current = false;
+      updateReplySwipeOffset(0);
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [canReplyToMessage, updateReplySwipeOffset],
+  );
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (replySwipePointerIdRef.current !== event.pointerId) return;
+
+      const deltaX = event.clientX - replySwipeStartRef.current.x;
+      const deltaY = event.clientY - replySwipeStartRef.current.y;
+      const directedDeltaX = deltaX * replySwipeDirection;
+      const absDeltaX = Math.abs(deltaX);
+      const absDeltaY = Math.abs(deltaY);
+
+      if (!replySwipeStartedRef.current) {
+        if (
+          absDeltaY > REPLY_SWIPE_VERTICAL_CANCEL_PX &&
+          absDeltaY > absDeltaX
+        ) {
+          resetReplySwipe();
+          return;
+        }
+
+        if (directedDeltaX < REPLY_SWIPE_START_THRESHOLD_PX) return;
+        replySwipeStartedRef.current = true;
+      }
+
+      event.preventDefault();
+      updateReplySwipeOffset(
+        Math.min(Math.max(directedDeltaX, 0), REPLY_SWIPE_MAX_OFFSET_PX),
+      );
+    },
+    [replySwipeDirection, resetReplySwipe, updateReplySwipeOffset],
+  );
+
+  const handlePointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (replySwipePointerIdRef.current !== event.pointerId) return;
+
+      const shouldReply =
+        replySwipeOffsetRef.current >= REPLY_SWIPE_THRESHOLD_PX;
+      resetReplySwipe();
+
+      if (shouldReply) {
+        handleReply();
+      }
+    },
+    [handleReply, resetReplySwipe],
+  );
+
   const buildImageItems = useCallback(() => {
     if (displayedImageUrls.length === 0) return null;
 
@@ -471,6 +618,50 @@ export function MessageBubble({
     () => buildReactionItems(),
     [buildReactionItems],
   );
+
+  const replyCitation = useMemo(() => {
+    if (!replyToMessageId) return null;
+
+    return (
+      <button
+        type="button"
+        onClick={handleReplyCitationClick}
+        disabled={!onReplyClick}
+        aria-label={replyCitationAriaLabel}
+        className={cn(
+          "mb-[7px] block max-w-full cursor-pointer rounded-[10px] border-l-2 px-[8px] py-[6px] text-left transition-colors disabled:cursor-default disabled:opacity-80",
+          isOwn
+            ? "border-white/65 bg-white/12 text-white hover:bg-white/18"
+            : "border-primary-400 bg-bg-base/70 text-text-secondary hover:bg-bg-base",
+        )}
+      >
+        <span
+          className={cn(
+            "block truncate text-[11px] font-semibold",
+            isOwn ? "text-white" : "text-primary-500",
+          )}
+        >
+          {replyAuthorLabel}
+        </span>
+        <span
+          className={cn(
+            "mt-[1px] line-clamp-2 whitespace-pre-wrap break-words text-[12px] leading-[16px]",
+            isOwn ? "text-white/85" : "text-text-muted",
+          )}
+        >
+          {replyPreviewText}
+        </span>
+      </button>
+    );
+  }, [
+    handleReplyCitationClick,
+    isOwn,
+    onReplyClick,
+    replyAuthorLabel,
+    replyCitationAriaLabel,
+    replyPreviewText,
+    replyToMessageId,
+  ]);
 
   const clearDeleteConfirmTimeout = useCallback(() => {
     if (deleteConfirmTimeoutRef.current === null) return;
@@ -552,6 +743,7 @@ export function MessageBubble({
           <p
             className={cn(
               "select-text bg-bg-surface px-[14px] py-[8px] text-[13px] italic text-text-muted",
+              MESSAGE_BUBBLE_MIN_WIDTH_CLASSNAME,
               bubbleRadiusClass,
               isOwn && "text-right",
             )}
@@ -565,6 +757,10 @@ export function MessageBubble({
 
   return (
     <article
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
       className={cn(
         "group relative touch-pan-y px-[8px] transition-colors sm:flex sm:items-end sm:gap-[8px] sm:px-[12px]",
         rowSpacingClass,
@@ -575,6 +771,18 @@ export function MessageBubble({
             : "border-l-2 border-primary-500 bg-primary-50/30"),
       )}
     >
+      {canReplyToMessage && (
+        <div
+          aria-hidden
+          style={replySwipeIndicatorStyle}
+          className={cn(
+            "pointer-events-none absolute top-1/2 flex h-[28px] w-[28px] -translate-y-1/2 items-center justify-center rounded-full bg-primary-50 text-primary-500 sm:hidden",
+            isOwn ? "right-[12px]" : "left-[12px]",
+          )}
+        >
+          <Reply className="h-[14px] w-[14px]" />
+        </div>
+      )}
       {showAvatar ? (
         <UserHoverCard
           authorId={message.author_id}
@@ -583,19 +791,23 @@ export function MessageBubble({
           avatar_url={message.author.avatar_url}
           className="hidden sm:block"
         >
-            <Avatar
-              src={message.author.avatar_url}
-              name={message.author.x_handle}
-              size="md"
-              className={cn("cursor-pointer", MESSAGE_AVATAR_CLASSNAME)}
-            />
+          <Avatar
+            src={message.author.avatar_url}
+            name={message.author.x_handle}
+            size="md"
+            className={cn("cursor-pointer", MESSAGE_AVATAR_CLASSNAME)}
+          />
         </UserHoverCard>
       ) : (
-        <div className={cn("hidden sm:block", AVATAR_SLOT_CLASSNAME)} aria-hidden />
+        <div
+          className={cn("hidden sm:block", AVATAR_SLOT_CLASSNAME)}
+          aria-hidden
+        />
       )}
       <section
+        style={replySwipeTransformStyle}
         className={cn(
-          "min-w-0 flex w-full flex-col",
+          "min-w-0 flex w-full flex-col transition-transform",
           MESSAGE_WIDTH_CLASSNAME,
           isOwn ? "items-end" : "items-start",
           isOwn && editing && "w-[75%]",
@@ -663,6 +875,7 @@ export function MessageBubble({
             isEditing={editing}
             isOwn={isOwn}
             isPinned={Boolean(message.is_pinned)}
+            isReplyable={canReplyToMessage}
             saving={saving}
             onCancelDelete={handleCancelDeleteConfirming}
             onConfirmDelete={handleStartDeleteConfirming}
@@ -670,6 +883,7 @@ export function MessageBubble({
             onEdit={handleStartEditing}
             onPin={handleTogglePin}
             onReact={handleReactionSelect}
+            onReply={handleReply}
             onReport={handleReport}
             className={cn("opacity-100", isOwn ? "ml-[6px]" : "ml-auto")}
           />
@@ -731,13 +945,15 @@ export function MessageBubble({
           >
             <div
               className={cn(
-                "w-fit max-w-full px-[14px] py-[9px] shadow-card sm:max-w-[calc(100%_-_56px)]",
+                "w-fit max-w-full px-3.5 py-2.25 shadow-card sm:max-w-full",
+                MESSAGE_BUBBLE_MIN_WIDTH_CLASSNAME,
                 bubbleRadiusClass,
                 isOwn
                   ? "bg-primary-500 text-white"
                   : "border border-border-subtle bg-bg-surface-hover text-text-primary",
               )}
             >
+              {replyCitation}
               {visibleContent && (
                 <div
                   className={cn(
@@ -784,6 +1000,7 @@ export function MessageBubble({
               isEditing={editing}
               isOwn={isOwn}
               isPinned={Boolean(message.is_pinned)}
+              isReplyable={canReplyToMessage}
               saving={saving}
               onCancelDelete={handleCancelDeleteConfirming}
               onConfirmDelete={handleStartDeleteConfirming}
@@ -791,6 +1008,7 @@ export function MessageBubble({
               onEdit={handleStartEditing}
               onPin={handleTogglePin}
               onReact={handleReactionSelect}
+              onReply={handleReply}
               onReport={handleReport}
               className="hidden sm:flex sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100"
             />
@@ -821,6 +1039,7 @@ function MessageInlineActions({
   isEditing,
   isOwn,
   isPinned,
+  isReplyable,
   saving,
   onCancelDelete,
   onConfirmDelete,
@@ -828,6 +1047,7 @@ function MessageInlineActions({
   onEdit,
   onPin,
   onReact,
+  onReply,
   onReport,
 }: {
   canReact: boolean;
@@ -838,6 +1058,7 @@ function MessageInlineActions({
   isEditing: boolean;
   isOwn: boolean;
   isPinned: boolean;
+  isReplyable: boolean;
   saving: boolean;
   onCancelDelete: () => void;
   onConfirmDelete: () => void;
@@ -845,13 +1066,17 @@ function MessageInlineActions({
   onEdit: () => void;
   onPin: () => void;
   onReact: (emoji: string) => void;
+  onReply: () => void;
   onReport: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const hasMenuActions =
-    Boolean(isAdmin) || (isOwn && !isEditing) || (!isOwn && Boolean(currentUserId));
+    isReplyable ||
+    Boolean(isAdmin) ||
+    (isOwn && !isEditing) ||
+    (!isOwn && Boolean(currentUserId));
   const closeMenuOnOutsidePointerDown = useCallback((event: PointerEvent) => {
     if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
       setMenuOpen(false);
@@ -864,6 +1089,10 @@ function MessageInlineActions({
     onPin();
     setMenuOpen(false);
   }, [onPin]);
+  const handleReply = useCallback(() => {
+    onReply();
+    setMenuOpen(false);
+  }, [onReply]);
   const handleEdit = useCallback(() => {
     onEdit();
     setMenuOpen(false);
@@ -889,7 +1118,10 @@ function MessageInlineActions({
 
     document.addEventListener("pointerdown", closeMenuOnOutsidePointerDown);
     return () => {
-      document.removeEventListener("pointerdown", closeMenuOnOutsidePointerDown);
+      document.removeEventListener(
+        "pointerdown",
+        closeMenuOnOutsidePointerDown,
+      );
     };
   }, [closeMenuOnOutsidePointerDown, menuOpen]);
 
@@ -902,9 +1134,7 @@ function MessageInlineActions({
         className,
       )}
     >
-      {canReact && (
-        <ReactionPicker onSelect={onReact} />
-      )}
+      {canReact && <ReactionPicker onSelect={onReact} />}
       {hasMenuActions && (
         <div ref={menuRef} className="relative">
           <button
@@ -918,6 +1148,14 @@ function MessageInlineActions({
           </button>
           {menuOpen && (
             <div className="fixed bottom-[calc(env(safe-area-inset-bottom)_+_72px)] left-[12px] right-[12px] z-50 rounded-lg border border-border-default bg-bg-elevated p-[4px] shadow-modal sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-[6px] sm:w-[184px]">
+              {isReplyable && (
+                <ActionMenuButton
+                  icon={<Reply className="h-[13px] w-[13px]" />}
+                  onClick={handleReply}
+                >
+                  Répondre
+                </ActionMenuButton>
+              )}
               {isAdmin && (
                 <ActionMenuButton
                   icon={<Pin className="h-[13px] w-[13px]" />}
