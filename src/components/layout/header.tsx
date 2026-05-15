@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Menu, PanelLeftOpen, Search, X, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LAUNCH_CHAT_CHANNEL_SLUGS } from "@/lib/chat/channels";
 import { Avatar } from "@/components/ui/avatar";
 import Link from "next/link";
+import { MemberProfileTrigger } from "@/components/membres/member-profile-trigger";
+import type { MemberProfileSeed } from "@/components/membres/member-profile-drawer-context";
 
 interface HeaderProps {
   sidebarCollapsed: boolean;
@@ -18,8 +20,9 @@ type SearchResult = {
   id: string;
   title: string;
   subtitle: string;
-  href: string;
+  href?: string;
   avatarUrl?: string | null;
+  memberSeed?: MemberProfileSeed;
 };
 
 type ChatChannelRow = {
@@ -104,8 +107,12 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
           id: m.id,
           title: `@${m.x_handle}`,
           subtitle: m.full_name || "",
-          href: `/membres/${m.id}`,
           avatarUrl: m.avatar_url,
+          memberSeed: {
+            x_handle: m.x_handle,
+            full_name: m.full_name || null,
+            avatar_url: m.avatar_url,
+          },
         });
       });
 
@@ -125,6 +132,10 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
       setLoading(false);
     }, 250);
   };
+
+  const handleCloseResults = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 bg-bg-base/80 backdrop-blur-xl border-b border-border-subtle px-[16px] lg:px-[24px] h-[64px] flex items-center gap-[12px]">
@@ -188,18 +199,19 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
                       Membres
                     </p>
                     {results.filter((r) => r.type === "member").map((r) => (
-                      <Link
+                      <MemberProfileTrigger
                         key={r.id}
-                        href={r.href}
-                        onClick={() => setOpen(false)}
-                        className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
+                        memberId={r.id}
+                        seed={r.memberSeed}
+                        onOpen={handleCloseResults}
+                        className="flex w-full items-center gap-[10px] px-[12px] py-[8px] transition-colors hover:bg-bg-surface"
                       >
                         <Avatar src={r.avatarUrl} name={r.title} size="sm" />
                         <div className="min-w-0 flex-1">
                           <p className="text-[13px] font-medium text-text-primary truncate">{r.title}</p>
                           <p className="text-[11px] text-text-muted truncate">{r.subtitle}</p>
                         </div>
-                      </Link>
+                      </MemberProfileTrigger>
                     ))}
                   </>
                 )}
@@ -212,7 +224,7 @@ export function Header({ sidebarCollapsed, onMenuClick, onToggleSidebar }: Heade
                     {results.filter((r) => r.type === "message").map((r) => (
                       <Link
                         key={r.id}
-                        href={r.href}
+                        href={r.href ?? "/chat"}
                         onClick={() => setOpen(false)}
                         className="flex items-center gap-[10px] px-[12px] py-[8px] hover:bg-bg-surface transition-colors"
                       >

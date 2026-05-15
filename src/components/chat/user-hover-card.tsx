@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { createClient } from "@/lib/supabase/client";
 import { MapPin, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMemberProfileDrawer, type MemberProfileSeed } from "@/components/membres/member-profile-drawer-context";
 
 interface UserHoverCardProps {
   authorId: string;
@@ -42,6 +42,8 @@ type UserHoverCardContentProps = {
   categoryName: string | null;
   location?: string | null;
   bio?: string | null;
+  profileSeed: MemberProfileSeed;
+  onCloseHover: () => void;
 };
 
 // Cache profiles to avoid re-fetching
@@ -64,6 +66,8 @@ function UserHoverCardContent({
   categoryName,
   location,
   bio,
+  profileSeed,
+  onCloseHover,
 }: UserHoverCardContentProps) {
   return (
     <>
@@ -96,14 +100,40 @@ function UserHoverCardContent({
         </p>
       ) : null}
 
-      <Link
-        href={`/membres/${authorId}`}
-        className="flex items-center gap-[6px] mt-[12px] pt-[10px] border-t border-border-subtle text-[12px] font-medium text-primary-500 hover:text-primary-600 transition-colors"
-      >
-        <ExternalLink className="h-[12px] w-[12px]" />
-        Voir le profil
-      </Link>
+      <HoverCardProfileAction
+        authorId={authorId}
+        seed={profileSeed}
+        onOpen={onCloseHover}
+      />
     </>
+  );
+}
+
+function HoverCardProfileAction({
+  authorId,
+  seed,
+  onOpen,
+}: {
+  authorId: string;
+  seed: MemberProfileSeed;
+  onOpen: () => void;
+}) {
+  const { openMemberProfile } = useMemberProfileDrawer();
+
+  const handleOpenProfile = useCallback(() => {
+    openMemberProfile(authorId, seed);
+    onOpen();
+  }, [authorId, onOpen, openMemberProfile, seed]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleOpenProfile}
+      className="mt-[12px] flex w-full cursor-pointer items-center gap-[6px] border-t border-border-subtle pt-[10px] text-left text-[12px] font-medium text-primary-500 transition-colors hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+    >
+      <ExternalLink className="h-[12px] w-[12px]" />
+      Voir le profil
+    </button>
   );
 }
 
@@ -118,6 +148,13 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
   const profileLocation = profile?.location;
   const profileBio = profile?.bio;
   const categoryId = profile?.specialty_category_id;
+  const profileSeed = useMemo(() => {
+    return {
+      x_handle: resolvedHandle,
+      full_name: displayFullName ?? null,
+      avatar_url: resolvedAvatarUrl,
+    };
+  }, [displayFullName, resolvedAvatarUrl, resolvedHandle]);
 
   const applyFetchedProfile = useCallback((fetchedProfile: MiniProfile | null) => {
     if (!fetchedProfile) return;
@@ -146,6 +183,10 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
     setOpen(nextOpen);
   }, []);
 
+  const handleCloseHover = useCallback(() => {
+    setOpen(false);
+  }, []);
+
   useEffect(() => {
     if (!open || profile) return;
     const supabase = createClient();
@@ -171,9 +212,11 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
   return (
     <HoverCard open={open} onOpenChange={handleOpenChange} openDelay={120} closeDelay={120}>
       <HoverCardTrigger asChild>
-        <span className={cn("inline-flex", className)}>
+        <div
+          className={cn("inline-flex rounded-md", className)}
+        >
           {children}
-        </span>
+        </div>
       </HoverCardTrigger>
       <HoverCardContent
         side="bottom"
@@ -190,6 +233,8 @@ export function UserHoverCard({ authorId, x_handle, full_name, avatar_url, class
           categoryName={categoryName}
           location={profileLocation}
           bio={profileBio}
+          profileSeed={profileSeed}
+          onCloseHover={handleCloseHover}
         />
       </HoverCardContent>
     </HoverCard>

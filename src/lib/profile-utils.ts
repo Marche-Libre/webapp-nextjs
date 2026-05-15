@@ -22,7 +22,7 @@ export function getVisibility(profile: Profile): ProfileVisibility {
   return { ...DEFAULT_VISIBILITY };
 }
 
-export function applyVisibility(profile: Profile, isOwnProfile: boolean): Profile {
+export function applyVisibility<T extends Partial<Profile>>(profile: T, isOwnProfile: boolean): T {
   void isOwnProfile;
   return profile;
 }
