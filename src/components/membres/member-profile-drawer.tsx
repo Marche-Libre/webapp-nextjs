@@ -301,9 +301,9 @@ function ProfileContent({
                 href={xProfileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="truncate font-display text-[20px] font-bold tracking-[-0.02em] text-text-primary transition-colors hover:text-primary-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+                className="inline-flex max-w-full items-center rounded-full border border-primary-500/25 bg-primary-50 px-[10px] py-[4px] font-display text-[18px] font-bold text-primary-400 transition-colors hover:border-primary-500/45 hover:bg-primary-500/20 hover:text-primary-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
               >
-                @{profile.x_handle}
+                <span className="truncate">@{profile.x_handle}</span>
               </a>
               <Badge variant="success">Vérifié</Badge>
             </div>
