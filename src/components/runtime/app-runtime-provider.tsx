@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 const OFFLINE_BANNER_MESSAGE = "Vous êtes hors ligne. Connectez-vous à Internet pour utiliser l'application.";
 export const OFFLINE_CHAT_MESSAGE = "Vous êtes hors ligne. Merci de vous connecter à Internet pour utiliser le chat.";
-export const APP_RUNTIME_VERSION = "0.1.0";
+export const APP_RUNTIME_VERSION = "0.1.3";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;

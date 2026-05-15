@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
-import { CheckCircle2, Download, RefreshCw } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { CheckCircle2, Download, RefreshCw, X } from "lucide-react";
 import { APP_RUNTIME_VERSION, useNetworkStatus } from "@/components/runtime/app-runtime-provider";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ export function AppInstallUpdatePanel({
   hideWhenIdle = false,
   className,
 }: AppInstallUpdatePanelProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const {
     isStandalone,
     installPromptAvailable,
@@ -31,7 +32,7 @@ export function AppInstallUpdatePanel({
     if (updateAvailable) return "Mise à jour disponible";
     if (showInstallAction) return "Installation disponible";
     if (installStrategy === "ios-safari-manual") return "Installation via Safari";
-    if (installStrategy === "ios-browser-manual") return "Installation via Safari";
+    if (installStrategy === "ios-browser-manual") return "Installation manuelle";
     if (installStrategy === "desktop-safari-manual") return "Installation via Safari";
     if (installStrategy === "browser-menu-manual") return "Installation via le navigateur";
     return "Application à jour";
@@ -42,7 +43,7 @@ export function AppInstallUpdatePanel({
     }
 
     if (installStrategy === "ios-browser-manual") {
-      return "Ouvrez cette page dans Safari, puis Partager et Ajouter à l’écran d’accueil.";
+      return "Sur iOS, installez depuis Safari : Partager puis Ajouter à l’écran d’accueil.";
     }
 
     if (installStrategy === "desktop-safari-manual") {
@@ -60,8 +61,33 @@ export function AppInstallUpdatePanel({
     applyUpdate();
   }, [applyUpdate]);
 
+  const handleCollapse = useCallback(() => {
+    setIsCollapsed(true);
+  }, []);
+
   if (hideWhenIdle && !hasAction) {
     return null;
+  }
+
+  if (isCollapsed) {
+    return (
+      <div
+        className={cn(
+          "inline-flex rounded-lg border border-border-subtle bg-bg-surface/60 px-[10px] py-[6px]",
+          variant === "priority" && "border-primary-300/60 bg-primary-50/20",
+          className,
+        )}
+      >
+        <p
+          className={cn(
+            "text-[11px] font-semibold leading-[15px]",
+            variant === "priority" ? "text-primary-700" : "text-text-muted",
+          )}
+        >
+          v{APP_RUNTIME_VERSION}
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -72,31 +98,44 @@ export function AppInstallUpdatePanel({
         className,
       )}
     >
-      <div className="flex items-start gap-[9px]">
-        <CheckCircle2
-          className={cn(
-            "mt-[1px] h-[15px] w-[15px] shrink-0",
-            variant === "priority" ? "text-primary-600" : "text-text-muted",
-          )}
-        />
-        <div className="min-w-0">
-          <p
+      <div className="flex items-start justify-between gap-[9px]">
+        <div className="flex min-w-0 items-start gap-[9px]">
+          <CheckCircle2
             className={cn(
-              "text-[12px] font-semibold",
-              variant === "priority" ? "text-primary-700" : "text-text-primary",
+              "mt-[1px] h-[15px] w-[15px] shrink-0",
+              variant === "priority" ? "text-primary-600" : "text-text-muted",
             )}
-          >
-            Application
-          </p>
-          <p
-            className={cn(
-              "mt-[2px] text-[11px] leading-[15px]",
-              variant === "priority" ? "text-primary-700/80" : "text-text-muted",
-            )}
-          >
-            v{APP_RUNTIME_VERSION} · {statusLabel}
-          </p>
+          />
+          <div className="min-w-0">
+            <p
+              className={cn(
+                "text-[12px] font-semibold",
+                variant === "priority" ? "text-primary-700" : "text-text-primary",
+              )}
+            >
+              Application
+            </p>
+            <p
+              className={cn(
+                "mt-[2px] text-[11px] leading-[15px]",
+                variant === "priority" ? "text-primary-700/80" : "text-text-muted",
+              )}
+            >
+              v{APP_RUNTIME_VERSION} · {statusLabel}
+            </p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={handleCollapse}
+          aria-label="Réduire le message d'application"
+          className={cn(
+            "flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full transition-colors hover:bg-bg-muted",
+            variant === "priority" ? "text-primary-700/70 hover:bg-primary-100/70" : "text-text-muted",
+          )}
+        >
+          <X className="h-[14px] w-[14px]" />
+        </button>
       </div>
 
       {showInstallAction && (
