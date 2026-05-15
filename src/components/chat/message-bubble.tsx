@@ -872,31 +872,6 @@ export function MessageBubble({
               </span>
             )}
           </div>
-          <MessageInlineActions
-            canReact={canReact}
-            canCopy={canCopyMessage}
-            canDelete={canDeleteMessage}
-            canEdit={canEditMessage}
-            canPin={canPinMessage}
-            canReport={canReportMessage}
-            copyLabel={copyLabel}
-            copySucceeded={copySucceeded}
-            deleteConfirming={deleteConfirming}
-            isPinned={Boolean(message.is_pinned)}
-            isReplyable={canReplyToMessage}
-            replyLabel={REPLY_ACTION_LABEL}
-            saving={saving}
-            onCancelDelete={handleCancelDeleteConfirming}
-            onConfirmDelete={handleStartDeleteConfirming}
-            onCopy={handleCopyMessage}
-            onDelete={handleDelete}
-            onEdit={handleStartEditing}
-            onPin={handleTogglePin}
-            onReact={handleReactionSelect}
-            onReply={handleReply}
-            onReport={handleReport}
-            className={cn("opacity-100", isOwn ? "ml-[6px]" : "ml-auto")}
-          />
         </div>
         <header
           className={cn(
@@ -949,13 +924,13 @@ export function MessageBubble({
         ) : (
           <div
             className={cn(
-              "max-w-full sm:flex sm:items-center sm:gap-[4px]",
-              isOwn && "sm:flex-row-reverse",
+              "flex min-w-0 max-w-full items-center gap-[4px]",
+              isOwn && "flex-row-reverse",
             )}
           >
             <div
               className={cn(
-                "w-fit max-w-full px-3.5 py-2.25 shadow-card sm:max-w-full",
+                "min-w-0 w-fit max-w-full px-3.5 py-2.25 shadow-card sm:max-w-full",
                 MESSAGE_BUBBLE_MIN_WIDTH_CLASSNAME,
                 bubbleRadiusClass,
                 isOwn
@@ -1024,7 +999,7 @@ export function MessageBubble({
               onReact={handleReactionSelect}
               onReply={handleReply}
               onReport={handleReport}
-              className="hidden sm:flex sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100"
+              className="opacity-100 sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100"
             />
           </div>
         )}
