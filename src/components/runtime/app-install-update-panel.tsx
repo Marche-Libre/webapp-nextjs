@@ -3,8 +3,19 @@
 import { useCallback, useMemo } from "react";
 import { CheckCircle2, Download, RefreshCw } from "lucide-react";
 import { APP_RUNTIME_VERSION, useNetworkStatus } from "@/components/runtime/app-runtime-provider";
+import { cn } from "@/lib/utils";
 
-export function AppInstallUpdatePanel() {
+interface AppInstallUpdatePanelProps {
+  variant?: "default" | "priority";
+  hideWhenIdle?: boolean;
+  className?: string;
+}
+
+export function AppInstallUpdatePanel({
+  variant = "default",
+  hideWhenIdle = false,
+  className,
+}: AppInstallUpdatePanelProps) {
   const {
     isStandalone,
     installPromptAvailable,
@@ -14,6 +25,7 @@ export function AppInstallUpdatePanel() {
   } = useNetworkStatus();
 
   const showInstallAction = installPromptAvailable && !isStandalone;
+  const hasAction = showInstallAction || updateAvailable;
   const statusLabel = useMemo(() => {
     if (updateAvailable) return "Mise à jour disponible";
     if (showInstallAction) return "Installation disponible";
@@ -28,13 +40,40 @@ export function AppInstallUpdatePanel() {
     applyUpdate();
   }, [applyUpdate]);
 
+  if (hideWhenIdle && !hasAction) {
+    return null;
+  }
+
   return (
-    <div className="rounded-lg border border-border-subtle bg-bg-surface/60 px-[12px] py-[12px]">
+    <div
+      className={cn(
+        "rounded-lg border border-border-subtle bg-bg-surface/60 px-[12px] py-[12px]",
+        variant === "priority" && "border-primary-300/60 bg-primary-50/20",
+        className,
+      )}
+    >
       <div className="flex items-start gap-[9px]">
-        <CheckCircle2 className="mt-[1px] h-[15px] w-[15px] shrink-0 text-text-muted" />
+        <CheckCircle2
+          className={cn(
+            "mt-[1px] h-[15px] w-[15px] shrink-0",
+            variant === "priority" ? "text-primary-600" : "text-text-muted",
+          )}
+        />
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-text-primary">Application</p>
-          <p className="mt-[2px] text-[11px] leading-[15px] text-text-muted">
+          <p
+            className={cn(
+              "text-[12px] font-semibold",
+              variant === "priority" ? "text-primary-700" : "text-text-primary",
+            )}
+          >
+            Application
+          </p>
+          <p
+            className={cn(
+              "mt-[2px] text-[11px] leading-[15px]",
+              variant === "priority" ? "text-primary-700/80" : "text-text-muted",
+            )}
+          >
             v{APP_RUNTIME_VERSION} · {statusLabel}
           </p>
         </div>

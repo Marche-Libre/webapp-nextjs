@@ -72,9 +72,7 @@ function MainArea({ profile, children }: { profile: Profile; children: React.Rea
       </div>
 
       {/* Discord-style settings overlay */}
-      {isSettingsRoute && (
-        <SettingsShell>{children}</SettingsShell>
-      )}
+      {isSettingsRoute && <SettingsShell profile={profile}>{children}</SettingsShell>}
       {isAdminRoute && (
         <AdminShell>{children}</AdminShell>
       )}

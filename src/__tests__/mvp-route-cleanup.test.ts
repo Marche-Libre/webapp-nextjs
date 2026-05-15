@@ -26,6 +26,21 @@ describe("MVP route cleanup", () => {
     expect(source("src/components/layout/sidebar.tsx")).toContain('href="/chat"');
   });
 
+  it("keeps settings routes while rendering a vertical mobile account nav with install priority", () => {
+    const appShell = source("src/components/layout/app-shell.tsx");
+    const settingsShell = source("src/components/layout/settings-shell.tsx");
+    const installPanel = source("src/components/runtime/app-install-update-panel.tsx");
+
+    expect(appShell).toContain("<SettingsShell profile={profile}>{children}</SettingsShell>");
+    expect(settingsShell).not.toContain("overflow-x-auto scrollbar-hide");
+    expect(settingsShell).toContain('<p className="text-[14px] font-semibold text-text-primary">Compte</p>');
+    expect(settingsShell).toContain('<AppInstallUpdatePanel variant="priority" hideWhenIdle />');
+    expect(installPanel).toContain('hideWhenIdle && !hasAction');
+    expect(settingsShell).toContain('{ label: "Mon profil", href: "/profil", icon: User }');
+    expect(settingsShell).toContain('{ label: "Notifications", href: "/notifications", icon: Bell }');
+    expect(settingsShell).toContain('{ label: "Parrainages", href: "/parrainages", icon: UserPlus }');
+  });
+
   it("removes the deprecated channel-list back affordance from chat", () => {
     const channelList = source("src/components/chat/channel-list.tsx");
 
