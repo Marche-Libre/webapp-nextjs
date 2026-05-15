@@ -566,7 +566,7 @@ export function MessageBubble({
   return (
     <article
       className={cn(
-        "group px-[8px] transition-colors sm:flex sm:items-end sm:gap-[8px] sm:px-[12px]",
+        "group relative touch-pan-y px-[8px] transition-colors sm:flex sm:items-end sm:gap-[8px] sm:px-[12px]",
         rowSpacingClass,
         isOwn ? "sm:flex-row-reverse" : "sm:hover:bg-bg-surface/20",
         message.is_pinned &&
