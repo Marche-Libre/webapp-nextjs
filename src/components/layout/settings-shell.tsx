@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Bell, LogOut, User, UserPlus } from "lucide-react";
+import { ArrowLeft, Bell, LogOut, Moon, Sun, User, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/avatar";
 import { useNotifications } from "@/components/notifications/notification-provider";
 import { createClient } from "@/lib/supabase/client";
 import { AppInstallUpdatePanel } from "@/components/runtime/app-install-update-panel";
+import { useTheme } from "@/components/theme/theme-provider";
 import type { Profile } from "@/lib/types/database";
 
 const settingsNav = [
@@ -34,6 +35,7 @@ export function SettingsShell({ profile, children }: SettingsShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { unreadCount } = useNotifications();
+  const { theme, setTheme } = useTheme();
 
   const close = useCallback(() => {
     router.push("/chat");
@@ -43,6 +45,9 @@ export function SettingsShell({ profile, children }: SettingsShellProps) {
     await supabase.auth.signOut();
     router.push("/connexion");
   }, [router]);
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [setTheme, theme]);
   const unreadText = unreadCount > 99 ? "99+" : `${unreadCount}`;
   const isWideContentRoute = useMemo(() => {
     return WIDE_CONTENT_ROUTES.some((route) => pathname.startsWith(route));
@@ -152,19 +157,34 @@ export function SettingsShell({ profile, children }: SettingsShellProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile: vertical account surface */}
         <div className="sm:hidden shrink-0 border-b border-border-subtle bg-bg-base">
-          <div className="space-y-[12px] px-[16px] py-[12px]">
-            <div className="flex items-center gap-[8px]">
+          <div className="space-y-[10px] px-[16px] py-[10px]">
+            <div className="flex items-center justify-between gap-[8px]">
+              <div className="flex items-center gap-[8px] min-w-0">
+                <button
+                  onClick={close}
+                  className="p-[8px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors"
+                  aria-label="Retour au chat"
+                >
+                  <ArrowLeft className="h-[18px] w-[18px]" />
+                </button>
+                <p className="truncate text-[14px] font-semibold text-text-primary">Compte</p>
+              </div>
               <button
-                onClick={close}
-                className="p-[8px] rounded-lg hover:bg-bg-surface text-text-muted cursor-pointer transition-colors"
-                aria-label="Retour au chat"
+                type="button"
+                onClick={toggleTheme}
+                className="p-[8px] rounded-lg hover:bg-bg-surface text-text-muted hover:text-text-primary cursor-pointer transition-colors shrink-0"
+                aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+                title={theme === "dark" ? "Mode clair" : "Mode sombre"}
               >
-                <ArrowLeft className="h-[18px] w-[18px]" />
+                {theme === "dark" ? (
+                  <Sun className="h-[18px] w-[18px]" />
+                ) : (
+                  <Moon className="h-[18px] w-[18px]" />
+                )}
               </button>
-              <p className="text-[14px] font-semibold text-text-primary">Compte</p>
             </div>
 
-            <div className="flex items-center gap-[10px] rounded-lg border border-border-default bg-bg-elevated/50 px-[10px] py-[8px]">
+            <div className="flex items-center gap-[10px] rounded-lg border border-border-default bg-bg-elevated/50 px-[10px] py-[6px]">
               <Avatar src={profile.avatar_url} name={profile.x_handle} size="sm" />
               <div className="min-w-0">
                 <p className="truncate text-[13px] font-semibold text-text-primary">
