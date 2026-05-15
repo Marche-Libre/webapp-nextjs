@@ -52,3 +52,21 @@ For documentation-only, BMad migration, or project-management cleanup work, do
 not change app routes, UI, Supabase files, dependencies, package locks,
 generated types, tests, or runtime behavior.
 <!-- BMAD END -->
+
+<!-- BEGIN:versioning-rules -->
+
+# Versioning Rules
+
+Version source of truth: `package.json`.
+
+Keep aligned:
+- `package.json`
+- `package-lock.json`
+- `public/sw.js` cache name: `marchelibre-static-vX.Y.Z`
+
+Do not use independent PWA cache counters like `v2` or `v3`.
+
+Before a production commit/release, recommend `patch`, `minor`, or `major`.
+The product owner decides.
+
+<!-- END:versioning-rules -->
