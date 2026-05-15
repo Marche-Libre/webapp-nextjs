@@ -11,10 +11,19 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
+type InstallStrategy =
+  | "installed"
+  | "native-prompt"
+  | "ios-safari-manual"
+  | "ios-browser-manual"
+  | "desktop-safari-manual"
+  | "browser-menu-manual";
+
 type NetworkStatusContextValue = {
   isOnline: boolean;
   isStandalone: boolean;
   installPromptAvailable: boolean;
+  installStrategy: InstallStrategy;
   updateAvailable: boolean;
   installApp: () => Promise<void>;
   applyUpdate: () => void;
@@ -24,6 +33,7 @@ const NetworkStatusContext = createContext<NetworkStatusContextValue>({
   isOnline: true,
   isStandalone: false,
   installPromptAvailable: false,
+  installStrategy: "browser-menu-manual",
   updateAvailable: false,
   installApp: async () => undefined,
   applyUpdate: () => undefined,
@@ -39,6 +49,29 @@ function getInitialStandaloneStatus() {
 
   const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
   return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
+}
+
+function isIosDevice() {
+  if (typeof window === "undefined") return false;
+
+  const navigatorWithTouchPoints = navigator as Navigator & { maxTouchPoints?: number };
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && (navigatorWithTouchPoints.maxTouchPoints ?? 0) > 1)
+  );
+}
+
+function isSafariBrowser() {
+  if (typeof window === "undefined") return false;
+  return /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|FxiOS|Edg|EdgiOS|OPiOS/.test(navigator.userAgent);
+}
+
+function getInstallStrategy(isStandalone: boolean, installPromptAvailable: boolean): InstallStrategy {
+  if (isStandalone) return "installed";
+  if (installPromptAvailable) return "native-prompt";
+  if (isIosDevice()) return isSafariBrowser() ? "ios-safari-manual" : "ios-browser-manual";
+  if (isSafariBrowser()) return "desktop-safari-manual";
+  return "browser-menu-manual";
 }
 
 function canRegisterServiceWorker() {
@@ -204,16 +237,21 @@ export function AppRuntimeProvider({ children }: { children: ReactNode }) {
 
   useEffect(serviceWorkerRegistrationEffect, [serviceWorkerRegistrationEffect]);
 
+  const installStrategy = useMemo(() => {
+    return getInstallStrategy(isStandalone, installPromptAvailable);
+  }, [installPromptAvailable, isStandalone]);
+
   const contextValue = useMemo<NetworkStatusContextValue>(() => {
     return {
       isOnline,
       isStandalone,
       installPromptAvailable,
+      installStrategy,
       updateAvailable,
       installApp,
       applyUpdate,
     };
-  }, [applyUpdate, installApp, installPromptAvailable, isOnline, isStandalone, updateAvailable]);
+  }, [applyUpdate, installApp, installPromptAvailable, installStrategy, isOnline, isStandalone, updateAvailable]);
 
   return (
     <NetworkStatusContext.Provider value={contextValue}>

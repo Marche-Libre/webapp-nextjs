@@ -19,18 +19,38 @@ export function AppInstallUpdatePanel({
   const {
     isStandalone,
     installPromptAvailable,
+    installStrategy,
     updateAvailable,
     installApp,
     applyUpdate,
   } = useNetworkStatus();
-
   const showInstallAction = installPromptAvailable && !isStandalone;
-  const hasAction = showInstallAction || updateAvailable;
+  const showManualInstallHint = !isStandalone && installStrategy !== "native-prompt";
+  const hasAction = showInstallAction || showManualInstallHint || updateAvailable;
   const statusLabel = useMemo(() => {
     if (updateAvailable) return "Mise à jour disponible";
     if (showInstallAction) return "Installation disponible";
+    if (installStrategy === "ios-safari-manual") return "Installation via Safari";
+    if (installStrategy === "ios-browser-manual") return "Installation via Safari";
+    if (installStrategy === "desktop-safari-manual") return "Installation via Safari";
+    if (installStrategy === "browser-menu-manual") return "Installation via le navigateur";
     return "Application à jour";
-  }, [showInstallAction, updateAvailable]);
+  }, [installStrategy, showInstallAction, updateAvailable]);
+  const manualInstallLabel = useMemo(() => {
+    if (installStrategy === "ios-safari-manual") {
+      return "Safari : Partager puis Ajouter à l’écran d’accueil.";
+    }
+
+    if (installStrategy === "ios-browser-manual") {
+      return "Ouvrez cette page dans Safari, puis Partager et Ajouter à l’écran d’accueil.";
+    }
+
+    if (installStrategy === "desktop-safari-manual") {
+      return "Safari : bouton Partager puis Ajouter au Dock.";
+    }
+
+    return "Utilisez l’icône d’installation ou le menu du navigateur.";
+  }, [installStrategy]);
 
   const handleInstall = useCallback(() => {
     void installApp();
@@ -88,6 +108,12 @@ export function AppInstallUpdatePanel({
           <Download className="h-[14px] w-[14px]" />
           Installer
         </button>
+      )}
+
+      {showManualInstallHint && (
+        <p className="mt-[10px] text-[11px] leading-[15px] text-text-muted">
+          {manualInstallLabel}
+        </p>
       )}
 
       {updateAvailable && (
