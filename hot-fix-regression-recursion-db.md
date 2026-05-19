@@ -1,5 +1,14 @@
 # Hotfix regression DB - recursion RLS `profiles`
 
+## Statut RFC
+
+Decision : valide avec corrections obligatoires avant implementation durable.
+
+Le diagnostic et le hotfix sont valides. La correction durable est retenue, mais
+la migration durable doit aussi supprimer explicitement la policy recursive
+existante. Ajouter le RPC sans dropper la policy ne suffit pas : la recursion
+reste active tant que la policy `profiles -> sponsorship_requests` existe.
+
 ## Contexte
 
 Une regression RLS provoque des erreurs `500` Supabase sur les lectures de
@@ -114,6 +123,7 @@ necessaires, filtrees par `sponsor_id = auth.uid()`.
 
 Important :
 
+- dropper explicitement la policy recursive existante dans la migration durable ;
 - ne pas recreer de policy `SELECT` sponsor sur `public.profiles` ;
 - garder la fonction privilegiee `SECURITY DEFINER` dans le schema `private` ;
 - exposer a la Data API seulement un wrapper `public` non privilegie.
@@ -121,6 +131,9 @@ Important :
 Migration proposee :
 
 ```sql
+DROP POLICY IF EXISTS "Sponsors can view requester profiles for sponsorship requests"
+  ON public.profiles;
+
 CREATE SCHEMA IF NOT EXISTS private;
 
 REVOKE CREATE ON SCHEMA private FROM PUBLIC;
@@ -180,6 +193,24 @@ Le front `/parrainages` lit alors les infos demandeur via RPC
 `get_sponsor_requester_profiles()` au lieu de dependre d'une policy sponsor
 sur `public.profiles`.
 
+### Changement frontend requis
+
+Dans `/parrainages`, remplacer le join embarque actuel :
+
+```text
+sponsorship_requests.select("*, requester:profiles!requester_id(...)")
+```
+
+par deux lectures separees :
+
+1. lire `public.sponsorship_requests` sans embed `profiles`, filtre
+   `sponsor_id = user.id` ;
+2. appeler `rpc("get_sponsor_requester_profiles")` ;
+3. merger cote serveur les infos demandeur par `sponsorship_request_id`.
+
+Le front ne doit plus dependre d'une policy sponsor sur `public.profiles` pour
+afficher les demandes recues.
+
 ## Pourquoi cette correction durable
 
 Le repo utilise deja ce pattern pour casser une recursion RLS sur
@@ -196,13 +227,49 @@ Le meme principe s'applique pour casser la recursion :
   hors evaluation RLS de l'appelant ;
 - le wrapper public retourne uniquement les champs utiles a `/parrainages`.
 
-Hypotheses a verifier avant prod :
+Points de controle avant prod :
 
 - le role proprietaire des fonctions `SECURITY DEFINER` est bien attendu ;
 - `FORCE ROW LEVEL SECURITY` n'est pas active sur les tables impliquees ;
 - les objets references restent schema-qualifies ;
 - le schema `private` n'est pas expose dans la Data API.
 - la fonction publique reste `SECURITY INVOKER`.
+- la policy `"Sponsors can view requester profiles for sponsorship requests"`
+  n'existe plus apres migration.
+
+## Plan de correction
+
+### P0 - Stabilisation
+
+1. Si l'environnement est bloque, appliquer uniquement le hotfix immediat :
+   dropper la policy recursive sur `public.profiles`.
+2. Verifier tout de suite la requete `profiles(status,onboarding_completed)`.
+3. Accepter temporairement que `/parrainages` affiche un demandeur incomplet
+   tant que la correction durable n'est pas livree.
+
+### P1 - Correction durable
+
+1. Creer une migration qui :
+   - droppe la policy recursive ;
+   - cree ou remplace `private.get_sponsor_requester_profiles()` ;
+   - cree ou remplace `public.get_sponsor_requester_profiles()` ;
+   - limite les grants aux roles attendus.
+2. Mettre a jour `/parrainages` pour utiliser la RPC publique.
+3. Ne pas ajouter de nouvelle policy sponsor `SELECT` sur `public.profiles`.
+
+### P1 - Tests et garde-fous
+
+1. Remplacer le test qui validait l'ancienne policy sponsor sur `profiles`.
+2. Ajouter un test statique confirmant qu'aucune policy `profiles` ne requete
+   `public.sponsorship_requests`.
+3. Ajouter un test statique confirmant que la migration durable contient :
+   - le `DROP POLICY` de l'ancienne policy recursive ;
+   - le helper `private.get_sponsor_requester_profiles` en
+     `SECURITY DEFINER` ;
+   - le wrapper `public.get_sponsor_requester_profiles` en
+     `SECURITY INVOKER` ;
+   - la liste limitee de colonnes retournees.
+4. Adapter les types locaux si necessaire pour representer le retour RPC.
 
 ## Validation
 
@@ -235,6 +302,20 @@ Resultat attendu :
 7. Verifier que `/parrainages` affiche toujours les infos demandeur attendues.
 8. Verifier qu'un sponsor ne peut pas lire les champs sensibles du demandeur
    via `GET /rest/v1/profiles`.
+9. Verifier en catalogue SQL que la policy recursive n'existe plus :
+
+```sql
+SELECT policyname
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename = 'profiles'
+  AND policyname = 'Sponsors can view requester profiles for sponsorship requests';
+```
+
+Resultat attendu : zero ligne.
+
+10. Verifier que les policies restantes de `public.profiles` ne referencent pas
+    `public.sponsorship_requests`.
 
 ## Rollback
 
@@ -260,3 +341,15 @@ d'autres helpers RLS.
 4. Verifier en SQL et via `/parrainages` avec cas positifs et negatifs.
 5. Mettre a jour les tests d'authorization hardening pour confirmer qu'aucune
    policy `profiles` ne requete `public.sponsorship_requests`.
+
+## Critere d'acceptation final
+
+La correction est terminee uniquement si les quatre conditions sont vraies :
+
+1. la requete `profiles(status,onboarding_completed)` ne retourne plus `42P17` ;
+2. `/parrainages` affiche les informations demandeur via RPC, sans embed
+   `profiles` ;
+3. un sponsor ne peut toujours pas lire les champs sensibles du demandeur via
+   `GET /rest/v1/profiles` ;
+4. les tests interdisent la reintroduction d'une policy `profiles` qui lit
+   `public.sponsorship_requests`.
