@@ -1,258 +1,317 @@
-# Plan de suppression de compte
+# RFC - Suppression d'un compte
 
-Statut : plan de cadrage avant implémentation  
-Date : 14 mai 2026  
-Périmètre : CGU, politique de confidentialité, interface profil, Supabase/Postgres, RLS, workflow serveur, affichage chat/forum
+## Statut
 
-## 1. Objectif
+Proposé
 
-Mettre en place une suppression de compte qui :
+## Date
 
-- supprime ou désassocie les données d'identité et de profil du membre ;
-- supprime les médias personnels associés, sauf exception nécessaire ;
-- conserve les contributions textuelles publiées dans les espaces collectifs lorsque cela est nécessaire à la continuité des discussions ;
-- affiche ces contributions sous un auteur générique, par exemple `Utilisateur supprimé` ;
-- empêche toute suppression en cascade non maîtrisée des conversations ;
-- aligne les CGU, la politique de confidentialité, l'interface et le modèle de données.
+19 mai 2026
 
-Le point central : ne pas promettre une anonymisation complète des conversations. Le comportement attendu est une désassociation de l'auteur affiché et du profil, avec une procédure de demande ciblée si un contenu textuel contient encore des données personnelles.
+## Résumé
 
-## 2. Doctrine produit
+Mettre en place une suppression de compte qui retire l'accès du membre, désassocie son profil de ses contributions collectives, supprime ou détache ses médias personnels, et conserve les conversations collectives sous un auteur générique `Utilisateur supprimé`.
 
-Les espaces de chat et de forum sont des espaces collectifs visibles par les membres approuvés de MarchéLibre.
+La décision proposée est : **tombstone DB + suppression Storage via API serveur**.
 
-Lorsqu'un membre publie un message dans ces espaces, ce message s'inscrit dans l'historique des échanges de la communauté. En cas de suppression du compte, l'identité du membre et son profil ne doivent plus être affichés, mais ses contributions textuelles collectives peuvent rester visibles afin de préserver la cohérence des conversations.
+Le système ne doit pas promettre une anonymisation complète des conversations. Le comportement attendu est une désassociation du profil affiché, avec conservation des contributions textuelles collectives lorsque cela est nécessaire à la continuité des échanges.
 
-Règles produit à acter :
+## Problème
 
-- les chats et forums ne sont pas des espaces publics ouverts, mais des espaces collectifs internes aux membres approuvés ;
-- les membres doivent éviter de publier des informations personnelles, sensibles ou confidentielles dans les espaces collectifs ;
-- la plateforme peut modérer, restreindre ou supprimer des contenus lorsque cela est nécessaire, notamment en cas de demande fondée relative aux données personnelles ;
-- à la suppression du compte, les données de profil et d'identité sont supprimées ou désidentifiées ;
-- les contributions textuelles collectives restent visibles sous `Utilisateur supprimé`, sauf demande ciblée justifiée ;
-- les médias uploadés par l'utilisateur sont supprimés par défaut ;
-- les sauvegardes, traces de sécurité, éléments de preuve ou obligations légales peuvent imposer une conservation temporaire limitée.
+Le bouton actuel de suppression de compte promet une suppression définitive de toutes les données alors que le code ne fait qu'une déconnexion. Cette promesse est inexacte et risquée.
 
-## 3. Textes légaux et contenus publics
+Le modèle de données actuel expose aussi un risque plus grave : certaines foreign keys vers `public.profiles` peuvent supprimer des conversations par cascade si l'utilisateur Supabase Auth est supprimé directement.
 
-### 3.1 CGU
+Le besoin réel est double :
 
-Fichier concerné : `src/app/cgu/page.tsx`
+1. Donner au membre un chemin clair pour supprimer son compte et ses données de profil.
+2. Préserver les conversations collectives internes afin que les échanges restent lisibles pour les autres membres approuvés.
 
-Sections à modifier :
+## Objectifs
 
-- `5. Contenus des utilisateurs`
-- `10.2 Résiliation par l'utilisateur`
+- Retirer l'accès applicatif du membre supprimé.
+- Supprimer ou désassocier les données d'identité et de profil visibles.
+- Supprimer les médias personnels associés lorsque c'est techniquement possible et approprié.
+- Conserver les contributions textuelles collectives sous `Utilisateur supprimé`.
+- Empêcher toute suppression en cascade non maîtrisée des conversations.
+- Aligner les CGU, la politique de confidentialité, l'interface, la base et le workflow serveur.
+- Journaliser le workflow avec des compteurs exploitables et sans email clair par défaut.
 
-Formulation cible pour les contributions collectives :
+## Non-objectifs
 
-> Lorsque vous publiez un message, une réponse ou une contribution dans un espace collectif, cette contribution s'inscrit dans une conversation visible par les membres approuvés. Si vous supprimez votre compte, votre profil et vos informations d'identification ne seront plus affichés, mais vos contributions textuelles collectives pourront rester visibles afin de préserver la cohérence des échanges. Elles seront alors associées à un auteur générique, sauf demande spécifique justifiée portant sur des données personnelles contenues dans ces contributions.
+- Ne pas garantir l'anonymisation complète du texte libre.
+- Ne pas nettoyer automatiquement toutes les mentions ou toutes les données personnelles contenues dans les messages.
+- Ne pas supprimer l'historique collectif des conversations par défaut.
+- Ne pas permettre une suppression de compte depuis le client Supabase normal.
+- Ne pas activer `deleteUser` tant que la migration anti-cascade n'est pas validée.
+- Ne pas résoudre dans ce RFC la politique juridique finale de conservation des sauvegardes, logs et preuves.
 
-Formulation cible sur la responsabilité des membres :
+## Décision proposée
 
-> Les membres doivent éviter de publier des informations personnelles, sensibles ou confidentielles dans les espaces collectifs. MarchéLibre peut modérer, restreindre ou supprimer des contenus lorsque cela est nécessaire, notamment en cas de demande fondée relative aux données personnelles.
+Utiliser un modèle **tombstone DB + suppression Storage via API serveur**.
 
-La licence de contenu doit être ajustée. La version actuelle limite l'affichage du contenu à la durée d'inscription, ce qui contredit la conservation des contributions collectives après suppression. Elle doit être reformulée pour couvrir l'affichage des contributions collectives après suppression du compte, uniquement pour les besoins de fonctionnement, de lisibilité et d'historique des espaces collectifs.
+La suppression de compte sera un workflow serveur protégé qui :
 
-### 3.2 Politique de confidentialité
+1. crée une trace de demande de suppression ;
+2. supprime ou détache les médias personnels ;
+3. réassigne les contributions collectives vers un profil système `Utilisateur supprimé` ;
+4. supprime les données périphériques non nécessaires ;
+5. désidentifie le profil utilisateur ;
+6. supprime l'utilisateur Supabase Auth seulement en fin de workflow ;
+7. déconnecte le client et redirige.
 
-Fichier concerné : `src/app/confidentialite/page.tsx`
+Le profil système `Utilisateur supprimé` est un tombstone volontaire, pas un membre réel. Il sert uniquement à préserver la lisibilité des conversations.
 
-Sections à modifier :
+## Comportement cible
 
-- données collectées ;
-- finalités ;
-- durées de conservation ;
-- droits des utilisateurs ;
-- contact et demandes ciblées.
+### Pour le membre
 
-La politique doit distinguer explicitement :
-
-- données de profil : nom, handle X, email, téléphone, avatar, bio, localisation, liens, préférences visibles ;
-- données d'authentification ;
-- conversations collectives ;
-- médias ;
-- logs et traces de sécurité ;
-- sauvegardes ;
-- signalements, modération, preuve et litiges.
-
-Formulation cible :
-
-> La suppression du compte entraîne la suppression ou la désactivation des données de profil affichées, la suppression des médias personnels associés lorsque cela est techniquement possible et approprié, et la désassociation des contributions collectives de l'identité du membre. Certaines données peuvent être conservées temporairement lorsque cela est nécessaire pour la sécurité, la preuve, le respect d'obligations légales, la gestion des sauvegardes ou le traitement d'une demande.
-
-Formulations à éviter :
-
-- `Toutes vos données seront supprimées`
-- `Vos messages seront anonymisés`
-- `Nous supprimons toute trace`
-- `Suppression définitive immédiate`
-- `Les conversations ne contiennent plus aucune donnée personnelle`
-
-Formulations à privilégier :
-
-- `Votre profil ne sera plus visible`
-- `Vos contributions collectives resteront visibles sous "Utilisateur supprimé"`
-- `Les médias associés à votre compte seront supprimés sauf contrainte technique, légale ou demande de conservation nécessaire`
-- `Les sauvegardes peuvent conserver temporairement des données jusqu'à leur expiration`
-
-## 4. Interface utilisateur
-
-Fichier concerné : `src/components/profile/profile-danger-zone.tsx`
-
-Le bouton actuel promet une suppression définitive de toutes les données alors que le code ne fait qu'une déconnexion. Il faut remplacer ce comportement.
-
-Texte de zone sensible cible :
-
-> La suppression retire votre accès et désassocie vos données de profil. Vos messages publiés dans les espaces collectifs peuvent rester visibles sous "Utilisateur supprimé" afin de préserver le contexte des échanges.
-
-Comportement attendu :
-
-1. Afficher une modale dédiée, pas un simple `confirm()`.
-2. Expliquer clairement les conséquences :
-   - accès au compte supprimé ;
-   - profil retiré ;
-   - avatar et médias personnels supprimés ;
-   - contributions textuelles collectives conservées sous `Utilisateur supprimé` ;
-   - possibilité de demande ciblée si un message contient des données personnelles.
-3. Demander une confirmation forte.
-4. Appeler un workflow serveur protégé.
-5. Déconnecter l'utilisateur et rediriger après traitement.
-
-Texte de confirmation cible :
+- Le membre voit une zone sensible qui ne promet plus `Toutes vos données seront effacées`.
+- Une modale dédiée explique les conséquences.
+- Le membre doit confirmer explicitement :
 
 > Je comprends que mes contributions collectives resteront visibles sous "Utilisateur supprimé".
 
-## 5. Audit base de données avant migration
+- Après suppression réussie, il est déconnecté et redirigé.
+- Son compte ne peut plus accéder aux routes membres.
 
-Avant toute migration, inventorier toutes les foreign keys vers `public.profiles`.
+### Pour les autres membres
 
-Objectif : remplacer les suppressions implicites par un workflow explicite, ordonné et vérifiable. Les cascades ne doivent être que des filets de sécurité, jamais le mécanisme principal de suppression de compte.
+- Les anciens messages restent visibles.
+- L'auteur affiché devient `Utilisateur supprimé`.
+- Aucun handle X n'est affiché.
+- Aucun hover card, lien profil, DM, suggestion de mention ou entrée annuaire n'est disponible pour le tombstone.
+- Les contenus déjà supprimés individuellement gardent leur tombstone existant, par exemple `Ce message a été supprimé`.
 
-Matrice de traitement à produire :
+### Pour les demandes ciblées
 
-| Table | Comportement cible |
-| --- | --- |
-| `messages` | Réassigner `author_id` vers le profil système `Utilisateur supprimé` |
-| `forum_posts` | Réassigner `author_id` vers le profil système |
-| `forum_replies` | Réassigner `author_id` vers le profil système |
-| `message_reactions` | Supprimer explicitement les réactions de l'utilisateur |
-| `notifications` | Supprimer les notifications reçues par l'utilisateur ; mettre `actor_id` à `NULL` ou vers le profil système selon le besoin |
-| `channel_members` | Supprimer explicitement les appartenances |
-| `user_blocks` | Supprimer explicitement les blocages impliquant l'utilisateur |
-| `user_reports` | Conserver l'événement si utile pour modération/preuve, mais désidentifier les personnes ou réassigner selon la politique retenue |
-| `sponsorship_requests` | Conserver le minimum utile ou désidentifier selon le besoin produit/modération |
-| `invitations` | Décider `SET NULL`, profil système ou suppression explicite selon l'utilité |
-| `channel_proposals` / votes | Supprimer ou réassigner selon la valeur historique |
-| `annonces` / `offres_emploi` | Supprimer explicitement, car ce ne sont pas des conversations collectives MVP |
+- Si un message contient encore une donnée personnelle dans le texte libre, le traitement doit passer par une demande ciblée.
+- Le produit ne doit pas promettre un nettoyage automatique global du texte libre.
 
-Cette matrice doit être vérifiée contre la base réelle, pas uniquement contre les fichiers de migration, car la base Supabase connectée peut avoir évolué.
+## Alternatives considérées
 
-## 6. Migration préparatoire anti-cascade
+### 1. Mutation client `content = ''`
 
-Cette migration doit être faite avant tout workflow de suppression de compte.
+Rejetée.
 
-Ordre impératif :
+Une mutation client ne couvre pas la suppression de compte, ne supprime pas les médias, dépend de RLS ordinaires, ne garantit pas l'ordre des opérations, et peut casser l'historique sans workflow auditable.
 
-1. Supprimer ou remplacer la foreign key `profiles.id -> auth.users(id) ON DELETE CASCADE`.
-2. Ajouter les champs nécessaires à `public.profiles` :
-   - `deleted_at timestamptz`
-   - `deletion_requested_at timestamptz`
-   - `is_system boolean default false`
-   - `is_deleted_placeholder boolean default false`
-3. Créer un profil système unique `Utilisateur supprimé` avec un UUID fixe.
-4. Modifier les foreign keys conversationnelles :
-   - `messages.author_id`
-   - `forum_posts.author_id`
-   - `forum_replies.author_id`
-5. Garder `author_id NOT NULL`.
-6. Ajouter un `DEFAULT '<deleted-user-uuid>'` sur les colonnes `author_id` concernées.
-7. Utiliser `ON DELETE SET DEFAULT` comme filet de sécurité.
+### 2. Hard delete SQL
 
-La réassignation explicite dans le workflow serveur reste obligatoire. Le `SET DEFAULT` ne doit pas être considéré comme le workflow principal.
+Rejetée.
 
-Point bloquant actuel : tant que `profiles.id -> auth.users(id) ON DELETE CASCADE` existe, il ne faut pas appeler `deleteUser`, car la suppression Auth peut déclencher la cascade que l'on veut éviter.
+Un hard delete de profil ou d'utilisateur peut déclencher des cascades destructrices, supprimer des conversations collectives, et rendre la suppression difficile à auditer ou à corriger.
 
-## 7. RLS et autorisations
+### 3. Tombstone + Storage API
 
-Ne pas appliquer simplement `deleted_at IS NULL` partout, car cela pourrait masquer le profil système utilisé pour afficher les anciens messages.
+Retenue pour le MVP.
 
-Règles à appliquer :
+Cette option conserve les contributions textuelles collectives sous un auteur générique, supprime ou détache les médias via l'API Storage, et garde le workflow dans une couche serveur contrôlée.
 
-- pour l'utilisateur courant, l'accès applicatif reste conditionné à un profil approuvé, non supprimé, non banni ;
-- pour les auteurs de messages, le profil système `Utilisateur supprimé` doit rester lisible en lecture minimale ;
-- le profil système ne doit jamais être listable comme membre réel ;
-- le profil système ne doit jamais pouvoir être utilisé pour se connecter, recevoir des notifications, être recherché, être sponsorisé, être bloqué ou être ajouté à des DM ;
-- les requêtes d'affichage doivent supporter soit un auteur placeholder lisible, soit un auteur `null` avec fallback UI.
+### 4. Tombstone + retry table robuste
 
-Les policies qui vérifient l'utilisateur actif doivent rester centrées sur `auth.uid()` et le profil associé à cette session, pas sur le statut du profil auteur d'un ancien message.
+Option plus robuste, mais plus coûteuse.
 
-## 8. Workflow serveur de suppression
+Elle ajoute une table de jobs/retry pour reprendre automatiquement les suppressions Storage/Auth incomplètes. Recommandation MVP : commencer avec tombstone + trace d'erreur + reprise manuelle documentée, puis ajouter le retry robuste si le volume ou le risque opérationnel l'exige.
 
-Le workflow doit être implémenté uniquement côté serveur :
+## Détails techniques
+
+### DB
+
+Avant toute suppression Auth, la base doit être protégée contre les cascades.
+
+Changements à prévoir :
+
+- remplacer `profiles.id -> auth.users(id) ON DELETE CASCADE` ;
+- ajouter `profiles.deleted_at timestamptz` ;
+- ajouter `profiles.deletion_requested_at timestamptz` ;
+- ajouter `profiles.is_system boolean default false` ;
+- ajouter `profiles.is_deleted_placeholder boolean default false` ;
+- créer un profil système unique `Utilisateur supprimé` avec UUID fixe ;
+- modifier `messages.author_id`, `forum_posts.author_id`, `forum_replies.author_id` en `ON DELETE SET DEFAULT` ;
+- garder les colonnes `author_id` en `NOT NULL` ;
+- définir le default des auteurs conversationnels vers le UUID du tombstone ;
+- ajouter une table de trace minimale, par exemple `account_deletion_requests`.
+
+La réassignation explicite dans le workflow reste obligatoire. `ON DELETE SET DEFAULT` est un filet de sécurité, pas le mécanisme principal.
+
+### RLS
+
+Les policies doivent distinguer :
+
+- utilisateur actif : profil approuvé, non supprimé, non banni ;
+- auteur historique : profil système lisible en lecture minimale ;
+- profil supprimé : non listable comme membre réel ;
+- tombstone : jamais sponsorisable, bloquable, DM-able, searchable ou ajoutable à des suggestions.
+
+Les policies qui vérifient l'utilisateur courant doivent rester centrées sur `auth.uid()` et son profil actif, pas sur le statut du profil auteur d'un ancien message.
+
+### Trigger
+
+Les triggers existants qui protègent `messages.author_id` peuvent bloquer la réassignation vers le tombstone.
+
+Le RFC recommande un bypass explicitement borné :
+
+- soit une RPC privée `SECURITY DEFINER` ;
+- soit un flag de transaction interne utilisé seulement par le workflow serveur ;
+- jamais une ouverture large permettant aux clients de modifier `author_id`.
+
+### Server Action ou Route Handler
+
+Le workflow doit être appelé uniquement côté serveur.
+
+Options acceptables :
 
 - Server Action Next.js ;
-- route API protégée ;
-- ou RPC SQL privée `SECURITY DEFINER` soigneusement bornée.
+- Route Handler protégé ;
+- RPC SQL privée appelée par une action serveur.
 
-Il ne doit pas être exécuté depuis le client Supabase normal.
+Le client ne doit jamais manipuler directement les tables critiques avec la clé publishable pour supprimer un compte.
 
-Ordre du workflow :
+### Parser média
 
-1. Vérifier l'utilisateur connecté.
-2. Charger son profil et les identifiants utiles : `id`, email, handle X, avatar, chemins médias.
-3. Créer une trace minimale de demande de suppression.
-4. Lister les objets Storage sous les préfixes du type `chat/<channel_id>/<user_id>/<file>`.
-5. Mettre `messages.image_url = NULL` pour les messages dont le média va être supprimé.
-6. Supprimer les objets Storage.
-7. Réassigner les contributions collectives :
-   - `messages.author_id = <deleted-user-uuid>`
-   - `forum_posts.author_id = <deleted-user-uuid>`
-   - `forum_replies.author_id = <deleted-user-uuid>`
-8. Supprimer explicitement les données périphériques :
-   - réactions ;
-   - notifications ;
-   - memberships ;
-   - blocks ;
-   - données non conversationnelles ;
-   - préférences visibles.
-9. Désidentifier ou supprimer les données de profil restantes.
-10. Supprimer l'utilisateur Supabase Auth avec une clé privilégiée côté serveur.
-11. Déconnecter la session côté client et rediriger.
+Le workflow doit être capable d'identifier les chemins Storage maîtrisés.
 
-Les opérations sensibles doivent être journalisées avec des compteurs de lignes traitées et les erreurs éventuelles. La trace ne doit pas conserver d'email clair sauf justification explicite.
+Règles :
 
-## 9. Mentions et texte libre
+- traiter les chemins internes de type `chat/<channel_id>/<user_id>/<file>` ;
+- ignorer les URL externes non maîtrisées ;
+- mettre `messages.image_url = NULL` avant suppression Storage ;
+- journaliser les compteurs de médias détachés et supprimés.
 
-Ne pas promettre de nettoyer automatiquement toutes les mentions ou toutes les données personnelles contenues dans le texte libre.
+### UI
 
-Politique cible :
+Fichiers concernés :
 
-- nettoyer uniquement les références maîtrisées techniquement si c'est fiable ;
-- ne pas casser l'historique des conversations ;
-- journaliser le nombre de remplacements si un nettoyage automatique est effectué ;
-- traiter les demandes ciblées au cas par cas.
+- `src/components/profile/profile-danger-zone.tsx`
+- `src/app/cgu/page.tsx`
+- `src/app/confidentialite/page.tsx`
+- composants chat/forum affichant `author:profiles(...)`
+- annuaire, recherche membre, mentions, DM et parrainage
 
-Exemple : remplacer automatiquement `@ancien_handle` peut être envisagé uniquement si l'on est certain qu'il s'agit d'une mention système de ce membre et pas d'un texte libre ambigu.
+Le texte de zone sensible cible :
 
-## 10. Affichage applicatif
+> La suppression retire votre accès et désassocie vos données de profil. Vos messages publiés dans les espaces collectifs peuvent rester visibles sous "Utilisateur supprimé" afin de préserver le contexte des échanges.
 
-Mettre à jour les composants chat/forum/profil pour gérer l'auteur supprimé.
+## Stratégie d'atomicité
 
-Comportement d'affichage :
+La suppression ne peut pas être parfaitement atomique car elle touche Postgres, Storage et Supabase Auth.
 
-- nom : `Utilisateur supprimé` ;
-- aucun handle X ;
-- avatar générique ;
-- pas de hover card ;
-- pas de lien vers une page profil ;
-- pas de page membre ;
-- pas de résultat dans l'annuaire ;
-- pas de suggestion dans les mentions ;
-- pas de possibilité de DM.
+La stratégie retenue est une atomicité applicative par étapes idempotentes :
 
-Sur les contenus déjà supprimés individuellement, conserver le tombstone existant du type `Ce message a été supprimé`.
+1. créer une demande de suppression avec statut `processing` ;
+2. exécuter les mutations DB critiques dans un ordre sûr ;
+3. détacher les médias en DB avant suppression Storage ;
+4. supprimer les objets Storage ;
+5. réassigner les contributions collectives ;
+6. désidentifier le profil ;
+7. supprimer Auth en dernier ;
+8. marquer la demande `completed` ou `failed`.
 
-## 11. Tests et vérification
+En cas d'échec Storage ou Auth :
+
+- ne pas masquer l'échec ;
+- garder une trace technique ;
+- ne pas promettre une suppression totale immédiate ;
+- permettre une reprise manuelle documentée en MVP.
+
+La retry table robuste est différée sauf si le risque opérationnel est jugé trop élevé avant mise en production.
+
+## Décisions à prendre
+
+- Utilisateur mute peut supprimer son compte ou ses propres messages : recommandation oui. Le mute limite la participation, pas l'exercice d'un droit ou la suppression de contenus personnels.
+- Admin supprime médias tous auteurs : recommandation oui, uniquement via workflow serveur audité et borné aux besoins de modération/suppression.
+- Retry robuste maintenant ou MVP warning : recommandation MVP warning. Le workflow doit être idempotent et tracé ; la table de retry robuste peut venir ensuite.
+
+## Plan d'exécution
+
+### Phase 0 - Préparation
+
+- Nettoyer les artefacts techniques non voulus avant implémentation.
+- Relire les guides Next.js locaux pertinents.
+- Vérifier la stratégie de clé serveur Supabase.
+- Poser le verrou : aucun `deleteUser` tant que l'anti-cascade n'est pas validé.
+
+Critère de passage :
+
+- Aucun changement destructif possible depuis le workflow.
+
+### Phase 1 - Légal et UI non destructive
+
+- Mettre à jour les CGU.
+- Mettre à jour la politique de confidentialité.
+- Remplacer le wording trompeur de la zone sensible.
+- Créer une modale dédiée.
+- Garder le workflow réel désactivé tant que la DB n'est pas prête.
+
+Critère de passage :
+
+- L'interface et les textes publics ne promettent plus une suppression totale inexacte.
+
+### Phase 2 - Audit base réelle
+
+- Inventorier toutes les foreign keys vers `public.profiles`.
+- Comparer la base réelle aux migrations.
+- Valider la matrice de traitement table par table.
+- Identifier les triggers qui bloquent la réassignation d'auteur.
+
+Critère de passage :
+
+- Matrice DB validée contre la base réelle.
+
+### Phase 3 - Migration anti-cascade
+
+- Ajouter les colonnes tombstone.
+- Créer le profil système.
+- Modifier les FKs conversationnelles.
+- Supprimer le risque `profiles -> auth.users ON DELETE CASCADE`.
+- Ajouter la table de trace.
+- Adapter les triggers pour le chemin privilégié.
+
+Critère de passage :
+
+- Supprimer un utilisateur test ne supprime plus ses conversations.
+
+### Phase 4 - RLS et affichage
+
+- Adapter les policies d'accès membre.
+- Rendre le tombstone lisible en lecture minimale.
+- Exclure tombstone et profils supprimés des surfaces membres.
+- Adapter chat/forum/annuaire/recherche/mentions/DM.
+
+Critère de passage :
+
+- Les conversations historiques restent lisibles sans profil membre actif.
+
+### Phase 5 - Workflow serveur
+
+- Implémenter Server Action ou Route Handler.
+- Vérifier session et confirmation forte.
+- Détacher et supprimer médias.
+- Réassigner contributions collectives.
+- Supprimer périphériques non nécessaires.
+- Désidentifier profil.
+- Supprimer Auth en dernier.
+- Déconnecter et rediriger.
+
+Critère de passage :
+
+- Workflow rejouable, audité, sans cascade.
+
+### Phase 6 - Validation et activation
+
+- Ajouter les tests unitaires et contrats SQL.
+- Tester avec dataset représentatif.
+- Vérifier RLS avec utilisateur approuvé, supprimé, admin et visiteur.
+- Vérifier Storage.
+- Documenter backup et rollback.
+- Activer le bouton réel seulement après go/no-go.
+
+Critère de passage :
+
+- Checklist technique et juridique validée.
+
+## Tests et vérification
 
 Tests à ajouter ou mettre à jour :
 
@@ -266,52 +325,45 @@ Tests à ajouter ou mettre à jour :
 - un compte supprimé ne peut plus accéder au chat ;
 - les conversations restent visibles ;
 - le profil système n'apparaît pas dans l'annuaire, la recherche membre, les DM ou les parrainages ;
-- les joins `author:profiles(...)` ne cassent pas si l'auteur est le profil système ou si l'auteur est absent.
+- les joins `author:profiles(...)` ne cassent pas si l'auteur est le profil système ou absent.
 
 Vérification recommandée :
 
 1. Tester en base locale.
-2. Tester avec un jeu de données représentatif : messages, médias, forum, réactions, notifications, DM, signalements.
-3. Vérifier les policies RLS avec un utilisateur approuvé, un utilisateur supprimé, un admin et un visiteur non connecté.
-4. Vérifier Storage : les objets du compte supprimé ne doivent plus être accessibles.
-5. Prévoir sauvegarde et rollback avant toute exécution sur production.
+2. Tester avec messages, médias, forum, réactions, notifications, DM et signalements.
+3. Vérifier les policies RLS avec les rôles pertinents.
+4. Vérifier Storage après suppression.
+5. Prévoir backup et rollback avant production.
 
-## 12. Ordre d'exécution recommandé
+## Risques
 
-1. Mettre à jour CGU et politique de confidentialité.
-2. Corriger le wording de l'interface pour supprimer la promesse trompeuse.
-3. Auditer toutes les foreign keys vers `profiles`.
-4. Créer la migration préparatoire anti-cascade.
-5. Adapter RLS pour les profils supprimés et le profil placeholder.
-6. Adapter l'affichage `Utilisateur supprimé`.
-7. Implémenter le workflow serveur de suppression.
-8. Ajouter les tests DB, RLS, UI et Storage.
-9. Vérifier en local/staging avec sauvegarde et rollback.
-10. Activer le bouton de suppression réel uniquement après validation de bout en bout.
+- Risque juridique : les textes publics doivent être validés avant publication.
+- Risque cascade : `deleteUser` peut supprimer des conversations si la FK Auth n'est pas corrigée.
+- Risque Storage : suppression non transactionnelle avec Postgres.
+- Risque RLS : masquer trop largement `deleted_at` peut casser l'affichage du tombstone.
+- Risque UX : une promesse trop absolue dans la modale crée une dette légale.
+- Risque opérationnel : sans retry robuste, une suppression partielle doit être reprise manuellement.
 
-## 13. Points à valider juridiquement
+## Critères d'acceptation
 
-Ces points ne bloquent pas le cadrage technique, mais doivent être confirmés avant publication finale :
+- L'interface ne promet plus une suppression totale inexacte.
+- Les CGU et la politique de confidentialité sont alignées avec le comportement réel.
+- Aucune suppression Auth ne peut supprimer les conversations par cascade.
+- Les messages et réponses restent visibles sous `Utilisateur supprimé`.
+- Les données de profil ne sont plus visibles après suppression.
+- Les médias personnels sont supprimés ou détachés quand ils sont maîtrisés techniquement.
+- L'utilisateur supprimé ne peut plus accéder à l'application.
+- Le workflow est serveur-only, audité et idempotent.
+- Les tests couvrent les chemins critiques.
+- La procédure de rollback est documentée avant production.
 
-- base légale de conservation des contributions collectives après suppression du compte ;
-- formulation exacte de la licence de contenu après suppression ;
-- durée de conservation des conversations collectives ;
-- durée de conservation des logs et traces de sécurité ;
-- traitement des sauvegardes ;
-- procédure de demande ciblée ;
-- délai et canal de réponse aux demandes RGPD ;
-- conservation des signalements et éléments de modération.
+## Points juridiques à valider
 
-## 14. Définition de terminé
-
-Le chantier est terminé lorsque :
-
-- l'interface ne promet plus une suppression totale inexacte ;
-- les CGU et la politique de confidentialité sont alignées avec le comportement réel ;
-- aucune suppression Auth ne peut supprimer les conversations par cascade ;
-- les messages et réponses restent visibles sous `Utilisateur supprimé` ;
-- les données de profil ne sont plus visibles après suppression ;
-- les médias personnels sont supprimés ou détachés ;
-- l'utilisateur supprimé ne peut plus accéder à l'application ;
-- les tests couvrent les chemins critiques ;
-- la procédure est documentée et exécutable sans intervention manuelle dangereuse.
+- Base légale de conservation des contributions collectives après suppression.
+- Formulation exacte de la licence de contenu après suppression.
+- Durée de conservation des conversations collectives.
+- Durée de conservation des logs et traces de sécurité.
+- Traitement des sauvegardes.
+- Procédure de demande ciblée.
+- Délai et canal de réponse aux demandes RGPD.
+- Conservation des signalements et éléments de modération.
