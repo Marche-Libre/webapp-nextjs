@@ -21,9 +21,12 @@ function migrationSources() {
 
 describe("authorization hardening", () => {
   it("prevents sponsor UI from approving profiles directly", () => {
+    const authCallback = source("src/app/auth/callback/route.ts");
     const parrainagesTabs = source("src/components/sponsorship/parrainages-tabs.tsx");
     const invitationCard = source("src/components/sponsorship/invitation-card.tsx");
 
+    expect(authCallback).toContain("createSponsorshipRequestForHandle");
+    expect(authCallback).not.toContain(".update({ sponsored_by");
     expect(parrainagesTabs).not.toContain('status: "approved"');
     expect(parrainagesTabs).not.toContain("sponsored_by");
     expect(parrainagesTabs).not.toContain("sponsor_approved");
@@ -60,6 +63,19 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("app.trusted_sponsorship_update");
     expect(migrationText).toContain("private.confirm_sponsorship_request");
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
+  });
+
+  it("allows sponsors to view requester profiles for addressed requests", () => {
+    const visibilityMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("allow_sponsor_requester_profile_visibility"),
+    );
+
+    const migrationText = visibilityMigration?.text ?? "";
+
+    expect(migrationText).toContain("ON public.profiles FOR SELECT");
+    expect(migrationText).toContain("public.sponsorship_requests");
+    expect(migrationText).toContain("sr.requester_id = profiles.id");
+    expect(migrationText).toContain("sr.sponsor_id = (SELECT auth.uid())");
   });
 
   it("freezes trusted sponsorship and invitation transition identity fields", () => {

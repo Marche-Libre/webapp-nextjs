@@ -12,6 +12,7 @@ import {
   getAuthEntryDestination,
 } from "@/lib/auth-entry";
 import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
+import { createSponsorshipRequestForHandle } from "@/lib/sponsorship/requests";
 
 const ERROR_MESSAGE_DEFAULT =
   "Impossible de démarrer la connexion X. Réessayez dans un instant.";
@@ -68,6 +69,21 @@ function RejoindreContent() {
           .select(AUTH_ENTRY_PROFILE_SELECT)
           .eq("id", userData.user.id)
           .single();
+
+        if (referralHandle && profile?.status !== "approved") {
+          const sponsorshipResult = await createSponsorshipRequestForHandle(
+            supabase,
+            {
+              requesterId: userData.user.id,
+              sponsorHandle: referralHandle,
+            },
+          );
+
+          if (!sponsorshipResult.ok) {
+            setErrorMessage(sponsorshipResult.message);
+            return;
+          }
+        }
 
         router.replace(getAuthEntryDestination(profile));
         return;
