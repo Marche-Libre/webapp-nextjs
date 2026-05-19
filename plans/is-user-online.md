@@ -1,0 +1,2 @@
+- Ajouter information profile user: is connected avec petite *bulle* s'il est online
+- Sur un user profile: ajouter 'last connection' avec timestamp
