@@ -73,6 +73,23 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
   });
 
+  it("promotes sponsored requesters when sponsorship requests are approved", () => {
+    const sponsorshipApprovalMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("approve_profile_on_sponsorship_request_approval"),
+    );
+
+    const migrationText = sponsorshipApprovalMigration?.text ?? "";
+
+    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()");
+    expect(migrationText).toContain("OLD.status IS DISTINCT FROM 'approved'");
+    expect(migrationText).toContain("sponsorship_request_sponsor_only");
+    expect(migrationText).toContain("sponsorship_request_sponsor_not_approved");
+    expect(migrationText).toContain("SET sponsored_by = OLD.sponsor_id");
+    expect(migrationText).toContain("sponsor_approved = TRUE");
+    expect(migrationText).toContain("status = 'approved'");
+    expect(migrationText).toContain("WHERE id = OLD.requester_id");
+  });
+
   it("routes sponsor requester profile visibility through a scoped RPC", () => {
     const visibilityMigration = migrationSources().find(({ fileName }) =>
       fileName.includes("fix_sponsor_requester_profiles_recursion"),
