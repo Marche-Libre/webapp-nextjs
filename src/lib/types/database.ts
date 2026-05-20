@@ -50,6 +50,12 @@ export type Profile = {
   sponsor?: Profile;
 };
 
+export type UserPresence = {
+  user_id: string;
+  last_seen_at: string;
+  last_heartbeat_at: string;
+};
+
 export type SpecialtyCategory = {
   id: string;
   name: string;
