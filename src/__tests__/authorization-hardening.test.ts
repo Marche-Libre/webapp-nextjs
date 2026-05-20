@@ -19,6 +19,14 @@ function migrationSources() {
     }));
 }
 
+function policyMutationStatements(sql: string) {
+  return sql.match(/\b(?:CREATE|ALTER)\s+POLICY[\s\S]*?;/gi) ?? [];
+}
+
+function normalizeSql(sql: string) {
+  return sql.replace(/\s+/g, " ").toLowerCase();
+}
+
 describe("authorization hardening", () => {
   it("prevents sponsor UI from approving profiles directly", () => {
     const authCallback = source("src/app/auth/callback/route.ts");
@@ -65,17 +73,53 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
   });
 
-  it("allows sponsors to view requester profiles for addressed requests", () => {
+  it("routes sponsor requester profile visibility through a scoped RPC", () => {
     const visibilityMigration = migrationSources().find(({ fileName }) =>
-      fileName.includes("allow_sponsor_requester_profile_visibility"),
+      fileName.includes("fix_sponsor_requester_profiles_recursion"),
     );
-
+    const parrainagesPage = source("src/app/(app)/parrainages/page.tsx");
     const migrationText = visibilityMigration?.text ?? "";
 
-    expect(migrationText).toContain("ON public.profiles FOR SELECT");
-    expect(migrationText).toContain("public.sponsorship_requests");
-    expect(migrationText).toContain("sr.requester_id = profiles.id");
+    expect(migrationText).toContain(
+      'DROP POLICY IF EXISTS "Sponsors can view requester profiles for sponsorship requests"',
+    );
+    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION private.get_sponsor_requester_profiles()");
+    expect(migrationText).toContain("SECURITY DEFINER");
+    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION public.get_sponsor_requester_profiles()");
+    expect(migrationText).toContain("SECURITY INVOKER");
+    expect(migrationText).toContain("sponsorship_request_id UUID");
+    expect(migrationText).toContain("requester_id UUID");
+    expect(migrationText).toContain("x_handle TEXT");
+    expect(migrationText).toContain("full_name TEXT");
+    expect(migrationText).toContain("avatar_url TEXT");
     expect(migrationText).toContain("sr.sponsor_id = (SELECT auth.uid())");
+    expect(migrationText).not.toContain("email");
+    expect(migrationText).not.toContain("phone");
+    expect(migrationText).not.toContain("is_admin");
+    expect(migrationText).not.toContain("onboarding_completed");
+
+    expect(parrainagesPage).toContain('.from("sponsorship_requests")');
+    expect(normalizeSql(parrainagesPage)).toContain('rpc( "get_sponsor_requester_profiles"');
+    expect(parrainagesPage).toContain("attachRequesterProfiles");
+    expect(parrainagesPage).not.toContain("requester:profiles!requester_id");
+  });
+
+  it("does not reintroduce a profiles policy that queries sponsorship requests", () => {
+    const migrations = migrationSources();
+    const durableMigrationIndex = migrations.findIndex(({ fileName }) =>
+      fileName.includes("fix_sponsor_requester_profiles_recursion"),
+    );
+    const durableAndLaterMigrations = migrations.slice(durableMigrationIndex);
+    const durableAndLaterProfilePolicyText = durableAndLaterMigrations
+      .flatMap(({ text }) => policyMutationStatements(text))
+      .filter((statement) => /\bon\s+(?:public\.)?profiles\b/.test(normalizeSql(statement)))
+      .map(normalizeSql)
+      .join("\n");
+
+    expect(durableMigrationIndex).toBeGreaterThanOrEqual(0);
+    expect(durableAndLaterProfilePolicyText).not.toMatch(
+      /\b(?:public\.)?sponsorship_requests\b/,
+    );
   });
 
   it("freezes trusted sponsorship and invitation transition identity fields", () => {

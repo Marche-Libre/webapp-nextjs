@@ -19,7 +19,7 @@ interface Filleul {
   created_at: string;
 }
 
-type ReceivedRequest = SponsorshipRequest & {
+type ReceivedRequest = Omit<SponsorshipRequest, "requester"> & {
   requester: { x_handle: string; full_name: string; avatar_url: string | null };
 };
 

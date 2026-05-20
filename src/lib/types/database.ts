@@ -185,6 +185,14 @@ export type SponsorshipRequest = {
   sponsor?: Profile;
 };
 
+export type SponsorRequesterProfile = {
+  sponsorship_request_id: string;
+  requester_id: string;
+  x_handle: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
 export type Notification = {
   id: string;
   user_id: string;
