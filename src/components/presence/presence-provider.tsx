@@ -29,6 +29,7 @@ type PresenceStore = {
 const HEARTBEAT_INTERVAL_MS = 60_000;
 const MIN_VISIBLE_HEARTBEAT_MS = 60_000;
 const PRESENCE_CHANNEL = "presence:members";
+const DISCONNECTED_SUBSCRIBE_STATUSES = new Set(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"]);
 const PresenceContext = createContext<PresenceStore | null>(null);
 const EMPTY_PRESENCE_STORE: PresenceStore = {
   getSnapshot: () => 0,
@@ -70,6 +71,20 @@ export function PresenceProvider({ currentUserId, children }: { currentUserId: s
 
   const updateOnlineIds = useCallback((state: PresenceState) => {
     onlineIdsRef.current = getOnlineMemberIds(state);
+    notifyPresenceListeners();
+  }, [notifyPresenceListeners]);
+
+  const clearOnlineIds = useCallback(() => {
+    if (onlineIdsRef.current.size === 0) return;
+
+    onlineIdsRef.current = new Set<string>();
+    notifyPresenceListeners();
+  }, [notifyPresenceListeners]);
+
+  const addOnlineId = useCallback((memberId: string) => {
+    if (onlineIdsRef.current.has(memberId)) return;
+
+    onlineIdsRef.current = new Set(onlineIdsRef.current).add(memberId);
     notifyPresenceListeners();
   }, [notifyPresenceListeners]);
 
@@ -127,11 +142,18 @@ export function PresenceProvider({ currentUserId, children }: { currentUserId: s
     };
 
     const handleSubscribeStatus = (status: string) => {
+      if (DISCONNECTED_SUBSCRIBE_STATUSES.has(status)) {
+        clearOnlineIds();
+        return;
+      }
+
       if (status !== "SUBSCRIBED") return;
 
       void channel.track({
         user_id: currentUserId,
         online_at: new Date().toISOString(),
+      }).then(() => {
+        addOnlineId(currentUserId);
       }).catch(ignorePresenceError);
       void sendHeartbeat();
     };
@@ -158,7 +180,7 @@ export function PresenceProvider({ currentUserId, children }: { currentUserId: s
       onlineIdsRef.current = new Set<string>();
       notifyPresenceListeners();
     };
-  }, [currentUserId, notifyPresenceListeners, sendHeartbeat, updateOnlineIds]);
+  }, [addOnlineId, clearOnlineIds, currentUserId, notifyPresenceListeners, sendHeartbeat, updateOnlineIds]);
 
   return (
     <PresenceContext.Provider value={contextValue}>

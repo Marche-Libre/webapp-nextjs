@@ -1,3 +1,6 @@
+"use client";
+
+import { useIsMemberOnline } from "@/components/presence/presence-provider";
 import { Avatar } from "@/components/ui/avatar";
 import type { Profile } from "@/lib/types/database";
 import { UserHoverCard } from "./user-hover-card";
@@ -9,9 +12,14 @@ interface MemberListProps {
 type MemberListMember = MemberListProps["members"][number];
 
 function renderMember(member: MemberListMember) {
+  return <MemberListItem key={member.id} member={member} />;
+}
+
+function MemberListItem({ member }: { member: MemberListMember }) {
+  const isOnline = useIsMemberOnline(member.id);
+
   return (
     <UserHoverCard
-      key={member.id}
       authorId={member.id}
       x_handle={member.x_handle}
       full_name={member.full_name}
@@ -19,7 +27,15 @@ function renderMember(member: MemberListMember) {
       className="w-full"
     >
       <div className="flex w-full cursor-pointer items-center gap-[8px] rounded-full px-[10px] py-[8px] transition-colors hover:bg-bg-surface">
-        <Avatar src={member.avatar_url} name={member.full_name || member.x_handle} size="sm" />
+        <span className="relative inline-flex shrink-0">
+          <Avatar src={member.avatar_url} name={member.full_name || member.x_handle} size="sm" />
+          {isOnline ? (
+            <span
+              className="absolute bottom-0 right-0 h-[9px] w-[9px] rounded-full border border-bg-base bg-emerald-500"
+              aria-hidden="true"
+            />
+          ) : null}
+        </span>
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-medium text-text-primary truncate">
             @{member.x_handle}

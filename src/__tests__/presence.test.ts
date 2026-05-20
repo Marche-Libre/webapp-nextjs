@@ -73,10 +73,18 @@ describe("presence implementation boundaries", () => {
     expect(migrationText).toContain("realtime.messages.extension = 'presence'");
   });
 
-  it("keeps V1 presence out of chat list and hover card surfaces", () => {
+  it("keeps persisted presence reads out of chat list and hover card surfaces", () => {
     expect(source("src/app/(app)/chat/layout.tsx")).not.toContain("user_presence");
-    expect(source("src/components/chat/member-list.tsx")).not.toContain("useIsMemberOnline");
     expect(source("src/components/chat/user-hover-card.tsx")).not.toContain("useIsMemberOnline");
+  });
+
+  it("shows live presence in the chat member list without reading presence timestamps", () => {
+    const memberList = source("src/components/chat/member-list.tsx");
+
+    expect(memberList).toContain("useIsMemberOnline(member.id)");
+    expect(memberList).toContain("bg-emerald-500");
+    expect(memberList).not.toContain("fetchUserPresence");
+    expect(memberList).not.toContain("last_seen_at");
   });
 
   it("places provider in AppShell above the member drawer provider", () => {
@@ -86,6 +94,23 @@ describe("presence implementation boundaries", () => {
 
     expect(presenceProviderIndex).toBeGreaterThanOrEqual(0);
     expect(drawerProviderIndex).toBeGreaterThan(presenceProviderIndex);
+  });
+
+  it("clears stale online members when the Realtime channel disconnects", () => {
+    const provider = source("src/components/presence/presence-provider.tsx");
+
+    expect(provider).toContain("DISCONNECTED_SUBSCRIBE_STATUSES");
+    expect(provider).toContain('"CHANNEL_ERROR"');
+    expect(provider).toContain('"TIMED_OUT"');
+    expect(provider).toContain('"CLOSED"');
+    expect(provider).toContain("clearOnlineIds();");
+  });
+
+  it("marks the current user online after Presence tracking succeeds", () => {
+    const provider = source("src/components/presence/presence-provider.tsx");
+
+    expect(provider).toContain("const addOnlineId = useCallback");
+    expect(provider).toContain("addOnlineId(currentUserId);");
   });
 
   it("keeps declared availability separate from live presence in the drawer", () => {
