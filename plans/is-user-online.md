@@ -117,8 +117,8 @@ exemple "Membre actuellement en ligne".
 
 Regle recommandee :
 
-- visible uniquement par les membres `approved` ;
-- un membre peut voir la presence des autres membres `approved` ;
+- visible uniquement dans l'application, donc uniquement par les membres deja autorises a acceder a l'app ;
+- l'acces app etant reserve aux profils `approved` avec onboarding termine, un membre connecte a l'app peut voir la presence des autres membres approuves ;
 - pending/rejected/anonymous ne doivent pas pouvoir lire ces donnees ;
 - pending/rejected/anonymous ne doivent pas pouvoir ecrire leur propre presence ;
 - les admins peuvent lire pour moderation/support.
@@ -386,13 +386,8 @@ Version Presence live sans persistance : **M**, mais elle ne satisfait pas le ti
 
 - Le product owner approuve-t-il cette feature malgre le freeze MVP ?
 - Le libelle final doit-il etre "Actuellement en ligne" ou un libelle plus prudent comme "Actif recemment" ?
-- Quelle precision accepte-t-on pour la derniere activite : tranches larges V1, relatif precis, ou timestamp localise ?
 - Ou apparait la disponibilite declaree dans le drawer pour garantir qu'elle ne soit pas confondue avec la presence ?
-- La presence doit-elle etre visible par tous les membres approuves ou seulement les membres qui partagent un DM/channel ?
 - Faut-il un opt-out utilisateur en V1 ?
-- Faut-il ajouter une mention produit du type "Visible par les membres approuves" ?
-- La bulle online doit-elle apparaitre partout ou seulement dans le profil detaille ?
-- Accepte-t-on explicitement que la presence live soit client-authored et non autoritative ?
 - Pour les multi-onglets, accepte-t-on un heartbeat par onglet visible ou faut-il un tab leader ?
 
 ## Recommendation pour V1
