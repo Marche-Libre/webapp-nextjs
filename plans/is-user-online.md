@@ -2,437 +2,217 @@
 
 ## Statut
 
-Implementation terminee, RFC pret pour review.
+Document bascule en mode **review-first**.
 
-Cette RFC documente la decision produit/technique retenue et l'implementation
-realisee. Le projet reste en phase de stabilisation MVP : la review doit
-verifier que la feature reste limitee a la V1 approuvee et ne cree pas de
-nouvelle surface produit hors scope.
+Objectif: quand un agent parse ce fichier, il doit trouver immediatement:
 
-Etat d'implementation :
+- le contexte de review;
+- le scope exact;
+- le plan de review a executer;
+- les criteres de sortie.
 
-- migration Supabase ajoutee : `supabase/migrations/20260520155536_add_user_presence.sql` ;
-- provider client ajoute : `src/components/presence/presence-provider.tsx` ;
-- helpers presence ajoutes : `src/lib/presence.ts` ;
-- integration V1 ajoutee dans `src/components/layout/app-shell.tsx` et `src/components/membres/member-profile-drawer.tsx` ;
-- tests de garde ajoutes : `src/__tests__/presence.test.ts`.
+Tout le contenu non necessaire a l'execution de la review est archive en fin de document.
 
-## Probleme
+## Contexte de review (source de verite)
 
-Aujourd'hui, les profils affichent deja une disponibilite declarative via `availability_status` (`available`, `busy`, `unavailable`, `unset`). Cette disponibilite ne signifie pas que l'utilisateur est actuellement connecte.
+Commits associes (5 derniers):
 
-On veut ajouter deux informations distinctes :
+- `614fdb2` - `fix: Sponsorship won't appear in channels` (indirect, verifier interactions `profiles.status`);
+- `ec202fe` - `plan: Update RFC plan` (hors scope presence);
+- `f99dcf2` - `doc: add new bug plan` (hors scope presence);
+- `4f727e0` - `Feat: user online signal. Needs review` (**commit principal a reviewer**);
+- `c21c6dc` - `doc : update and refine plan` (cadrage/doc presence).
 
-- une indication visuelle qu'un membre est actuellement en ligne, sous forme de petite bulle sur le profil/avatar ;
-- une information de derniere connexion ou derniere activite sur le profil utilisateur.
+Worktree connu au moment de la revue:
 
-## Objectifs
+- `D parainage-bug.md`
+- `M triage-utilisateurs-canaux.md`
 
-- Montrer aux membres approuves si un autre membre est probablement en ligne.
-- Afficher sur le profil membre une date de derniere activite utile et comprehensible.
-- Ne pas confondre presence reelle et disponibilite metier declaree.
-- Eviter d'exposer cette information aux utilisateurs non approuves, refuses, en attente ou anonymes.
-- Eviter une solution qui ecrit trop souvent en base et degrade `profiles.updated_at`.
+Ces changements sont hors scope de cette review.
 
-## Non-objectifs
+## Scope exact de la review
 
-- Ne pas ajouter de chat typing indicator.
-- Ne pas ajouter de statut manuel "invisible".
-- Ne pas exposer la presence publiquement hors espace membre.
-- Ne pas utiliser `availability_status` comme proxy de presence.
-- Ne pas modifier le comportement d'admission, de sponsoring ou d'onboarding.
+Fichiers a reviewer en priorite:
 
-## Decision retenue
-
-L'implementation suit une approche hybride :
-
-1. Presence live via Supabase Realtime Presence.
-2. Persistance d'un champ `last_seen_at` dans une table dediee, par exemple `public.user_presence`.
-3. UI basee sur un statut derive :
-   - `online` si Supabase Presence indique au moins une session active publiee sur le canal autorise ;
-   - sinon `offline`, avec affichage de `last_seen_at` si disponible.
-
-Ne pas stocker ces champs directement sur `profiles`, car `profiles` a deja un trigger `updated_at`. Un heartbeat de presence sur `profiles` ferait changer `updated_at` en permanence et polluerait la notion de profil modifie.
-
-Decision architecturale apres revue : la presence live est un signal client
-non autoritatif. Les policies Realtime peuvent autoriser l'acces au canal,
-mais elles ne prouvent pas que le payload publie par le client est vrai. La
-presence ne doit donc jamais servir aux permissions, a la moderation, a l'audit
-ou a une promesse de disponibilite.
-
-## Semantique produit
-
-### Online
-
-Un membre est considere "online" si au moins une session active publie sa presence sur le canal de presence autorise.
-
-Le statut online est un signal best-effort :
-
-- fermeture d'onglet, mobile sleep, perte reseau ou PWA en arriere-plan peuvent retarder la mise a jour ;
-- le payload Realtime Presence est publie par le client et reste non autoritatif ;
-- en cas de doute, l'UI ne doit pas promettre une exactitude forte.
-
-Libelle recommande :
-
-- bulle verte sans texte dans les listes compactes ;
-- "Actuellement en ligne" dans les profils detailles ;
-- fallback "Derniere activite ..." quand offline.
-
-### Last connection
-
-Eviter le terme strict "last connection" si on ne lit pas uniquement l'evenement d'authentification. Le meilleur libelle produit est :
-
-- "Derniere activite" si le timestamp vient du heartbeat/app runtime ;
-- "Derniere connexion" uniquement si le timestamp vient explicitement de l'auth sign-in.
-
-Recommendation : utiliser "Derniere activite", affichee avec une precision arrondie en V1 pour eviter une impression de surveillance.
-
-Exemples :
-
-- "Actuellement en ligne"
-- "Derniere activite recemment"
-- "Derniere activite aujourd'hui"
-- "Derniere activite cette semaine"
-- "Derniere activite il y a plus d'une semaine"
-
-### UX recommandee pour V1
-
-La presence doit etre presentee comme un signal contextuel, pas comme une promesse de disponibilite.
-
-Dans le profil membre drawer :
-
-- afficher la bulle verte uniquement a cote de l'avatar ou du nom ;
-- afficher le libelle "Actuellement en ligne" dans la zone de metadonnees du profil ;
-- afficher la disponibilite declaree separement, avec un libelle explicite du type "Disponibilite declaree : Disponible / Occupe / Indisponible" ;
-- ne jamais remplacer la disponibilite declaree par le statut de presence.
-
-Quand le membre n'est pas en ligne :
-
-- afficher "Derniere activite recemment" si l'activite date de moins d'une heure ;
-- afficher "Derniere activite aujourd'hui" pour une activite le jour meme ;
-- afficher "Derniere activite cette semaine" jusqu'a 7 jours ;
-- afficher "Derniere activite il y a plus d'une semaine" au-dela ;
-- ne rien afficher si aucune donnee fiable n'existe ;
-- eviter l'heure exacte en V1, sauf decision produit explicite.
-
-La hover card et la liste membres du chat restent hors V1. Elles pourront etre ajoutees apres retour utilisateur si la presence est comprise comme utile et non intrusive.
-
-### Accessibilite
-
-Si la bulle verte est accompagnee d'un libelle texte visible, elle doit etre
-decorative pour les technologies d'assistance. Si elle est affichee seule dans
-une surface post-V1, elle doit avoir un libelle accessible explicite, par
-exemple "Membre actuellement en ligne".
-
-## Visibilite et privacy
-
-Regle recommandee :
-
-- visible uniquement dans l'application, donc uniquement par les membres deja autorises a acceder a l'app ;
-- l'acces app etant reserve aux profils `approved` avec onboarding termine, un membre connecte a l'app peut voir la presence des autres membres approuves ;
-- pending/rejected/anonymous ne doivent pas pouvoir lire ces donnees ;
-- pending/rejected/anonymous ne doivent pas pouvoir ecrire leur propre presence ;
-- les admins peuvent lire pour moderation/support.
-
-Decision V1 : ne pas ajouter d'opt-out afin d'eviter d'elargir le scope
-UI/settings. En revanche, garder la table et les helpers compatibles avec un
-futur champ `presence_visible`.
-
-## Design technique implemente
-
-### Schema
-
-Table ajoutee :
-
-```sql
-create table public.user_presence (
-  user_id uuid primary key references public.profiles(id) on delete cascade,
-  last_seen_at timestamptz not null default now(),
-  last_heartbeat_at timestamptz not null default now()
-);
-```
-
-Notes :
-
-- `user_id` reference `profiles(id)` pour rester dans le domaine applicatif public/RLS.
-- `last_seen_at` represente la derniere activite connue.
-- `last_heartbeat_at` permet de diagnostiquer ou deriver un fallback offline.
-- ne pas ajouter `updated_at` en V1 : il dupliquerait `last_heartbeat_at` sans semantique distincte.
-- Ne pas exposer d'email, IP, device, user agent ou metadata sensible.
-
-### RLS
-
-RLS est activee sur `public.user_presence`.
-
-Politiques implementees :
-
-- un membre authentifie, approuve et onboarding termine peut lire les lignes des membres approuves ;
-- un membre authentifie, approuve et onboarding termine peut insert/upsert/update uniquement sa propre ligne ;
-- pending/rejected ne peuvent ni lire ni ecrire, meme si les guards UI les bloquent deja ;
-- un admin peut lire les lignes ;
-- aucun acces pour `anon`.
-
-Point de review : les tests automatises actuels verifient la presence des
-clauses SQL attendues. Les policies doivent encore etre validees contre
-Supabase avec un utilisateur approved, pending et rejected si cette verification
-n'a pas ete faite pendant l'implementation.
-
-### Realtime Presence
-
-Provider client dedie cree, positionne dans `src/components/layout/app-shell.tsx`
-comme parent de `MemberProfileDrawerProvider`, avec `currentUserId={profile.id}`.
-
-Ne pas le placer :
-
-- dans `AppRuntimeProvider`, car ce provider racine couvre aussi les routes anonymes/auth ;
-- uniquement dans le chat shell, car le drawer membre peut exister hors `/chat`.
-
-Ce placement profite du guard serveur de `src/app/(app)/layout.tsx`, qui ne rend
-`AppShell` qu'apres authentification, statut `approved` et onboarding termine.
-
-Le provider implemente :
-
-- recoit l'utilisateur courant deja authentifie via `currentUserId` ;
-- rejoint le channel de presence prive global des membres `presence:members`;
-- s'abonne avec une configuration Realtime privee, `config: { private: true }` ;
-- publie un payload minimal :
-
-```ts
-{
-  user_id: currentUserId,
-  online_at: new Date().toISOString()
-}
-```
-
-Le client derive un `Set<string>` des `user_id` en ligne depuis l'etat Presence.
-
-Le context expose par le provider limite les rerenders larges via un store
-externe consomme par `useSyncExternalStore`. Les composants consomment la
-presence uniquement sur les surfaces qui l'affichent.
-
-### Realtime Authorization
-
-RLS sur `public.user_presence` ne protege pas le canal Realtime Presence. La
-V1 implemente aussi l'autorisation Realtime :
-
-- utilise un canal prive `presence:members` ;
-- ajoute des policies sur `realtime.messages` pour autoriser les membres
-  `approved` et onboarding termine uniquement ;
-- contraint les policies au type Presence avec `extension = 'presence'` ;
-- contraint le topic avec `realtime.topic() = 'presence:members'` ;
-- refuse `anon`, pending et rejected via l'absence de policy applicable.
-
-Point de review : verifier les reglages Supabase Realtime du projet, notamment
-l'acces public aux canaux, en plus de la migration SQL.
-
-Cette autorisation controle qui peut rejoindre/ecouter/publier sur le canal.
-Elle ne rend pas le payload Presence fiable : le payload reste client-authored.
-
-### Heartbeat persistant
-
-Au demarrage app et ensuite de facon throttlee, le provider :
-
-- upsert `user_presence.user_id = currentUserId`;
-- met a jour `last_seen_at` et `last_heartbeat_at`;
-- utilise un intervalle de 60 secondes.
-
-Sur `visibilitychange` :
-
-- quand la page redevient visible, envoyer un heartbeat immediat si le dernier date de plus de 60 secondes ;
-- ne pas tenter d'ecrire en boucle quand l'app est cachee.
-
-Lifecycle implemente par le provider :
-
-- `clearInterval` au demontage ;
-- suppression du listener `visibilitychange` ;
-- `channel.untrack()` avant retrait du canal ;
-- `supabase.removeChannel(channel)` au cleanup ;
-- comportement degrade silencieux en cas d'erreur de heartbeat, track ou untrack.
-
-Strategie multi-onglets retenue pour V1 :
-
-- accepter un heartbeat par onglet visible, avec throttle 60 secondes minimum ;
-- ne pas ajouter de mecanisme de tab leader en V1.
-
-### Fallback offline
-
-Si Presence n'est pas disponible ou se deconnecte :
-
-- ne pas afficher "online" ;
-- afficher `last_seen_at` si disponible ;
-- continuer a fonctionner sans bloquer le profil.
-
-Le fallback ne doit pas retrograder l'auth, bloquer le drawer ou declencher des
-retries agressifs. L'echec Realtime doit rester invisible hors absence de bulle
-online.
-
-## Surfaces UI concernees
-
-### Profil membre detaille
-
-Ajoute en V1 :
-
-- bulle online sur l'avatar ou pres du handle ;
-- ligne "En ligne" ou "Derniere activite ...".
-
-Surface V1 :
-
+- `supabase/migrations/20260520155536_add_user_presence.sql`
+- `src/components/presence/presence-provider.tsx`
+- `src/lib/presence.ts`
+- `src/components/layout/app-shell.tsx`
 - `src/components/membres/member-profile-drawer.tsx`
+- `src/lib/types/database.ts`
+- `src/__tests__/presence.test.ts`
 
-Contraintes V1 implementees :
+Hors scope V1:
 
-- lire `user_presence.last_seen_at` au moment de l'ouverture du drawer ;
-- ne pas ajouter `last_seen_at` a `profiles` ni a `profiles_public` ;
-- ne pas charger `last_seen_at` dans `src/app/(app)/chat/layout.tsx` en V1 ;
-- proteger le load du drawer avec un request id ou un guard d'annulation, afin
-  qu'une reponse lente du membre A ne puisse pas ecraser l'etat du membre B ;
-- coordonner les lectures profile/categories/sponsor/presence pour le meme `memberId`.
-
-Surface post-V1 eventuelle :
-
-- `src/components/membres/member-profile.tsx` si cette vue reste utilisee.
-
-### Hover card utilisateur
-
-Hors V1. Optionnel post-V1 :
-
-- afficher seulement la bulle online pres de l'avatar ;
-- ne pas afficher le timestamp pour garder la carte compacte.
-
-Surface probable :
-
+- `src/app/(app)/chat/layout.tsx`
+- `src/components/chat/member-list.tsx`
 - `src/components/chat/user-hover-card.tsx`
 
-### Liste membres du chat
+## But de la review
 
-Hors V1. Optionnel post-V1, utile si le chat est le centre MVP :
+Confirmer ou invalider que la V1 implementee est acceptable sur:
 
-- bulle online sur les avatars ;
-- tri par online non recommande en V1 pour eviter de rendre la liste instable.
+1. securite table + Realtime;
+2. privacy (precision du timestamp expose);
+3. robustesse runtime (fallback/offline/multi-onglets);
+4. respect du scope V1;
+5. qualite des tests et risque de regression.
 
-Surface probable :
+## Gate de sortie (DoD review)
 
-- `src/components/chat/member-list.tsx`
-- `src/app/(app)/chat/layout.tsx` pour charger les champs persistants necessaires.
+La review n'est **pas validable** tant que ces points ne sont pas statues:
 
-Si cette surface est ajoutee plus tard, charger les donnees persistantes par lot
-et eviter les requetes par ligne ou par hover. Ne pas trier par online en V1 ou
-post-V1 initial, afin d'eviter une liste instable.
+1. Validation reelle Supabase des policies table `user_presence` pour `approved`, `pending`, `rejected`, `anon`.
+2. Validation reelle Realtime channel prive `presence:members` + policies `realtime.messages`.
+3. Decision explicite produit/security sur l'exposition potentielle de l'heure exacte via Data API.
+4. Decision explicite sur l'acceptation du signal presence client-authored (spoof possible) comme limite V1.
+5. Confirmation que le gate MVP/BMad autorise cette implementation runtime.
 
-## Complexite
+## Plan de review a executer
 
-Estimation recommandee : **L raisonnable**.
+### Etape 1 - Pre-check contexte
 
-Raisons :
+- verifier que `4f727e0` est bien le diff principal;
+- verifier si `c21c6dc` contient une contrainte de gate bloquante;
+- confirmer qu'aucun changement hors scope n'est inclus dans la conclusion.
 
-- migration SQL + RLS ;
-- provider client Realtime Presence ;
-- policies Supabase Realtime sur `realtime.messages` ;
-- heartbeat throttle ;
-- integration UI dans le drawer ;
-- tests de policies et tests UI/logic ;
-- gestion des cas reseau/mobile/multi-onglets.
+Commandes:
 
-Version reduite sans Presence live, avec uniquement `last_seen_at` : **S/M**, mais elle ne satisfait pas vraiment la bulle online.
+```bash
+git show --stat --name-only 4f727e0
+git show --stat --name-only c21c6dc
+git log -5 --oneline
+```
 
-Version Presence live sans persistance : **M**, mais elle ne satisfait pas le timestamp de derniere activite.
+### Etape 2 - Review statique code/SQL
 
-## Effets de bord et risques
+Verifier:
 
-- **Confusion produit** : `availability_status` existe deja et ne doit pas etre remplace par online.
-- **Privacy** : la presence et la derniere activite sont des donnees comportementales. Limiter la precision et la visibilite.
-- **Charge DB** : un heartbeat trop frequent peut augmenter les writes. Throttle obligatoire.
-- **Pollution de profil** : ne pas mettre a jour `profiles.updated_at`.
-- **RLS** : une mauvaise policy pourrait exposer la presence de membres a des utilisateurs non approuves.
-- **Realtime authorization** : `public.user_presence` RLS ne protege pas le canal Presence ; il faut des policies `realtime.messages`.
-- **Payload non fiable** : Presence est client-authored. Un payload malicieux ne doit jamais devenir une source d'autorisation.
-- **Exactitude** : le statut online est best-effort, surtout mobile/PWA.
-- **Multi-onglets** : online doit rester vrai tant qu'au moins une session est active.
-- **Rerenders** : une presence globale peut provoquer trop de rerenders si le context est consomme trop haut ou trop largement.
-- **Tests baseline** : distinguer les echecs existants des regressions de cette feature.
+- policies RLS `user_presence` (select/insert/update);
+- policies `realtime.messages` (select/insert) scopees a `presence:members` et `extension='presence'`;
+- separation `presence` vs `availability_status`;
+- guard stale responses (`loadRequestIdRef`);
+- lifecycle provider: subscribe, heartbeat, visibilitychange, cleanup.
 
-## Plan d'implementation realise
+Commandes:
 
-1. Decision produit/architecture V1 retenue : presence limitee au drawer membre, pas d'opt-out, libelle "Actuellement en ligne", heartbeat par onglet visible.
-2. Migration `user_presence` ajoutee sans `updated_at`, avec RLS approved/onboarded/admin.
-3. Policies `realtime.messages` ajoutees pour le canal prive `presence:members`.
-4. Types applicatifs ajoutes pour `user_presence`.
-5. Helpers client ajoutes pour heartbeat/upsert et lecture ponctuelle de `last_seen_at`.
-6. `PresenceProvider` ajoute dans `AppShell`, parent de `MemberProfileDrawerProvider`.
-7. Store presence stabilise avec `useSyncExternalStore` pour limiter les rerenders.
-8. Guard `loadRequestIdRef` ajoute dans le drawer pour ignorer les reponses stale.
-9. Statut online et timestamp arrondi integres au drawer membre.
-10. Disponibilite declaree conservee separement du statut de presence.
-11. Tests de formatage et tests de garde des frontieres V1 ajoutes dans `src/__tests__/presence.test.ts`.
+```bash
+rg -n "user_presence|presence:members|realtime.messages|loadRequestIdRef|useIsMemberOnline|last_seen_at" supabase src
+sed -n '1,240p' supabase/migrations/20260520155536_add_user_presence.sql
+sed -n '1,260p' src/components/presence/presence-provider.tsx
+sed -n '430,640p' src/components/membres/member-profile-drawer.tsx
+```
 
-Reste a verifier en review :
+### Etape 3 - Verification Supabase reelle (obligatoire)
 
-- validation Supabase reelle des policies table avec users approved/pending/rejected/anonymous ;
-- validation Supabase reelle des policies Realtime avec users approved/pending/rejected/anonymous ;
-- comportement manuel Realtime indisponible, reload, multi-onglets et mobile/PWA ;
-- execution de la suite de tests projet si elle n'a pas encore ete lancee apres implementation.
+Verifier en environnement cible:
 
-## Criteres d'acceptation
+- approved/onboarded peut lire et ecrire sa presence;
+- approved ne peut pas ecrire la presence d'un autre;
+- pending/rejected/anon ne peuvent ni lire ni ecrire;
+- admin lit les lignes selon policy;
+- channel prive Presence refuse les profils non autorises.
 
-- Un membre approuve voit une bulle online pour un autre membre actuellement present.
-- Le profil membre affiche "Actuellement en ligne" si le membre est online.
-- Le profil membre affiche une derniere activite arrondie quand le membre n'est pas online et qu'un timestamp existe.
-- Le drawer distingue visuellement et textuellement la disponibilite declaree du statut de presence.
-- Le statut de presence n'est jamais utilise comme appel a contacter immediatement le membre.
-- Le statut de presence n'est jamais utilise pour permissions, moderation, audit ou logique metier critique.
-- Le timestamp de derniere activite ne revele pas une heure exacte en V1.
-- Si aucune donnee fiable n'existe, l'UI n'affiche pas d'etat ambigu.
-- La presence reste secondaire dans la hierarchie du profil : identite, role/contexte et actions principales restent prioritaires.
-- Les utilisateurs pending/rejected/anonymous ne peuvent pas lire la presence des membres.
-- Les utilisateurs pending/rejected/anonymous ne peuvent pas ecrire de presence.
-- Un membre approuve ne peut ecrire que sa propre ligne `user_presence`.
-- Le canal Realtime Presence est prive et protege par des policies `realtime.messages`.
-- Le payload Presence ne contient pas d'email, IP, device, user agent ou metadata sensible.
-- Le heartbeat ne met pas a jour `profiles.updated_at`.
-- `public.user_presence` ne contient pas de colonne `updated_at` en V1.
-- `last_seen_at` n'est pas ajoute a `profiles` ni a `profiles_public`.
-- `src/app/(app)/chat/layout.tsx`, la hover card et la liste membres ne sont pas modifies en V1.
-- Le drawer ignore les reponses stale quand l'utilisateur ouvre rapidement plusieurs profils.
-- Le provider nettoie interval, listener `visibilitychange`, track Presence et channel Supabase au demontage.
-- Les mises a jour de presence ne provoquent pas de rerender large de tout `AppShell` ou du chat.
-- La feature continue a fonctionner en mode degrade si Realtime est indisponible.
-- La bulle online est decorative si un libelle texte est present, ou possede un libelle accessible si elle est affichee seule.
+SQL d'inspection recommande:
 
-## Decisions retenues
+```sql
+select grantee, privilege_type
+from information_schema.role_table_grants
+where table_schema = 'public' and table_name = 'user_presence'
+order by grantee, privilege_type;
 
-- La V1 est limitee au profil membre drawer.
-- Le libelle online retenu est "Actuellement en ligne".
-- Le timestamp offline est affiche comme "Derniere activite ..." avec precision arrondie.
-- La disponibilite declaree reste affichee separement, avec le libelle "Disponibilite declaree".
-- Il n'y a pas d'opt-out utilisateur en V1.
-- Le heartbeat par onglet visible est accepte en V1, avec throttle 60 secondes minimum.
+select policyname, roles, cmd, qual, with_check
+from pg_policies
+where (schemaname, tablename) in (('public','user_presence'), ('realtime','messages'))
+order by schemaname, tablename, policyname;
+```
 
-## Points de review
+### Etape 4 - Verification manuelle runtime
 
-- Confirmer que la migration Realtime fonctionne sur l'environnement Supabase cible.
-- Confirmer que les reglages Supabase Realtime ne permettent pas de contourner les policies du canal prive.
-- Confirmer que pending/rejected/anonymous ne lisent ni n'ecrivent `user_presence`.
-- Confirmer que le drawer reste clair : presence live, derniere activite et disponibilite declaree ne doivent pas etre confondues.
-- Confirmer que le heartbeat a 60 secondes est acceptable pour la charge DB en MVP.
-- Confirmer que l'absence d'opt-out est acceptable pour cette V1.
+Cas minimaux:
 
-## V1 implementee
+- A/B approved: online visible puis fallback offline attendu;
+- multi-onglets: fermeture d'un onglet ne doit pas faire passer offline si un autre reste actif;
+- changement rapide de profil drawer: pas d'ecrasement stale A->B;
+- Realtime indisponible: pas de faux online, drawer reste fonctionnel;
+- mobile/background/visibility: pas de boucle d'ecriture.
 
-La V1 implementee est limitee :
+### Etape 5 - Verification tests projet
 
-- presence visible uniquement dans le profil membre drawer ;
-- timestamp "Derniere activite" arrondi dans le profil membre drawer ;
-- disponibilite declaree affichee separement du statut de presence ;
-- provider `PresenceProvider` place dans `AppShell`, parent de `MemberProfileDrawerProvider` ;
-- canal Realtime prive `presence:members` avec policies `realtime.messages` ;
-- presence live acceptee uniquement comme signal UI non autoritatif ;
-- lecture `last_seen_at` uniquement a l'ouverture du drawer ;
-- pas de colonne `updated_at` dans `public.user_presence` en V1 ;
-- pas de hover card ni de liste chat en V1 ;
-- pas de changement dans `src/app/(app)/chat/layout.tsx` en V1 ;
-- pas de tri de liste par online ;
-- pas d'opt-out ;
-- heartbeat throttle a 60 secondes minimum ;
-- RLS stricte membres approuves/onboardes, avec pending/rejected sans lecture ni ecriture.
+Commandes minimales:
 
-Cette V1 repond au besoin initial tout en limitant la surface produit, UI et securite.
+```bash
+./node_modules/.bin/vitest run src/__tests__/presence.test.ts
+./node_modules/.bin/vitest run src/__tests__/presence.test.ts src/__tests__/authorization-hardening.test.ts src/__tests__/auth-session-middleware.test.ts
+npm run lint
+npm run build
+```
+
+Note:
+
+- distinguer baseline historique vs regression introduite par la feature.
+
+### Etape 6 - Rapport final de review
+
+Le rapport doit contenir:
+
+1. findings ordonnes `P0/P1/P2` avec references fichier/ligne;
+2. points bloques (go/no-go);
+3. decisions requises produit/security;
+4. conclusion claire: `APPROVE`, `APPROVE WITH CONDITIONS`, ou `BLOCK`.
+
+## Risques priorises a traiter
+
+### P1
+
+- validation Supabase reelle non prouvee par les tests actuels;
+- risque privacy: heure exacte lisible via `fetchUserPresence` alors que l'UI arrondit;
+- policy Realtime valide en SQL mais reglage projet Realtime potentiellement contournable si public access mal configure;
+- gate BMad/produit a clarifier avant approbation finale.
+
+### P2
+
+- signal Presence client-authored potentiellement spoofable;
+- fallback Realtime (erreur/timeout/closed) a valider en comportement reel;
+- erreurs heartbeat potentiellement silencieuses;
+- couverture de test principalement statique (assertions de texte/source).
+
+## Questions ouvertes (must-answer)
+
+1. L'implementation runtime etait-elle explicitement approuvee au regard du freeze MVP/BMad?
+2. Accepte-t-on l'exposition API du timestamp exact, ou faut-il une vue/RPC arrondie?
+3. Accepte-t-on le spoofing possible comme limite V1 documentee?
+4. Le reglage Supabase Realtime public access est-il confirme conforme sur l'environnement cible?
+5. Le heartbeat 60s par onglet visible est-il acceptable pour la charge beta?
+
+## Archive (hors execution de review)
+
+### Resume archive
+
+Contenu archive:
+
+- probleme, objectifs, non-objectifs;
+- semantique produit;
+- design technique detaille;
+- surfaces UI post-V1;
+- complexite et historique des decisions.
+
+Raison:
+
+- conserver la trace documentaire sans polluer le parsing "plan de review".
+
+### Extrait archive de reference
+
+- La V1 implementee est limitee au `member-profile-drawer`.
+- `PresenceProvider` est place dans `AppShell` au-dessus du drawer provider.
+- La persistence utilise `public.user_presence` avec `last_seen_at` et `last_heartbeat_at`.
+- Le canal Realtime Presence cible est `presence:members`.
+- Les labels offline sont arrondis: `recemment`, `aujourd'hui`, `cette semaine`, `plus d'une semaine`.
+- Hover card et member list chat sont explicitement hors V1.
+
+### Sources archivees
+
+- `plans/is-user-online.md` (version RFC initiale, avant restructuration review-first)
+- `_bmad-output/implementation-artifacts/is-user-online-implementation-prep.md`
+- `src/__tests__/presence.test.ts`
+- `supabase/migrations/20260520155536_add_user_presence.sql`
