@@ -2,7 +2,14 @@
 
 ## Statut
 
-Document bascule en mode **review-first**.
+Review terminee: **APPROVE WITH CONDITIONS**.
+
+Conclusion du 2026-05-21:
+
+- La V1 est acceptee comme signal UI best-effort pour utilisateurs deja authentifies, approuves et connectes a l'application.
+- La feature ne donne aucun droit, ne sert a aucune autorisation, et un faux positif de presence n'est pas un incident security bloquant.
+- La validation exhaustive `approved` / `pending` / `rejected` / `admin` est reclassee en verification pre-release de l'access matrix Supabase, pas en blocker de ce voyant vert.
+- Les smoke-tests reels executables sans session utilisateur confirment que l'anon ne peut pas ecrire `user_presence` et ne peut pas joindre `presence:members`.
 
 Decision produit du 2026-05-21:
 
@@ -10,6 +17,7 @@ Decision produit du 2026-05-21:
 - Le signal en ligne dans la liste des membres du chat est dans le scope V1.
 - L'exposition Data API de `last_seen_at` exact est acceptee pour V1.
 - Le signal Realtime client-authored est accepte comme limite V1: il sert uniquement a afficher un point vert best-effort, pas a autoriser des donnees ou actions.
+- Le runtime attendu est: user deja connecte, user deja `approved`, user dans l'application.
 
 Objectif: quand un agent parse ce fichier, il doit trouver immediatement:
 
@@ -67,15 +75,23 @@ Confirmer ou invalider que la V1 implementee est acceptable sur:
 
 ## Gate de sortie (DoD review)
 
-La review n'est **pas validable** tant que ces points ne sont pas statues:
+Gate retenue pour cette V1:
 
-1. Validation reelle Supabase des policies table `user_presence` pour `approved`, `pending`, `rejected`, `anon`.
-2. Validation reelle Realtime channel prive `presence:members` + policies `realtime.messages`.
-3. Decision produit/security sur l'exposition potentielle de l'heure exacte via Data API: **accepte V1**.
-4. Decision sur le signal presence client-authored: **accepte V1 comme signal UI best-effort**.
-5. Confirmation gate MVP/BMad: **implementation runtime acceptee car demandee explicitement comme signal UI simple de presence en ligne**.
+1. Code SQL statique: policies `user_presence` limitees aux membres approuves/onboardes et a l'admin.
+2. Code Realtime statique: policies `realtime.messages` scopees a `presence:members` et `extension = 'presence'`.
+3. Smoke-test anon reel: pas d'ecriture `user_presence`, pas d'acces Realtime `presence:members`.
+4. Decision produit/security sur l'exposition potentielle de l'heure exacte via Data API: **accepte V1**.
+5. Decision sur le signal presence client-authored: **accepte V1 comme signal UI best-effort**.
+6. Confirmation gate MVP/BMad: **implementation runtime acceptee car demandee explicitement comme signal UI simple de presence en ligne**.
 
-## Plan de review a executer
+Hors gate pour ce voyant vert:
+
+- validation exhaustive `approved`, `pending`, `rejected`, `admin` en environnement cible;
+- audit global de l'access matrix Supabase.
+
+Ces points restent utiles avant release, mais ne bloquent pas cette V1 car un utilisateur non autorise ne doit pas atteindre l'application, et le voyant ne porte aucune autorisation.
+
+## Plan de review execute
 
 ### Etape 1 - Pre-check contexte
 
@@ -110,15 +126,20 @@ sed -n '1,260p' src/components/presence/presence-provider.tsx
 sed -n '430,640p' src/components/membres/member-profile-drawer.tsx
 ```
 
-### Etape 3 - Verification Supabase reelle (obligatoire)
+### Etape 3 - Verification Supabase reelle
 
-Verifier en environnement cible:
+Verifier en environnement cible si les credentials de test existent:
 
 - approved/onboarded peut lire et ecrire sa presence;
 - approved ne peut pas ecrire la presence d'un autre;
 - pending/rejected/anon ne peuvent ni lire ni ecrire;
 - admin lit les lignes selon policy;
 - channel prive Presence refuse les profils non autorises.
+
+Minimum accepte pour clore cette V1:
+
+- anon Data API ne peut pas ecrire `user_presence`;
+- anon Realtime ne peut pas joindre `presence:members`, en channel prive ou public.
 
 SQL d'inspection recommande:
 
@@ -168,12 +189,44 @@ Le rapport doit contenir:
 3. decisions requises produit/security;
 4. conclusion claire: `APPROVE`, `APPROVE WITH CONDITIONS`, ou `BLOCK`.
 
+## Rapport final de review (2026-05-21)
+
+Conclusion: **APPROVE WITH CONDITIONS**.
+
+Conditions acceptees:
+
+- le voyant vert reste un signal UI best-effort;
+- le signal Realtime client-authored peut etre faux et ne doit jamais autoriser une action;
+- `last_seen_at` exact reste lisible via Data API selon la decision produit V1;
+- la matrice complete `approved` / `pending` / `rejected` / `admin` est a garder pour validation pre-release, pas pour bloquer ce voyant.
+
+Findings:
+
+- P0: aucun.
+- P1: aucun bloquant retenu pour cette V1.
+- P2: signal Realtime client-authored falsifiable par un membre approuve, accepte car purement UI.
+- P2: erreurs heartbeat silencieuses, accepte car best-effort.
+- P2: tests surtout statiques/source-level, acceptable pour cette surface faible risque.
+
+Verifications executees:
+
+- diff reviewe: `4f727e0^..ed0e5b8` sur les fichiers presence du scope;
+- `anon` Data API read `user_presence`: pas de fuite de lignes observee;
+- `anon` Data API insert `user_presence`: bloque par RLS (`42501`);
+- `anon` Realtime `presence:members` prive: refuse (`CHANNEL_ERROR`);
+- `anon` Realtime `presence:members` public: refuse (`CHANNEL_ERROR`);
+- `./node_modules/.bin/vitest run src/__tests__/presence.test.ts`: pass;
+- `./node_modules/.bin/vitest run src/__tests__/presence.test.ts src/__tests__/authorization-hardening.test.ts src/__tests__/auth-session-middleware.test.ts`: pass;
+- `npm run build`: pass;
+- `npm run lint`: fail baseline hors scope presence, aucun fichier presence dans les erreurs listees.
+
+Decision go/no-go: **GO V1**.
+
 ## Risques priorises a traiter
 
 ### P1
 
-- validation Supabase reelle non prouvee par les tests actuels;
-- policy Realtime valide en SQL mais reglage projet Realtime potentiellement contournable si public access mal configure;
+Aucun P1 bloquant retenu pour la V1.
 
 ### P2
 
@@ -183,7 +236,7 @@ Le rapport doit contenir:
 - erreurs heartbeat potentiellement silencieuses;
 - couverture de test principalement statique (assertions de texte/source).
 
-## Questions ouvertes (must-answer)
+## Questions ouvertes (non bloquantes V1)
 
 1. Le reglage Supabase Realtime public access est-il confirme conforme sur l'environnement cible?
 2. Le heartbeat 60s par onglet visible est-il acceptable pour la charge beta?
