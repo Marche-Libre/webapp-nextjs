@@ -118,7 +118,6 @@ export async function updateSession(request: NextRequest) {
     const isApproved = profile?.status === "approved";
     const isRejected = profile?.status === "rejected";
     const isPending = profile?.status === "pending";
-    const isOnboarded = profile?.onboarding_completed === true;
     const hasKnownStatus = isApproved || isRejected || isPending;
 
     if (!hasKnownStatus && pathname !== "/" && pathname !== "/en-attente") {
@@ -146,26 +145,13 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Approved but not onboarded → force onboarding
-    if (
-      isApproved &&
-      !isOnboarded &&
-      pathname !== "/" &&
-      pathname !== "/onboarding"
-    ) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
-      return NextResponse.redirect(url);
-    }
-
-    // Fully onboarded users on auth/status/setup pages → redirect to app.
+    // Approved members can access the app even when onboarding is incomplete.
+    // Keep the marketing landing page and /onboarding manually accessible.
     // Keep the marketing landing page visible even when a member is signed in.
     if (
       isApproved &&
-      isOnboarded &&
       ((authEntryRoutes.includes(pathname) && pathname !== "/") ||
-        pathname === "/en-attente" ||
-        pathname === "/onboarding")
+        pathname === "/en-attente")
     ) {
       const url = request.nextUrl.clone();
       url.pathname = "/chat";

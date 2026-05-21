@@ -9,17 +9,19 @@ function source(filePath: string) {
 }
 
 describe("MVP route cleanup", () => {
-  it("routes approved and onboarded defaults to chat", () => {
+  it("routes approved defaults to chat", () => {
     expect(source("src/lib/supabase/middleware.ts")).toContain('url.pathname = "/chat"');
     expect(source("src/app/auth/callback/route.ts")).toContain('let redirectPath = "/chat"');
-    expect(source("src/app/auth/callback/route.ts")).toContain('profile.onboarding_completed ? "/chat" : "/onboarding"');
+    expect(source("src/app/auth/callback/route.ts")).not.toContain('"/onboarding"');
   });
 
-  it("routes onboarding, waiting approval, admin fallback, settings, and logo to chat", () => {
-    expect(source("src/app/onboarding/page.tsx")).toContain('redirect("/chat")');
+  it("keeps /onboarding manually accessible while routing waiting approval, admin fallback, settings, and logo to chat", () => {
+    expect(source("src/app/onboarding/page.tsx")).not.toContain(
+      'if (profile.onboarding_completed) redirect("/chat")',
+    );
     expect(source("src/components/onboarding/onboarding-wizard.tsx")).toContain('link: "/chat"');
     expect(source("src/components/onboarding/onboarding-wizard.tsx")).toContain('window.location.href = "/chat"');
-    expect(source("src/app/(auth)/en-attente/page.tsx")).toContain('profile.onboarding_completed ? "/chat" : "/onboarding"');
+    expect(source("src/app/(auth)/en-attente/page.tsx")).toContain('redirect("/chat")');
     expect(source("src/components/sponsorship/status-poller.tsx")).toContain('router.push("/chat")');
     expect(source("src/app/(app)/admin/layout.tsx")).toContain('redirect("/chat")');
     expect(source("src/components/layout/settings-shell.tsx")).toContain('router.push("/chat")');
@@ -52,7 +54,7 @@ describe("MVP route cleanup", () => {
     expect(channelList).not.toContain('title="Retour"');
   });
 
-  it("default-denies protected app rendering unless the profile is approved and onboarded", () => {
+  it("default-denies protected app rendering unless the profile is approved", () => {
     const appLayout = source("src/app/(app)/layout.tsx");
     const renderShellBlock = appLayout.slice(
       appLayout.indexOf('profile.status !== "approved"'),
@@ -60,8 +62,8 @@ describe("MVP route cleanup", () => {
     );
 
     expect(renderShellBlock).toContain('redirect("/en-attente")');
-    expect(renderShellBlock).toContain('profile.onboarding_completed !== true');
-    expect(renderShellBlock).toContain('redirect("/onboarding")');
+    expect(renderShellBlock).not.toContain('profile.onboarding_completed !== true');
+    expect(renderShellBlock).not.toContain('redirect("/onboarding")');
   });
 
   it("explains approved-user onboarding as setup work rather than an access error", () => {
@@ -219,14 +221,16 @@ describe("MVP route cleanup", () => {
 
   it("keeps public legal pages outside auth and app-home redirects", () => {
     const middleware = source("src/lib/supabase/middleware.ts");
-    const fullyOnboardedRedirect = middleware.slice(
-      middleware.indexOf("Fully onboarded users"),
-      middleware.indexOf("// Security headers"),
+    const approvedRedirect = middleware.slice(
+      middleware.indexOf(
+        "Approved members can access the app even when onboarding is incomplete.",
+      ),
+      middleware.indexOf("return withSecurityHeaders(supabaseResponse);"),
     );
 
     for (const route of ["/mentions-legales", "/confidentialite", "/cgu"]) {
       expect(middleware).toContain(`"${route}"`);
-      expect(fullyOnboardedRedirect).not.toContain(`"${route}"`);
+      expect(approvedRedirect).not.toContain(`"${route}"`);
     }
 
     expect(middleware).toContain("const legalRoutes =");

@@ -258,7 +258,7 @@ describe("RejoindrePage auth entry", () => {
     unmount();
   });
 
-  it("routes connected approved users without onboarding and skips X OAuth", async () => {
+  it("routes connected approved users without onboarding to chat and skips X OAuth", async () => {
     mocks.searchParams = "ref=@alice";
     mockSupabaseClient("user-1", {
       status: "approved",
@@ -270,7 +270,7 @@ describe("RejoindrePage auth entry", () => {
     await clickButton(button);
 
     expect(document.cookie).not.toContain("ml-referral=alice");
-    expect(mocks.replace).toHaveBeenCalledWith("/onboarding");
+    expect(mocks.replace).toHaveBeenCalledWith("/chat");
     expect(mocks.signInWithOAuth).not.toHaveBeenCalled();
 
     unmount();

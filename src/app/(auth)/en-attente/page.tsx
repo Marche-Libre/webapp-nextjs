@@ -70,7 +70,7 @@ export default async function EnAttentePage() {
   }
 
   if (profile.status === "approved") {
-    redirect(profile.onboarding_completed ? "/chat" : "/onboarding");
+    redirect("/chat");
   }
 
   const { data: invitations } = profile.x_handle

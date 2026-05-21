@@ -198,7 +198,7 @@ describe("auth session middleware routing matrix", () => {
     );
   });
 
-  it("routes approved but not onboarded users to /onboarding, including admin attempts", async () => {
+  it("routes approved but not onboarded users from auth/status routes to /chat while keeping app routes open", async () => {
     mockProfile = { status: "approved", onboarding_completed: false };
 
     await expectAllowed("/");
@@ -206,17 +206,18 @@ describe("auth session middleware routing matrix", () => {
     await expectAllowed("/api/geo/cities?q=par");
     await Promise.all(legalRoutes.map((route) => expectAllowed(route)));
 
-    const onboardingRedirectRoutes = [
+    const chatEntryRedirectRoutes = [
       "/connexion",
       "/inscription",
       "/rejoindre",
       "/en-attente",
-      ...memberRoutes,
-      ...adminRoutes,
     ];
     await Promise.all(
-      onboardingRedirectRoutes.map((route) => expectRedirect(route, "/onboarding")),
+      chatEntryRedirectRoutes.map((route) => expectRedirect(route, "/chat")),
     );
+
+    const allowedRoutes = [...memberRoutes, ...adminRoutes];
+    await Promise.all(allowedRoutes.map((route) => expectAllowed(route)));
   });
 
   it("keeps the landing page accessible for approved and onboarded users", async () => {
@@ -225,7 +226,7 @@ describe("auth session middleware routing matrix", () => {
     await expectAllowed("/");
   });
 
-  it("routes approved and onboarded users from auth/status/onboarding routes to /chat", async () => {
+  it("routes approved and onboarded users from auth/status routes to /chat", async () => {
     mockProfile = { status: "approved", onboarding_completed: true };
 
     const chatEntryRedirectRoutes = [
@@ -233,11 +234,18 @@ describe("auth session middleware routing matrix", () => {
       "/inscription",
       "/rejoindre",
       "/en-attente",
-      "/onboarding",
     ];
     await Promise.all(
       chatEntryRedirectRoutes.map((route) => expectRedirect(route, "/chat")),
     );
+  });
+
+  it("keeps /onboarding manually accessible for approved users", async () => {
+    mockProfile = { status: "approved", onboarding_completed: false };
+    await expectAllowed("/onboarding");
+
+    mockProfile = { status: "approved", onboarding_completed: true };
+    await expectAllowed("/onboarding");
   });
 
   it("allows approved and onboarded users on member/admin routes and public handlers", async () => {

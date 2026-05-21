@@ -11,13 +11,13 @@ describe("auth entry destination", () => {
     ).toBe("/chat");
   });
 
-  it("routes approved profiles without completed onboarding to onboarding", () => {
+  it("routes approved profiles without completed onboarding to chat", () => {
     expect(
       getAuthEntryDestination({
         status: "approved",
         onboarding_completed: false,
       }),
-    ).toBe("/onboarding");
+    ).toBe("/chat");
   });
 
   it("routes pending, rejected, unknown, and missing profiles to waiting", () => {

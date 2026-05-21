@@ -18,7 +18,6 @@ export default async function OnboardingPage() {
 
   if (!profile) redirect("/connexion");
   if (profile.status !== "approved") redirect("/en-attente");
-  if (profile.onboarding_completed) redirect("/chat");
 
   // Fetch specialties grouped by category
   const { data: specialtyCategories } = await supabase

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       value: "",
       options: { path: "/", maxAge: 0 },
     });
-    redirectPath = profile.onboarding_completed ? "/chat" : "/onboarding";
+    redirectPath = "/chat";
   } else {
     // New/pending user — handle referral
     const referralHandle = request.cookies.get("ml-referral")?.value;
