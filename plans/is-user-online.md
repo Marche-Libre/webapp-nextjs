@@ -4,6 +4,13 @@
 
 Document bascule en mode **review-first**.
 
+Decision produit du 2026-05-21:
+
+- V1 cible un signal UI simple de presence en ligne.
+- Le signal en ligne dans la liste des membres du chat est dans le scope V1.
+- L'exposition Data API de `last_seen_at` exact est acceptee pour V1.
+- Le signal Realtime client-authored est accepte comme limite V1: il sert uniquement a afficher un point vert best-effort, pas a autoriser des donnees ou actions.
+
 Objectif: quand un agent parse ce fichier, il doit trouver immediatement:
 
 - le contexte de review;
@@ -39,13 +46,13 @@ Fichiers a reviewer en priorite:
 - `src/lib/presence.ts`
 - `src/components/layout/app-shell.tsx`
 - `src/components/membres/member-profile-drawer.tsx`
+- `src/components/chat/member-list.tsx`
 - `src/lib/types/database.ts`
 - `src/__tests__/presence.test.ts`
 
 Hors scope V1:
 
 - `src/app/(app)/chat/layout.tsx`
-- `src/components/chat/member-list.tsx`
 - `src/components/chat/user-hover-card.tsx`
 
 ## But de la review
@@ -64,9 +71,9 @@ La review n'est **pas validable** tant que ces points ne sont pas statues:
 
 1. Validation reelle Supabase des policies table `user_presence` pour `approved`, `pending`, `rejected`, `anon`.
 2. Validation reelle Realtime channel prive `presence:members` + policies `realtime.messages`.
-3. Decision explicite produit/security sur l'exposition potentielle de l'heure exacte via Data API.
-4. Decision explicite sur l'acceptation du signal presence client-authored (spoof possible) comme limite V1.
-5. Confirmation que le gate MVP/BMad autorise cette implementation runtime.
+3. Decision produit/security sur l'exposition potentielle de l'heure exacte via Data API: **accepte V1**.
+4. Decision sur le signal presence client-authored: **accepte V1 comme signal UI best-effort**.
+5. Confirmation gate MVP/BMad: **implementation runtime acceptee car demandee explicitement comme signal UI simple de presence en ligne**.
 
 ## Plan de review a executer
 
@@ -166,24 +173,20 @@ Le rapport doit contenir:
 ### P1
 
 - validation Supabase reelle non prouvee par les tests actuels;
-- risque privacy: heure exacte lisible via `fetchUserPresence` alors que l'UI arrondit;
 - policy Realtime valide en SQL mais reglage projet Realtime potentiellement contournable si public access mal configure;
-- gate BMad/produit a clarifier avant approbation finale.
 
 ### P2
 
-- signal Presence client-authored potentiellement spoofable;
+- signal Presence client-authored potentiellement spoofable, accepte pour V1 car limite a un indicateur UI best-effort;
+- heure exacte lisible via `fetchUserPresence`, acceptee pour V1;
 - fallback Realtime (erreur/timeout/closed) a valider en comportement reel;
 - erreurs heartbeat potentiellement silencieuses;
 - couverture de test principalement statique (assertions de texte/source).
 
 ## Questions ouvertes (must-answer)
 
-1. L'implementation runtime etait-elle explicitement approuvee au regard du freeze MVP/BMad?
-2. Accepte-t-on l'exposition API du timestamp exact, ou faut-il une vue/RPC arrondie?
-3. Accepte-t-on le spoofing possible comme limite V1 documentee?
-4. Le reglage Supabase Realtime public access est-il confirme conforme sur l'environnement cible?
-5. Le heartbeat 60s par onglet visible est-il acceptable pour la charge beta?
+1. Le reglage Supabase Realtime public access est-il confirme conforme sur l'environnement cible?
+2. Le heartbeat 60s par onglet visible est-il acceptable pour la charge beta?
 
 ## Archive (hors execution de review)
 
@@ -203,12 +206,12 @@ Raison:
 
 ### Extrait archive de reference
 
-- La V1 implementee est limitee au `member-profile-drawer`.
+- La V1 implementee couvre le `member-profile-drawer` et la liste des membres du chat.
 - `PresenceProvider` est place dans `AppShell` au-dessus du drawer provider.
 - La persistence utilise `public.user_presence` avec `last_seen_at` et `last_heartbeat_at`.
 - Le canal Realtime Presence cible est `presence:members`.
 - Les labels offline sont arrondis: `recemment`, `aujourd'hui`, `cette semaine`, `plus d'une semaine`.
-- Hover card et member list chat sont explicitement hors V1.
+- Hover card est explicitement hors V1.
 
 ### Sources archivees
 
