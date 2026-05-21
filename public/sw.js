@@ -1,4 +1,4 @@
-const STATIC_CACHE_NAME = "marchelibre-static-v0.4.4";
+const STATIC_CACHE_NAME = "marchelibre-static-v0.4.5";
 const STATIC_REQUEST_DESTINATIONS = new Set(["style", "script", "font", "image"]);
 const OFFLINE_HTML = `<!doctype html>
 <html lang="fr">
