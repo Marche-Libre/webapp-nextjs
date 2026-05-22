@@ -2,7 +2,7 @@
 
 ## Statut
 
-Propose.
+Prêt pour implémentation (Phase 0 initiée - 2026-05-22).
 
 ## Date
 
@@ -637,3 +637,26 @@ Definition de fini:
 11. Verifier que l'action est refusee.
 12. Essayer avec un admin.
 13. Verifier que la suppression reussit.
+
+## Historique d'implémentation (ajouté 2026-05-22)
+
+**Statut actuel :** Prêt pour Phase 0.
+
+**Ce qui a été fait :**
+- Exécution du workflow `bmad-check-implementation-readiness`.
+- Validation alignement avec le PRD (FR17–FR21 chat fiable + NFR1–NFR11, NFR29).
+- Analyse du code actuel :
+  - `src/components/chat/message-bubble.tsx:386` : `handleDelete` fait un update client direct :
+    ```ts
+    .update({ content: "", updated_at: new Date().toISOString() })
+    ```
+  - + état local `deleted` + `deleteConfirming`.
+  - Comportement exactement décrit dans la section "Problème" de cette RFC (media réapparaît après reload).
+- `message-bubble-actions.tsx` et `chat-store.tsx` également concernés.
+- Aucune Server Action dédiée n'existe encore (`deleteChatMessage` à créer dans `src/app/(app)/chat/actions.ts`).
+
+**Prochaine étape :**
+- Lancer **Phase 0** (vérification policies RLS, trigger `private.prevent_message_unsafe_update`, Storage DELETE policy sur bucket `medias`, hygiene).
+- Puis Phase 2 (migration DB : `deleted_at`, `deleted_by`, mise à jour trigger + policies).
+
+Le fichier est maintenant à jour. On peut lancer la Phase 0 dès que tu dis "go phase 0".
