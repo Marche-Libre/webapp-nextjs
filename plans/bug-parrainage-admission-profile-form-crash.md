@@ -2,7 +2,7 @@
 
 ## Statut
 
-Corrige - correctif implemente et verifie le 2026-05-22.
+Clos - correctif implemente, verifie automatiquement et valide manuellement de bout en bout le 2026-05-22.
 
 ## Date
 
@@ -26,6 +26,14 @@ Correction appliquee:
 - les valeurs saisies sont conservees apres erreur de validation pour eviter de forcer l'utilisateur a tout retaper;
 - le `<script>` natif du layout racine a ete remplace par `next/script` avec un `id` et `strategy="beforeInteractive"`;
 - le lien "Se deconnecter" de `/en-attente` est remplace par une vraie deconnexion Supabase, afin de permettre de changer de compte X pendant les tests de parrainage.
+
+Validation manuelle finale:
+
+- le compte annexe a demande le parrainage du compte principal;
+- le compte principal a recu la notification de parrainage;
+- le compte principal a valide la demande;
+- le compte annexe a obtenu l'acces a l'application;
+- aucun overlay Next.js ni crash `AdmissionProfileForm` n'a ete observe pendant le flow complet.
 
 ## Probleme
 
@@ -123,12 +131,12 @@ Deux problemes adjacents ont ete trouves pendant le retest manuel:
 
 ## Verification attendue apres correction
 
-- Rejouer le flow manuel avec un autre compte X. Fait partiellement: `/en-attente` rend sans overlay et la demande de parrainage peut etre envoyee; retest cote compte parrain en cours.
+- Rejouer le flow manuel avec un autre compte X. Fait: compte annexe -> demande de parrainage -> notification compte principal -> validation -> acces application.
 - Confirmer que `/en-attente` rend sans overlay. Fait.
 - Confirmer que `AdmissionProfileForm` rend sans erreur quand `state.errors` est absent ou vide. Fait via test cible.
 - Ajouter ou ajuster un test cible autour de l'etat initial du formulaire d'admission. Fait.
 - Verifier que les valeurs saisies restent visibles apres erreur de validation. Fait via test cible.
-- Verifier que la deconnexion depuis `/en-attente` appelle bien `supabase.auth.signOut()` avant retour connexion. Fait au niveau code/build; retest navigateur a poursuivre.
+- Verifier que la deconnexion depuis `/en-attente` appelle bien `supabase.auth.signOut()` avant retour connexion. Fait: le changement de compte a permis de poursuivre le test cote parrain.
 - Executer au minimum:
 
 ```bash
@@ -147,6 +155,10 @@ npm run build
 
 Resultat: commandes OK.
 
+## Suivi non bloquant
+
+Le flow technique est valide. Une amelioration UX separee reste ouverte pour afficher explicitement le parrain au filleul apres admission: `plans/parrainage-afficher-parrain-filleul.md`.
+
 ## Priorite
 
-Critique. Ce ticket doit passer avant les plans non bloquants du dossier `plans/`, car il bloque un parcours d'entree MVP.
+Critique a l'ouverture. Clos apres validation manuelle du parcours MVP d'entree par parrainage.

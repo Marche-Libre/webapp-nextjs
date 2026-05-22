@@ -18,6 +18,7 @@ Recommandation d'execution : traiter **suppression-message-media** avant **plan-
 
 - **Court terme** : `search-message-scroll.md` est le meilleur candidat si le temps est limite. Perimetre frontend cible, sans migration.
 - **Parrainage** : `parrainage-afficher-parrain-filleul.md` est non bloquant, mais utile pour rendre le parcours valide plus comprehensible apres admission.
+- **Clos recemment** : `bug-parrainage-admission-profile-form-crash.md` est valide de bout en bout et conserve comme historique du correctif critique admission/parrainage.
 - **Moyen terme** : `triage-utilisateurs-canaux.md` et `plan-canal-evenements-readonly.md` touchent chat + Supabase, avec verification RLS.
 - **Risque operationnel** : `suppression-message-media.md` introduit Storage non transactionnel, mais reste plus borne que la suppression de compte.
 - **Gros chantiers** : `Nostr-integration.md` contient beaucoup d'inconnues externes. `plan-suppression-compte.md` est transversal, sensible juridiquement et techniquement.
@@ -25,6 +26,7 @@ Recommandation d'execution : traiter **suppression-message-media** avant **plan-
 ## Files
 
 - **[future-scaling-ideas.md](./future-scaling-ideas.md)** - Idees futures hors MVP
+- **[bug-parrainage-admission-profile-form-crash.md](./bug-parrainage-admission-profile-form-crash.md)** - Correctif critique admission/parrainage, clos
 - **[Nostr-integration.md](./Nostr-integration.md)** - Nostr, wallet, zaps Lightning
 - **[parrainage-afficher-parrain-filleul.md](./parrainage-afficher-parrain-filleul.md)** - Afficher le parrain au filleul
 - **[plan-canal-evenements-readonly.md](./plan-canal-evenements-readonly.md)** - Canal Evenements admin-only
