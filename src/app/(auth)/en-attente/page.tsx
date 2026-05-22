@@ -38,9 +38,9 @@ export default async function EnAttentePage() {
 
   if (profile.status === "rejected") {
     return (
-      <div className="w-full max-w-[600px] mx-auto">
+      <div className="w-full max-w-[720px] mx-auto">
         <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
-          <div className="px-8 pt-8 pb-6 text-center border-b border-base-content/[0.06]">
+          <div className="px-4 pt-8 pb-6 text-center border-b border-base-content/[0.06] sm:px-6 md:px-8">
             <div className="h-14 w-14 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
               <XCircle className="h-7 w-7 text-error" />
             </div>
@@ -56,7 +56,7 @@ export default async function EnAttentePage() {
             </p>
           </div>
 
-          <div className="px-8 py-4 flex justify-center">
+          <div className="px-4 py-4 flex justify-center sm:px-6 md:px-8">
             <Link
               href="/connexion"
               className="inline-flex items-center gap-1.5 text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
@@ -100,9 +100,9 @@ export default async function EnAttentePage() {
     !specialtyCategoriesError && !!specialtyCategories?.length;
 
   return (
-    <div className="w-full max-w-[600px] mx-auto">
+    <div className="w-full max-w-[720px] mx-auto">
       <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
-        <div className="px-8 pt-8 pb-6 text-center border-b border-base-content/[0.06]">
+        <div className="px-4 pt-8 pb-6 text-center border-b border-base-content/[0.06] sm:px-6 md:px-8">
           {hasInvitations ? (
             <>
               <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
@@ -143,7 +143,7 @@ export default async function EnAttentePage() {
         </div>
 
         {/* Content */}
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-5 px-4 py-6 sm:px-6 md:px-8">
           {!hasInvitations && !canShowAdmissionForm ? (
             <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -204,7 +204,7 @@ export default async function EnAttentePage() {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-4 border-t border-base-content/[0.06] flex items-center justify-between">
+        <div className="px-4 py-4 border-t border-base-content/[0.06] flex items-center justify-between sm:px-6 md:px-8">
           <StatusPoller userId={user.id} />
           <PendingSignOutButton />
         </div>
