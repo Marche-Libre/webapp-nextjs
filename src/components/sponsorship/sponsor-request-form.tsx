@@ -1,22 +1,20 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { XLogo } from "@/components/ui/x-logo";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import type { SponsorshipRequest } from "@/lib/types/database";
-import { createSponsorshipRequestForHandle } from "@/lib/sponsorship/requests";
+import { submitSponsorshipRequest } from "@/app/(auth)/en-attente/actions";
 
 interface SponsorRequestFormProps {
   existingRequests: SponsorshipRequest[];
-  requesterId: string;
 }
 
-export function SponsorRequestForm({ existingRequests, requesterId }: SponsorRequestFormProps) {
+export function SponsorRequestForm({ existingRequests }: SponsorRequestFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -24,12 +22,23 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
   const router = useRouter();
 
   const totalAttempts = existingRequests.length;
-  const hasPending = existingRequests.some((r) => r.status === "pending");
-  const hasApproved = existingRequests.some((r) => r.status === "approved");
-  const maxedOut = totalAttempts >= 2 && !hasPending && !hasApproved;
-  const canSubmit = !hasPending && !hasApproved && !submitted && totalAttempts < 2;
+  const hasPending = useMemo(
+    () => existingRequests.some((request) => request.status === "pending"),
+    [existingRequests],
+  );
+  const hasApproved = useMemo(
+    () => existingRequests.some((request) => request.status === "approved"),
+    [existingRequests],
+  );
+  const hasRejected = useMemo(
+    () => existingRequests.some((request) => request.status === "rejected"),
+    [existingRequests],
+  );
+  const canSubmit = !hasPending && !hasApproved && !submitted;
 
   function renderRequest(req: SponsorshipRequest) {
+    const attemptLabel = `Tentative ${req.attempt_number}`;
+
     return (
       <div
         key={req.id}
@@ -40,7 +49,7 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
             Demande envoyée à @{req.sponsor_handle}
           </p>
           <p className="text-[11px] text-text-muted">
-            {formatDate(req.created_at)} — Tentative {req.attempt_number}/2
+            {formatDate(req.created_at)} - {attemptLabel}
           </p>
         </div>
         {req.status === "pending" && (
@@ -67,13 +76,9 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
     const rawHandle = formData.get("sponsor_handle");
     const handle = typeof rawHandle === "string" ? rawHandle : "";
 
-    const supabase = createClient();
-    const sponsorshipResult = await createSponsorshipRequestForHandle(supabase, {
-      requesterId,
-      sponsorHandle: handle,
-    });
+    const sponsorshipResult = await submitSponsorshipRequest(handle);
 
-    if (!sponsorshipResult.ok) {
+    if (!sponsorshipResult.success) {
       setError(sponsorshipResult.message);
       setLoading(false);
       return;
@@ -84,10 +89,15 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
     form.reset();
     setLoading(false);
     router.refresh();
-  }, [requesterId, router]);
+  }, [router]);
 
-  const requestItems = existingRequests.map(renderRequest);
-
+  const requestItems = useMemo(
+    () => existingRequests.map(renderRequest),
+    [existingRequests],
+  );
+  const retryCopy = hasRejected
+    ? "Votre précédent parrainage a été refusé. Vous pouvez déclarer un autre parrain."
+    : "Déclarez le membre qui peut confirmer votre demande.";
   return (
     <div className="space-y-[16px] text-left">
       {/* Show existing request status */}
@@ -109,11 +119,10 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
         </div>
       )}
 
-      {/* Maxed out — fallback to admin */}
-      {maxedOut && (
+      {hasRejected && canSubmit && (
         <div className="flex items-center gap-[10px] p-[12px] rounded-lg bg-warning-bg/50 text-[13px] text-warning">
           <AlertTriangle className="h-[16px] w-[16px] shrink-0" />
-          Votre demande est en file d&apos;attente pour validation par un administrateur.
+          {retryCopy}
         </div>
       )}
 

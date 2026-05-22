@@ -162,9 +162,10 @@ describe("pending admission profile request", () => {
     expect(existsSync(path.join(root, actionPath))).toBe(true);
 
     const action = source(actionPath);
+    const updateEnd = action.indexOf(".eq(\"id\", user.id)", action.indexOf(".update("));
     const updateBlock = action.slice(
       action.indexOf(".update("),
-      action.lastIndexOf(".eq(\"id\", user.id)"),
+      updateEnd,
     );
 
     expect(action).toContain('"use server"');
@@ -191,6 +192,22 @@ describe("pending admission profile request", () => {
     ]) {
       expect(updateBlock).not.toContain(forbiddenField);
     }
+  });
+
+  it("keeps /en-attente sponsorship-only without a no-sponsor admin queue", () => {
+    const waitingClient = source("src/components/sponsorship/waiting-page-client.tsx");
+    const sponsorForm = source("src/components/sponsorship/sponsor-request-form.tsx");
+    const action = source("src/app/(auth)/en-attente/actions.ts");
+
+    expect(waitingClient).toContain("Parrain requis");
+    expect(sponsorForm).toContain("submitSponsorshipRequest");
+    expect(action).toContain("export async function submitSponsorshipRequest");
+    expect(action).toContain('profile.status !== "pending"');
+    expect(action).toContain("createSponsorshipRequestForHandle");
+    expect(waitingClient).not.toContain("Je ne connais personne");
+    expect(waitingClient).not.toContain("Un administrateur examinera votre demande");
+    expect(sponsorForm).not.toContain("deux tentatives");
+    expect(sponsorForm).not.toContain("validation par un administrateur");
   });
 
   it("accepts display-name-only submissions with a validated category", async () => {

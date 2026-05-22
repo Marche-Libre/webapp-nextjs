@@ -73,21 +73,47 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
   });
 
-  it("promotes sponsored requesters when sponsorship requests are approved", () => {
+  it("confirms sponsorship without approving final admission", () => {
     const sponsorshipApprovalMigration = migrationSources().find(({ fileName }) =>
-      fileName.includes("approve_profile_on_sponsorship_request_approval"),
+      fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
     );
 
     const migrationText = sponsorshipApprovalMigration?.text ?? "";
+    const functionText = migrationText.slice(
+      migrationText.indexOf("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()"),
+      migrationText.indexOf("CREATE OR REPLACE FUNCTION private.prevent_profile_approval_without_confirmed_sponsor()"),
+    );
 
-    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()");
+    expect(functionText).toContain("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()");
+    expect(functionText).toContain("OLD.status IS DISTINCT FROM 'approved'");
+    expect(functionText).toContain("sponsorship_request_sponsor_only");
+    expect(functionText).toContain("sponsorship_request_sponsor_not_approved");
+    expect(functionText).toContain("SET sponsored_by = OLD.sponsor_id");
+    expect(functionText).toContain("sponsor_approved = TRUE");
+    expect(functionText).not.toMatch(/,\s*status\s*=\s*'approved'/i);
+    expect(functionText).toContain("WHERE id = OLD.requester_id");
+  });
+
+  it("blocks profile approval without confirmed sponsorship in the database", () => {
+    const admissionInvariantMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
+    );
+
+    const migrationText = admissionInvariantMigration?.text ?? "";
+
+    expect(migrationText).toContain(
+      "private.prevent_profile_approval_without_confirmed_sponsor",
+    );
+    expect(migrationText).toContain("NEW.status = 'approved'");
     expect(migrationText).toContain("OLD.status IS DISTINCT FROM 'approved'");
-    expect(migrationText).toContain("sponsorship_request_sponsor_only");
-    expect(migrationText).toContain("sponsorship_request_sponsor_not_approved");
-    expect(migrationText).toContain("SET sponsored_by = OLD.sponsor_id");
-    expect(migrationText).toContain("sponsor_approved = TRUE");
-    expect(migrationText).toContain("status = 'approved'");
-    expect(migrationText).toContain("WHERE id = OLD.requester_id");
+    expect(migrationText).toContain("NEW.sponsored_by IS NULL");
+    expect(migrationText).toContain("NEW.sponsor_approved IS NOT TRUE");
+    expect(migrationText).toContain(
+      "profile_approval_requires_confirmed_sponsor",
+    );
+    expect(migrationText).toContain(
+      "CREATE TRIGGER prevent_profile_approval_without_confirmed_sponsor",
+    );
   });
 
   it("routes sponsor requester profile visibility through a scoped RPC", () => {

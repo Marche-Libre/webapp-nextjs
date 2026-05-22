@@ -2,11 +2,50 @@
 
 ## Statut
 
-Pret pour implementation.
+Implemente et archive.
 
 ## Date
 
 2026-05-22
+
+## Archive
+
+Archive le 2026-05-22 apres implementation du RFC.
+
+### Changements livres
+
+- Migration Supabase ajoutee: `supabase/migrations/20260522152018_enforce_confirmed_sponsor_before_admin_approval.sql`.
+- `private.confirm_sponsorship_request()` ne passe plus le profil a `approved`; il materialise seulement `sponsored_by` et `sponsor_approved`.
+- Trigger DB ajoute sur `public.profiles` pour bloquer tout passage vers `approved` sans parrainage confirme avec l'erreur `profile_approval_requires_confirmed_sponsor`.
+- Contrainte de demandes actives ajoutee: une seule demande `pending` ou `approved` par requester.
+- Limite stricte des deux tentatives retiree pour ne pas bloquer definitivement un candidat.
+- Parcours `/en-attente` simplifie: plus de choix "Je ne connais personne", parrain obligatoire explicite, et etats de parrainage visibles.
+- Creation manuelle de demande de parrainage migree vers Server Action: `src/app/(auth)/en-attente/actions.ts`.
+- Creation via `/rejoindre?ref=` migree vers Server Action: `src/app/rejoindre/actions.ts`.
+- Callback OAuth durci: le cookie referral ne cree une demande que pour un profil `pending`.
+- Admin `/admin/users` refondu en interface unique avec filtres, parrain, etat de parrainage, derniere demande, et action bloquee si parrainage manquant.
+- `approveUser(userId)` relit le profil cible et refuse l'approbation sans `sponsored_by` et `sponsor_approved = true`.
+
+### Verification
+
+Commandes executees:
+
+```bash
+npx vitest run src/__tests__/admission-profile-request.test.ts src/__tests__/authorization-hardening.test.ts src/__tests__/oauth-buttons.test.tsx
+npx vitest run src/__tests__/oauth-buttons.test.tsx
+npm run build
+```
+
+Resultat:
+
+- Tests cibles: OK.
+- Build: OK.
+- `npm run lint`: KO sur erreurs preexistantes hors scope de ce RFC.
+
+### Notes operationnelles
+
+- Le compte test `ThePause_app` a ete supprime deux fois de Supabase pour permettre de rejouer le parcours d'admission de zero.
+- La migration a ete creee dans le repo; la verification remote de definition SQL reste a refaire apres application effective en environnement cible si elle n'a pas encore ete appliquee.
 
 ## Decision produit
 

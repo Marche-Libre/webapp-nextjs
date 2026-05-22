@@ -1,8 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifySponsorRequest } from "@/lib/notifications";
 
-const MAX_SPONSORSHIP_ATTEMPTS = 2;
-
 type SponsorProfile = {
   id: string;
   x_handle: string;
@@ -28,7 +26,6 @@ type CreateSponsorshipRequestFailure = {
   ok: false;
   status:
     | "insert_failed"
-    | "max_attempts"
     | "missing_handle"
     | "request_lookup_failed"
     | "self_sponsor"
@@ -152,15 +149,6 @@ export async function createSponsorshipRequestForHandle(
   }
 
   const nextAttempt = getNextAttemptNumber(requests);
-
-  if (nextAttempt > MAX_SPONSORSHIP_ATTEMPTS) {
-    return {
-      ok: false,
-      status: "max_attempts",
-      message:
-        "Vous avez deja utilise vos deux tentatives de parrainage. Un administrateur examinera votre demande.",
-    };
-  }
 
   const { error: insertError } = await supabase
     .from("sponsorship_requests")

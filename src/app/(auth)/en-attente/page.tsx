@@ -20,7 +20,7 @@ export default async function EnAttentePage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, status, onboarding_completed, x_handle, sponsor_approved, first_name, last_name, full_name, specialty_ids, specialty_category_id, location, bio")
+    .select("id, status, onboarding_completed, x_handle, sponsored_by, sponsor_approved, first_name, last_name, full_name, specialty_ids, specialty_category_id, location, bio")
     .eq("id", user.id)
     .single();
 
@@ -91,6 +91,16 @@ export default async function EnAttentePage() {
     .select("*")
     .eq("requester_id", user.id)
     .order("attempt_number", { ascending: false });
+  const latestSponsorshipRequest = sponsorshipRequests?.[0] as
+    | SponsorshipRequest
+    | undefined;
+  const sponsorshipStatusCopy = profile.sponsor_approved
+    ? "Parrainage confirmé. Validation admin finale en attente."
+    : latestSponsorshipRequest?.status === "pending"
+      ? `Demande envoyée à @${latestSponsorshipRequest.sponsor_handle}. En attente de sa réponse.`
+      : latestSponsorshipRequest?.status === "rejected"
+        ? `Demande refusée par @${latestSponsorshipRequest.sponsor_handle}. Déclarez un autre parrain.`
+        : "Aucun parrain confirmé. Un parrain est requis pour continuer.";
 
   const { data: specialtyCategories, error: specialtyCategoriesError } = await supabase
     .from("specialty_categories")
@@ -114,7 +124,7 @@ export default async function EnAttentePage() {
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 Acceptez pour poursuivre la validation.
                 <br />
-                Validation manuelle en cours.
+                Un admin finalisera l&apos;acces apres confirmation du parrainage.
                 <br />
                 L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
               </p>
@@ -125,7 +135,7 @@ export default async function EnAttentePage() {
                 <Clock className="h-7 w-7 text-warning" />
               </div>
               <h1 className="text-xl font-bold text-base-content tracking-tight">
-                Demande en cours d&apos;examen
+                Admission en attente de parrainage
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 {xHandle ? (
@@ -134,9 +144,9 @@ export default async function EnAttentePage() {
                     <br />
                   </>
                 ) : null}
-                Validation manuelle en cours.
+                {sponsorshipStatusCopy}
                 <br />
-                L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
+                L&apos;acces aux espaces membres reste bloque tant que le parrainage et la validation admin ne sont pas confirmes.
               </p>
             </>
           )}
@@ -196,7 +206,6 @@ export default async function EnAttentePage() {
                   existingRequests={
                     (sponsorshipRequests as SponsorshipRequest[]) || []
                   }
-                  requesterId={user.id}
                 />
               )}
             </>

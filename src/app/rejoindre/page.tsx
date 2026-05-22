@@ -12,7 +12,7 @@ import {
   getAuthEntryDestination,
 } from "@/lib/auth-entry";
 import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
-import { createSponsorshipRequestForHandle } from "@/lib/sponsorship/requests";
+import { createReferralSponsorshipRequest } from "./actions";
 
 const ERROR_MESSAGE_DEFAULT =
   "Impossible de démarrer la connexion X. Réessayez dans un instant.";
@@ -71,15 +71,10 @@ function RejoindreContent() {
           .single();
 
         if (referralHandle && profile?.status !== "approved") {
-          const sponsorshipResult = await createSponsorshipRequestForHandle(
-            supabase,
-            {
-              requesterId: userData.user.id,
-              sponsorHandle: referralHandle,
-            },
-          );
+          const sponsorshipResult =
+            await createReferralSponsorshipRequest(referralHandle);
 
-          if (!sponsorshipResult.ok) {
+          if (!sponsorshipResult.success) {
             setErrorMessage(sponsorshipResult.message);
             return;
           }

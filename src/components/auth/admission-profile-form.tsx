@@ -188,7 +188,7 @@ export function AdmissionProfileForm({
         ) : null}
 
         <Button type="submit" size="sm" disabled={pending} className="w-full">
-          {pending ? "Envoi en cours..." : "Envoyer ma demande"}
+          {pending ? "Envoi en cours..." : "Valider mon profil"}
         </Button>
       </form>
     </section>
