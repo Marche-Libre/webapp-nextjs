@@ -50,6 +50,12 @@ export type Profile = {
   sponsor?: Profile;
 };
 
+export type UserPresence = {
+  user_id: string;
+  last_seen_at: string;
+  last_heartbeat_at: string;
+};
+
 export type SpecialtyCategory = {
   id: string;
   name: string;
@@ -183,6 +189,14 @@ export type SponsorshipRequest = {
   updated_at: string;
   requester?: Profile;
   sponsor?: Profile;
+};
+
+export type SponsorRequesterProfile = {
+  sponsorship_request_id: string;
+  requester_id: string;
+  x_handle: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
 };
 
 export type Notification = {

@@ -102,7 +102,10 @@ function watchRegistrationForUpdates(
 
 function scheduleServiceWorkerRegistration(onUpdateAvailable: (worker: ServiceWorker) => void) {
   const register = async () => {
-    const registration = await navigator.serviceWorker.register("/sw.js");
+    const registration = await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
+      updateViaCache: "none",
+    });
     watchRegistrationForUpdates(registration, onUpdateAvailable);
   };
 

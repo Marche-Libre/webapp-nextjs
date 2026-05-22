@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { FavoritesProvider } from "@/components/favorites/favorites-context";
 import { AppRuntimeProvider } from "@/components/runtime/app-runtime-provider";
@@ -109,10 +110,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${plusJakarta.variable} h-full`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="h-full font-sans antialiased bg-bg-elevated text-text-primary">
+        <Script
+          id="marchelibre-theme"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
         <AppRuntimeProvider>
           <ThemeProvider>
             <FavoritesProvider>{children}</FavoritesProvider>

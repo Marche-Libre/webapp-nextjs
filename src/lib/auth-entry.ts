@@ -1,4 +1,4 @@
-export type AuthEntryDestination = "/chat" | "/onboarding" | "/en-attente";
+export type AuthEntryDestination = "/chat" | "/en-attente";
 
 export const ACCESS_MODAL_HREF = "/?auth=access";
 export const AUTH_ENTRY_PROFILE_SELECT = "status, onboarding_completed";
@@ -15,5 +15,5 @@ export function getAuthEntryDestination(
     return "/en-attente";
   }
 
-  return profile.onboarding_completed === true ? "/chat" : "/onboarding";
+  return "/chat";
 }

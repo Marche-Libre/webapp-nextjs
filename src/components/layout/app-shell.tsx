@@ -9,6 +9,8 @@ import { AdminShell } from "./admin-shell";
 import { ChatStoreProvider } from "@/components/chat/chat-store";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { MemberProfileDrawerProvider } from "@/components/membres/member-profile-drawer-context";
+import { PresenceProvider } from "@/components/presence/presence-provider";
+import { OnboardingReminderBanner } from "@/components/onboarding/onboarding-reminder-banner";
 import type { Profile } from "@/lib/types/database";
 
 interface AppShellProps {
@@ -85,9 +87,12 @@ export function AppShell({ profile, children }: AppShellProps) {
   return (
     <NotificationProvider userId={profile.id}>
       <ChatStoreProvider userId={profile.id}>
-        <MemberProfileDrawerProvider>
-          <MainArea profile={profile}>{children}</MainArea>
-        </MemberProfileDrawerProvider>
+        <PresenceProvider currentUserId={profile.id}>
+          <MemberProfileDrawerProvider>
+            <MainArea profile={profile}>{children}</MainArea>
+            <OnboardingReminderBanner profile={profile} />
+          </MemberProfileDrawerProvider>
+        </PresenceProvider>
       </ChatStoreProvider>
     </NotificationProvider>
   );

@@ -1,9 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const MAX_PENDING_REFERRALS = 5;
-const MAX_TOTAL_FILLEULS = 20;
+import { createSponsorshipRequestForHandle } from "@/lib/sponsorship/requests";
 
 function getAuthErrorRedirect(origin: string) {
   const redirectUrl = new URL("/connexion", origin);
@@ -77,57 +75,25 @@ export async function GET(request: NextRequest) {
       value: "",
       options: { path: "/", maxAge: 0 },
     });
-    redirectPath = profile.onboarding_completed ? "/chat" : "/onboarding";
+    redirectPath = "/chat";
   } else {
     // New/pending user — handle referral
     const referralHandle = request.cookies.get("ml-referral")?.value;
 
-    if (referralHandle) {
-      const { data: sponsor } = await supabase
-        .from("profiles")
-        .select("id, is_admin")
-        .eq("x_handle", referralHandle)
-        .eq("status", "approved")
-        .single();
+    if (referralHandle && profile?.status === "pending") {
+      const sponsorshipResult = await createSponsorshipRequestForHandle(
+        supabase,
+        {
+          requesterId: user.id,
+          sponsorHandle: referralHandle,
+        },
+      );
 
-      if (sponsor) {
-        let canSponsor = true;
-
-        if (!sponsor.is_admin) {
-          const { count: pendingCount } = await supabase
-            .from("sponsorship_requests")
-            .select("*", { count: "exact", head: true })
-            .eq("sponsor_id", sponsor.id)
-            .eq("status", "pending");
-
-          const { count: totalFilleuls } = await supabase
-            .from("profiles")
-            .select("*", { count: "exact", head: true })
-            .eq("sponsored_by", sponsor.id)
-            .eq("status", "approved");
-
-          if (
-            (pendingCount ?? 0) >= MAX_PENDING_REFERRALS ||
-            (totalFilleuls ?? 0) >= MAX_TOTAL_FILLEULS
-          ) {
-            canSponsor = false;
-          }
-        }
-
-        if (canSponsor) {
-          await supabase
-            .from("profiles")
-            .update({ sponsored_by: sponsor.id })
-            .eq("id", user.id);
-
-          await supabase.from("sponsorship_requests").insert({
-            requester_id: user.id,
-            sponsor_handle: referralHandle,
-            sponsor_id: sponsor.id,
-            status: "pending",
-            attempt_number: 1,
-          });
-        }
+      if (!sponsorshipResult.ok) {
+        console.warn("[auth/callback] referral sponsorship request failed", {
+          reason: sponsorshipResult.status,
+          message: sponsorshipResult.technicalMessage ?? sponsorshipResult.message,
+        });
       }
 
       cookiesToWrite.push({

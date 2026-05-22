@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Briefcase, Calendar, Clock, ExternalLink, Globe, MapPin, RefreshCw, Shield, X } from "lucide-react";
 import { Avatar, AvailabilityBadge } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useIsMemberOnline } from "@/components/presence/presence-provider";
+import { fetchUserPresence, formatLastActivityLabel } from "@/lib/presence";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatDate } from "@/lib/utils";
 import { countryFlag, getSpecialtyDisplay } from "@/lib/profile-utils";
@@ -35,10 +37,10 @@ type CategoryWithSpecialties = SpecialtyCategory & { specialties: Specialty[] };
 type SponsorPreview = { x_handle: string } | null;
 
 type DrawerLoadState =
-  | { status: "idle"; profile: null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview }
-  | { status: "loading"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview }
-  | { status: "ready"; profile: PublicMemberProfile; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview }
-  | { status: "error"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview };
+  | { status: "idle"; profile: null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; lastSeenAt: string | null }
+  | { status: "loading"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; lastSeenAt: string | null }
+  | { status: "ready"; profile: PublicMemberProfile; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; lastSeenAt: string | null }
+  | { status: "error"; profile: PublicMemberProfile | null; categories: CategoryWithSpecialties[]; sponsor: SponsorPreview; lastSeenAt: string | null };
 
 type MemberProfileDrawerProps = {
   memberId: string | null;
@@ -237,14 +239,63 @@ function ErrorProfile({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+function PresenceStatus({ profileId, lastSeenAt }: { profileId: string; lastSeenAt: string | null }) {
+  const isOnline = useIsMemberOnline(profileId);
+  const lastActivityLabel = useMemo(() => {
+    if (isOnline) return null;
+
+    return formatLastActivityLabel(lastSeenAt);
+  }, [isOnline, lastSeenAt]);
+
+  if (isOnline) {
+    return (
+      <span className="inline-flex items-center gap-[6px] text-[12px] font-medium text-emerald-700">
+        <span className="h-[7px] w-[7px] rounded-full bg-emerald-500" aria-hidden="true" />
+        Actuellement en ligne
+      </span>
+    );
+  }
+
+  if (!lastActivityLabel) return null;
+
+  return (
+    <span className="inline-flex items-center gap-[5px] text-[12px] text-text-muted">
+      <Clock className="h-[13px] w-[13px]" />
+      {lastActivityLabel}
+    </span>
+  );
+}
+
+function ProfileAvatar({ profile }: { profile: PublicMemberProfile }) {
+  const isOnline = useIsMemberOnline(profile.id);
+
+  return (
+    <span className="relative inline-flex shrink-0">
+      <Avatar
+        src={profile.avatar_url}
+        name={profile.x_handle}
+        size="xl"
+      />
+      {isOnline ? (
+        <span
+          className="absolute bottom-0 right-0 h-[14px] w-[14px] rounded-full border-2 border-bg-base bg-emerald-500"
+          aria-hidden="true"
+        />
+      ) : null}
+    </span>
+  );
+}
+
 function ProfileContent({
   profile,
   categories,
   sponsor,
+  lastSeenAt,
 }: {
   profile: PublicMemberProfile;
   categories: CategoryWithSpecialties[];
   sponsor: SponsorPreview;
+  lastSeenAt: string | null;
 }) {
   const specDisplay = getSpecialtyDisplay(profile, categories);
   const skills = profile.skills ?? [];
@@ -289,12 +340,7 @@ function ProfileContent({
     <div className="space-y-[20px] p-[20px]">
       <section className="space-y-[14px]">
         <div className="flex items-start gap-[14px]">
-          <Avatar
-            src={profile.avatar_url}
-            name={profile.x_handle}
-            size="xl"
-            availability={profile.availability_status ?? undefined}
-          />
+          <ProfileAvatar profile={profile} />
           <div className="min-w-0 flex-1 pt-[2px]">
             <div className="flex flex-wrap items-center gap-[8px]">
               <a
@@ -317,8 +363,14 @@ function ProfileContent({
                 <span className="truncate">{profile.location}</span>
               </p>
             ) : null}
-            <div className="mt-[8px]">
-              <AvailabilityBadge status={profile.availability_status ?? undefined} />
+            <div className="mt-[8px] flex flex-col items-start gap-[6px]">
+              <PresenceStatus profileId={profile.id} lastSeenAt={lastSeenAt} />
+              {profile.availability_status && profile.availability_status !== "unset" ? (
+                <div className="flex flex-wrap items-center gap-[6px]">
+                  <span className="text-[11px] font-medium text-text-muted">Disponibilité déclarée :</span>
+                  <AvailabilityBadge status={profile.availability_status} />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -410,11 +462,13 @@ function ProfileContent({
 export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const loadRequestIdRef = useRef(0);
   const [loadState, setLoadState] = useState<DrawerLoadState>({
     status: "idle",
     profile: null,
     categories: categoriesCache ?? [],
     sponsor: null,
+    lastSeenAt: null,
   });
 
   const isOpen = !!memberId;
@@ -423,19 +477,24 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
   const loadProfile = useCallback(async () => {
     if (!memberId) return;
 
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
     const cachedProfile = profileCache.get(memberId) ?? seedProfile;
     setLoadState({
       status: "loading",
       profile: cachedProfile,
       categories: categoriesCache ?? [],
       sponsor: null,
+      lastSeenAt: null,
     });
 
     const supabase = createClient();
-    const [profile, categories] = await Promise.all([
+    const [profile, categories, presence] = await Promise.all([
       fetchPublicMemberProfile(supabase, memberId),
       fetchCategories(supabase),
+      fetchUserPresence(supabase, memberId),
     ]);
+    if (loadRequestIdRef.current !== requestId) return;
 
     if (!profile) {
       setLoadState({
@@ -443,11 +502,13 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
         profile: cachedProfile,
         categories,
         sponsor: null,
+        lastSeenAt: presence?.last_seen_at ?? null,
       });
       return;
     }
 
     const sponsor = await fetchSponsor(supabase, profile.sponsored_by);
+    if (loadRequestIdRef.current !== requestId) return;
 
     profileCache.set(memberId, profile);
     setLoadState({
@@ -455,6 +516,7 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
       profile,
       categories,
       sponsor,
+      lastSeenAt: presence?.last_seen_at ?? null,
     });
   }, [memberId, seedProfile]);
 
@@ -505,6 +567,12 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
     return () => window.clearTimeout(loadTimer);
   }, [isOpen, loadProfile]);
 
+  useEffect(() => {
+    if (isOpen) return;
+
+    loadRequestIdRef.current += 1;
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -550,6 +618,7 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
               profile={loadState.profile}
               categories={loadState.categories}
               sponsor={loadState.sponsor}
+              lastSeenAt={loadState.lastSeenAt}
             />
           ) : null}
           {loadState.status === "loading" && !loadState.profile ? <LoadingProfile /> : null}
@@ -558,6 +627,7 @@ export function MemberProfileDrawer({ memberId, seed, onClose }: MemberProfileDr
               profile={loadState.profile}
               categories={loadState.categories}
               sponsor={loadState.sponsor}
+              lastSeenAt={loadState.lastSeenAt}
             />
           ) : null}
           {loadState.status === "error" ? <ErrorProfile onRetry={handleRetry} /> : null}

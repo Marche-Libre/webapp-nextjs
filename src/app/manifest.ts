@@ -7,13 +7,19 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: SITE_NAME,
     description: SITE_DESCRIPTION,
     id: "/",
-    start_url: "/",
+    start_url: "/chat",
     scope: "/",
     lang: "fr",
+    dir: "ltr",
     display: "standalone",
     display_override: ["standalone", "browser"],
+    orientation: "natural",
     background_color: "#0F1115",
     theme_color: "#0F1115",
+    prefer_related_applications: false,
+    launch_handler: {
+      client_mode: "focus-existing",
+    },
     categories: ["business", "productivity", "social"],
     icons: [
       {

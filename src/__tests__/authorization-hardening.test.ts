@@ -19,11 +19,22 @@ function migrationSources() {
     }));
 }
 
+function policyMutationStatements(sql: string) {
+  return sql.match(/\b(?:CREATE|ALTER)\s+POLICY[\s\S]*?;/gi) ?? [];
+}
+
+function normalizeSql(sql: string) {
+  return sql.replace(/\s+/g, " ").toLowerCase();
+}
+
 describe("authorization hardening", () => {
   it("prevents sponsor UI from approving profiles directly", () => {
+    const authCallback = source("src/app/auth/callback/route.ts");
     const parrainagesTabs = source("src/components/sponsorship/parrainages-tabs.tsx");
     const invitationCard = source("src/components/sponsorship/invitation-card.tsx");
 
+    expect(authCallback).toContain("createSponsorshipRequestForHandle");
+    expect(authCallback).not.toContain(".update({ sponsored_by");
     expect(parrainagesTabs).not.toContain('status: "approved"');
     expect(parrainagesTabs).not.toContain("sponsored_by");
     expect(parrainagesTabs).not.toContain("sponsor_approved");
@@ -60,6 +71,98 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("app.trusted_sponsorship_update");
     expect(migrationText).toContain("private.confirm_sponsorship_request");
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
+  });
+
+  it("confirms sponsorship without approving final admission", () => {
+    const sponsorshipApprovalMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
+    );
+
+    const migrationText = sponsorshipApprovalMigration?.text ?? "";
+    const functionText = migrationText.slice(
+      migrationText.indexOf("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()"),
+      migrationText.indexOf("CREATE OR REPLACE FUNCTION private.prevent_profile_approval_without_confirmed_sponsor()"),
+    );
+
+    expect(functionText).toContain("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()");
+    expect(functionText).toContain("OLD.status IS DISTINCT FROM 'approved'");
+    expect(functionText).toContain("sponsorship_request_sponsor_only");
+    expect(functionText).toContain("sponsorship_request_sponsor_not_approved");
+    expect(functionText).toContain("SET sponsored_by = OLD.sponsor_id");
+    expect(functionText).toContain("sponsor_approved = TRUE");
+    expect(functionText).not.toMatch(/,\s*status\s*=\s*'approved'/i);
+    expect(functionText).toContain("WHERE id = OLD.requester_id");
+  });
+
+  it("blocks profile approval without confirmed sponsorship in the database", () => {
+    const admissionInvariantMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
+    );
+
+    const migrationText = admissionInvariantMigration?.text ?? "";
+
+    expect(migrationText).toContain(
+      "private.prevent_profile_approval_without_confirmed_sponsor",
+    );
+    expect(migrationText).toContain("NEW.status = 'approved'");
+    expect(migrationText).toContain("OLD.status IS DISTINCT FROM 'approved'");
+    expect(migrationText).toContain("NEW.sponsored_by IS NULL");
+    expect(migrationText).toContain("NEW.sponsor_approved IS NOT TRUE");
+    expect(migrationText).toContain(
+      "profile_approval_requires_confirmed_sponsor",
+    );
+    expect(migrationText).toContain(
+      "CREATE TRIGGER prevent_profile_approval_without_confirmed_sponsor",
+    );
+  });
+
+  it("routes sponsor requester profile visibility through a scoped RPC", () => {
+    const visibilityMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("fix_sponsor_requester_profiles_recursion"),
+    );
+    const parrainagesPage = source("src/app/(app)/parrainages/page.tsx");
+    const migrationText = visibilityMigration?.text ?? "";
+
+    expect(migrationText).toContain(
+      'DROP POLICY IF EXISTS "Sponsors can view requester profiles for sponsorship requests"',
+    );
+    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION private.get_sponsor_requester_profiles()");
+    expect(migrationText).toContain("SECURITY DEFINER");
+    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION public.get_sponsor_requester_profiles()");
+    expect(migrationText).toContain("SECURITY INVOKER");
+    expect(migrationText).toContain("sponsorship_request_id UUID");
+    expect(migrationText).toContain("requester_id UUID");
+    expect(migrationText).toContain("x_handle TEXT");
+    expect(migrationText).toContain("full_name TEXT");
+    expect(migrationText).toContain("avatar_url TEXT");
+    expect(migrationText).toContain("sr.sponsor_id = (SELECT auth.uid())");
+    expect(migrationText).not.toContain("email");
+    expect(migrationText).not.toContain("phone");
+    expect(migrationText).not.toContain("is_admin");
+    expect(migrationText).not.toContain("onboarding_completed");
+
+    expect(parrainagesPage).toContain('.from("sponsorship_requests")');
+    expect(normalizeSql(parrainagesPage)).toContain('rpc( "get_sponsor_requester_profiles"');
+    expect(parrainagesPage).toContain("attachRequesterProfiles");
+    expect(parrainagesPage).not.toContain("requester:profiles!requester_id");
+  });
+
+  it("does not reintroduce a profiles policy that queries sponsorship requests", () => {
+    const migrations = migrationSources();
+    const durableMigrationIndex = migrations.findIndex(({ fileName }) =>
+      fileName.includes("fix_sponsor_requester_profiles_recursion"),
+    );
+    const durableAndLaterMigrations = migrations.slice(durableMigrationIndex);
+    const durableAndLaterProfilePolicyText = durableAndLaterMigrations
+      .flatMap(({ text }) => policyMutationStatements(text))
+      .filter((statement) => /\bon\s+(?:public\.)?profiles\b/.test(normalizeSql(statement)))
+      .map(normalizeSql)
+      .join("\n");
+
+    expect(durableMigrationIndex).toBeGreaterThanOrEqual(0);
+    expect(durableAndLaterProfilePolicyText).not.toMatch(
+      /\b(?:public\.)?sponsorship_requests\b/,
+    );
   });
 
   it("freezes trusted sponsorship and invitation transition identity fields", () => {

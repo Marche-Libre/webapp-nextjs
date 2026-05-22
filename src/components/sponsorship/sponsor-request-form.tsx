@@ -1,127 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { XLogo } from "@/components/ui/x-logo";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import type { SponsorshipRequest } from "@/lib/types/database";
+import { submitSponsorshipRequest } from "@/app/(auth)/en-attente/actions";
 
 interface SponsorRequestFormProps {
   existingRequests: SponsorshipRequest[];
-  requesterId: string;
 }
 
-export function SponsorRequestForm({ existingRequests, requesterId }: SponsorRequestFormProps) {
+export function SponsorRequestForm({ existingRequests }: SponsorRequestFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
 
-  const latestRequest = existingRequests[0] ?? null;
   const totalAttempts = existingRequests.length;
-  const hasPending = existingRequests.some((r) => r.status === "pending");
-  const hasApproved = existingRequests.some((r) => r.status === "approved");
-  const allRejected = totalAttempts > 0 && existingRequests.every((r) => r.status === "rejected");
-  const maxedOut = totalAttempts >= 2 && !hasPending && !hasApproved;
-  const canSubmit = !hasPending && !hasApproved && !submitted && totalAttempts < 2;
+  const hasPending = useMemo(
+    () => existingRequests.some((request) => request.status === "pending"),
+    [existingRequests],
+  );
+  const hasApproved = useMemo(
+    () => existingRequests.some((request) => request.status === "approved"),
+    [existingRequests],
+  );
+  const hasRejected = useMemo(
+    () => existingRequests.some((request) => request.status === "rejected"),
+    [existingRequests],
+  );
+  const canSubmit = !hasPending && !hasApproved && !submitted;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  function renderRequest(req: SponsorshipRequest) {
+    const attemptLabel = `Tentative ${req.attempt_number}`;
+
+    return (
+      <div
+        key={req.id}
+        className="flex items-center gap-[12px] p-[12px] rounded-lg border border-border-default bg-bg-elevated/50"
+      >
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-medium text-text-primary">
+            Demande envoyée à @{req.sponsor_handle}
+          </p>
+          <p className="text-[11px] text-text-muted">
+            {formatDate(req.created_at)} - {attemptLabel}
+          </p>
+        </div>
+        {req.status === "pending" && (
+          <Badge variant="warning">En attente</Badge>
+        )}
+        {req.status === "approved" && (
+          <Badge variant="success">Approuvée</Badge>
+        )}
+        {req.status === "rejected" && (
+          <Badge variant="error">Refusée</Badge>
+        )}
+      </div>
+    );
+  }
+
+  const handleSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setSuccess("");
 
-    const formData = new FormData(e.currentTarget);
-    const handle = (formData.get("sponsor_handle") as string).replace("@", "").trim();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const rawHandle = formData.get("sponsor_handle");
+    const handle = typeof rawHandle === "string" ? rawHandle : "";
 
-    if (!handle) {
-      setError("Veuillez saisir un identifiant.");
+    const sponsorshipResult = await submitSponsorshipRequest(handle);
+
+    if (!sponsorshipResult.success) {
+      setError(sponsorshipResult.message);
       setLoading(false);
       return;
     }
 
-    const supabase = createClient();
-
-    // Check handle exists and is an approved member
-    const { data: sponsor } = await supabase
-      .from("profiles")
-      .select("id, x_handle")
-      .eq("x_handle", handle)
-      .eq("status", "approved")
-      .maybeSingle();
-
-    if (!sponsor) {
-      setSuccess("Si ce membre est inscrit sur MarchéLibre, il recevra votre demande de parrainage.");
-      setSubmitted(true);
-      (e.target as HTMLFormElement).reset();
-      setLoading(false);
-      return;
-    }
-
-    // Cannot sponsor yourself
-    if (sponsor.id === requesterId) {
-      setError("Vous ne pouvez pas vous parrainer vous-même.");
-      setLoading(false);
-      return;
-    }
-
-    const nextAttempt = totalAttempts + 1;
-
-    const { error: insertError } = await supabase
-      .from("sponsorship_requests")
-      .insert({
-        requester_id: requesterId,
-        sponsor_handle: handle,
-        sponsor_id: sponsor.id,
-        attempt_number: nextAttempt,
-      });
-
-    if (insertError) {
-      setError("Erreur lors de l'envoi de la demande.");
-      setLoading(false);
-      return;
-    }
-
-    setSuccess("Demande envoyée ! Si ce membre est actif, il recevra votre demande.");
+    setSuccess(sponsorshipResult.message);
     setSubmitted(true);
-    (e.target as HTMLFormElement).reset();
+    form.reset();
     setLoading(false);
     router.refresh();
-  };
+  }, [router]);
 
+  const requestItems = useMemo(
+    () => existingRequests.map(renderRequest),
+    [existingRequests],
+  );
+  const retryCopy = hasRejected
+    ? "Votre précédent parrainage a été refusé. Vous pouvez déclarer un autre parrain."
+    : "Déclarez le membre qui peut confirmer votre demande.";
   return (
     <div className="space-y-[16px] text-left">
       {/* Show existing request status */}
-      {existingRequests.map((req) => (
-        <div
-          key={req.id}
-          className="flex items-center gap-[12px] p-[12px] rounded-lg border border-border-default bg-bg-elevated/50"
-        >
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-text-primary">
-              Demande envoyée à @{req.sponsor_handle}
-            </p>
-            <p className="text-[11px] text-text-muted">
-              {formatDate(req.created_at)} — Tentative {req.attempt_number}/2
-            </p>
-          </div>
-          {req.status === "pending" && (
-            <Badge variant="warning">En attente</Badge>
-          )}
-          {req.status === "approved" && (
-            <Badge variant="success">Approuvée</Badge>
-          )}
-          {req.status === "rejected" && (
-            <Badge variant="error">Refusée</Badge>
-          )}
-        </div>
-      ))}
+      {requestItems}
 
       {/* Approved message */}
       {hasApproved && (
@@ -139,11 +119,10 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
         </div>
       )}
 
-      {/* Maxed out — fallback to admin */}
-      {maxedOut && (
+      {hasRejected && canSubmit && (
         <div className="flex items-center gap-[10px] p-[12px] rounded-lg bg-warning-bg/50 text-[13px] text-warning">
           <AlertTriangle className="h-[16px] w-[16px] shrink-0" />
-          Votre demande est en file d&apos;attente pour validation par un administrateur.
+          {retryCopy}
         </div>
       )}
 

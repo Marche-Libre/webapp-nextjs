@@ -19,7 +19,7 @@ interface Filleul {
   created_at: string;
 }
 
-type ReceivedRequest = SponsorshipRequest & {
+type ReceivedRequest = Omit<SponsorshipRequest, "requester"> & {
   requester: { x_handle: string; full_name: string; avatar_url: string | null };
 };
 
@@ -37,17 +37,24 @@ const MAX_TOTAL = 20;
 
 function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
   const handleAction = useCallback(async (action: "approved" | "rejected") => {
     setLoading(true);
+    setErrorMessage("");
     const supabase = createClient();
 
-    // Update request status
-    await supabase
+    const { error } = await supabase
       .from("sponsorship_requests")
       .update({ status: action })
       .eq("id", request.id);
+
+    if (error) {
+      setErrorMessage("Impossible de traiter cette demande pour le moment.");
+      setLoading(false);
+      return;
+    }
 
     setLoading(false);
     router.refresh();
@@ -62,27 +69,34 @@ function RequestActionButtons({ request }: { request: ReceivedRequest }) {
   }, [handleAction]);
 
   return (
-    <div className="flex items-center gap-[6px]">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleApprove}
-        disabled={loading}
-        className="text-success border-success/20 hover:bg-success-bg"
-      >
-        <Check className="h-3.5 w-3.5" />
-        Approuver
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleReject}
-        disabled={loading}
-        className="text-error border-error/20 hover:bg-error-bg"
-      >
-        <X className="h-3.5 w-3.5" />
-        Refuser
-      </Button>
+    <div className="space-y-[6px]">
+      <div className="flex items-center gap-[6px]">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleApprove}
+          disabled={loading}
+          className="text-success border-success/20 hover:bg-success-bg"
+        >
+          <Check className="h-3.5 w-3.5" />
+          Approuver
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReject}
+          disabled={loading}
+          className="text-error border-error/20 hover:bg-error-bg"
+        >
+          <X className="h-3.5 w-3.5" />
+          Refuser
+        </Button>
+      </div>
+      {errorMessage ? (
+        <p className="text-[11px] text-error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
     </div>
   );
 }

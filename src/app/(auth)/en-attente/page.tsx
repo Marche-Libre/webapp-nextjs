@@ -6,6 +6,7 @@ import { InvitationCard } from "@/components/sponsorship/invitation-card";
 import { WaitingPageClient } from "@/components/sponsorship/waiting-page-client";
 import { StatusPoller } from "@/components/sponsorship/status-poller";
 import { AdmissionProfileForm } from "@/components/auth/admission-profile-form";
+import { PendingSignOutButton } from "@/components/auth/pending-sign-out-button";
 import type { Invitation, SponsorshipRequest } from "@/lib/types/database";
 
 export default async function EnAttentePage() {
@@ -19,7 +20,7 @@ export default async function EnAttentePage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, status, onboarding_completed, x_handle, sponsor_approved, first_name, last_name, full_name, specialty_ids, specialty_category_id, location, bio")
+    .select("id, status, onboarding_completed, x_handle, sponsored_by, sponsor_approved, first_name, last_name, full_name, specialty_ids, specialty_category_id, location, bio")
     .eq("id", user.id)
     .single();
 
@@ -37,9 +38,9 @@ export default async function EnAttentePage() {
 
   if (profile.status === "rejected") {
     return (
-      <div className="w-full max-w-[600px] mx-auto">
+      <div className="w-full max-w-[720px] mx-auto">
         <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
-          <div className="px-8 pt-8 pb-6 text-center border-b border-base-content/[0.06]">
+          <div className="px-4 pt-8 pb-6 text-center border-b border-base-content/[0.06] sm:px-6 md:px-8">
             <div className="h-14 w-14 rounded-full bg-error/10 flex items-center justify-center mx-auto mb-4">
               <XCircle className="h-7 w-7 text-error" />
             </div>
@@ -55,7 +56,7 @@ export default async function EnAttentePage() {
             </p>
           </div>
 
-          <div className="px-8 py-4 flex justify-center">
+          <div className="px-4 py-4 flex justify-center sm:px-6 md:px-8">
             <Link
               href="/connexion"
               className="inline-flex items-center gap-1.5 text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
@@ -70,7 +71,7 @@ export default async function EnAttentePage() {
   }
 
   if (profile.status === "approved") {
-    redirect(profile.onboarding_completed ? "/chat" : "/onboarding");
+    redirect("/chat");
   }
 
   const { data: invitations } = profile.x_handle
@@ -90,6 +91,16 @@ export default async function EnAttentePage() {
     .select("*")
     .eq("requester_id", user.id)
     .order("attempt_number", { ascending: false });
+  const latestSponsorshipRequest = sponsorshipRequests?.[0] as
+    | SponsorshipRequest
+    | undefined;
+  const sponsorshipStatusCopy = profile.sponsor_approved
+    ? "Parrainage confirmé. Validation admin finale en attente."
+    : latestSponsorshipRequest?.status === "pending"
+      ? `Demande envoyée à @${latestSponsorshipRequest.sponsor_handle}. En attente de sa réponse.`
+      : latestSponsorshipRequest?.status === "rejected"
+        ? `Demande refusée par @${latestSponsorshipRequest.sponsor_handle}. Déclarez un autre parrain.`
+        : "Aucun parrain confirmé. Un parrain est requis pour continuer.";
 
   const { data: specialtyCategories, error: specialtyCategoriesError } = await supabase
     .from("specialty_categories")
@@ -99,9 +110,9 @@ export default async function EnAttentePage() {
     !specialtyCategoriesError && !!specialtyCategories?.length;
 
   return (
-    <div className="w-full max-w-[600px] mx-auto">
+    <div className="w-full max-w-[720px] mx-auto">
       <div className="bg-base-300/50 backdrop-blur-sm rounded-2xl border border-base-content/[0.06] shadow-xl overflow-hidden">
-        <div className="px-8 pt-8 pb-6 text-center border-b border-base-content/[0.06]">
+        <div className="px-4 pt-8 pb-6 text-center border-b border-base-content/[0.06] sm:px-6 md:px-8">
           {hasInvitations ? (
             <>
               <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
@@ -113,7 +124,7 @@ export default async function EnAttentePage() {
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 Acceptez pour poursuivre la validation.
                 <br />
-                Validation manuelle en cours.
+                Un admin finalisera l&apos;acces apres confirmation du parrainage.
                 <br />
                 L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
               </p>
@@ -124,7 +135,7 @@ export default async function EnAttentePage() {
                 <Clock className="h-7 w-7 text-warning" />
               </div>
               <h1 className="text-xl font-bold text-base-content tracking-tight">
-                Demande en cours d&apos;examen
+                Admission en attente de parrainage
               </h1>
               <p className="text-sm text-base-content/50 mt-2 leading-relaxed">
                 {xHandle ? (
@@ -133,16 +144,16 @@ export default async function EnAttentePage() {
                     <br />
                   </>
                 ) : null}
-                Validation manuelle en cours.
+                {sponsorshipStatusCopy}
                 <br />
-                L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee.
+                L&apos;acces aux espaces membres reste bloque tant que le parrainage et la validation admin ne sont pas confirmes.
               </p>
             </>
           )}
         </div>
 
         {/* Content */}
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-5 px-4 py-6 sm:px-6 md:px-8">
           {!hasInvitations && !canShowAdmissionForm ? (
             <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4 text-sm text-warning">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -195,7 +206,6 @@ export default async function EnAttentePage() {
                   existingRequests={
                     (sponsorshipRequests as SponsorshipRequest[]) || []
                   }
-                  requesterId={user.id}
                 />
               )}
             </>
@@ -203,15 +213,9 @@ export default async function EnAttentePage() {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-4 border-t border-base-content/[0.06] flex items-center justify-between">
+        <div className="px-4 py-4 border-t border-base-content/[0.06] flex items-center justify-between sm:px-6 md:px-8">
           <StatusPoller userId={user.id} />
-          <Link
-            href="/connexion"
-            className="inline-flex items-center gap-1.5 text-sm text-base-content/40 hover:text-base-content/60 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Se déconnecter
-          </Link>
+          <PendingSignOutButton />
         </div>
       </div>
     </div>

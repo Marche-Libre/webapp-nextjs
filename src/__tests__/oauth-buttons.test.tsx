@@ -14,6 +14,9 @@ type ProfileResult = {
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   getUser: vi.fn(),
+  insertNotification: vi.fn(),
+  insertSponsorshipRequest: vi.fn(),
+  createReferralSponsorshipRequest: vi.fn(),
   replace: vi.fn(),
   searchParams: "",
   signInWithOAuth: vi.fn(),
@@ -30,15 +33,82 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: mocks.createClient,
 }));
 
+vi.mock("@/app/rejoindre/actions", () => ({
+  createReferralSponsorshipRequest: mocks.createReferralSponsorshipRequest,
+}));
+
 function mockSupabaseClient(
   userId: string | null,
   profile: ProfileResult,
   userError: Error | null = null,
+  sponsorshipOptions: {
+    existingRequests?: unknown[];
+    requesterHandle?: string;
+    sponsor?: { id: string; x_handle: string };
+  } = {},
 ) {
-  const single = vi.fn(async () => ({ data: profile, error: null }));
-  const eq = vi.fn(() => ({ single }));
-  const select = vi.fn(() => ({ eq }));
-  const from = vi.fn(() => ({ select }));
+  const from = vi.fn((table: string) => {
+    if (table === "profiles") {
+      return {
+        select: vi.fn((columns: string) => {
+          if (columns === "id, x_handle") {
+            return {
+              eq: vi.fn(() => ({
+                ilike: vi.fn(() => ({
+                  limit: vi.fn(() => ({
+                    maybeSingle: vi.fn(async () => ({
+                      data: sponsorshipOptions.sponsor ?? null,
+                      error: null,
+                    })),
+                  })),
+                })),
+              })),
+            };
+          }
+
+          if (columns === "x_handle") {
+            return {
+              eq: vi.fn(() => ({
+                single: vi.fn(async () => ({
+                  data: {
+                    x_handle: sponsorshipOptions.requesterHandle ?? "candidate",
+                  },
+                })),
+              })),
+            };
+          }
+
+          return {
+            eq: vi.fn(() => ({
+              single: vi.fn(async () => ({ data: profile, error: null })),
+            })),
+          };
+        }),
+      };
+    }
+
+    if (table === "sponsorship_requests") {
+      return {
+        insert: mocks.insertSponsorshipRequest,
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            order: vi.fn(async () => ({
+              data: sponsorshipOptions.existingRequests ?? [],
+              error: null,
+            })),
+          })),
+        })),
+      };
+    }
+
+    if (table === "notifications") {
+      return {
+        insert: mocks.insertNotification,
+      };
+    }
+
+    throw new Error(`Unexpected table ${table}`);
+  });
 
   mocks.getUser.mockResolvedValue({
     data: {
@@ -60,7 +130,7 @@ function mockSupabaseClient(
     from,
   });
 
-  return { eq, from, select, single };
+  return { from };
 }
 
 function renderOAuthButtons() {
@@ -106,6 +176,15 @@ async function clickButton(button: HTMLButtonElement) {
 beforeEach(() => {
   mocks.createClient.mockReset();
   mocks.getUser.mockReset();
+  mocks.insertNotification.mockReset();
+  mocks.insertNotification.mockResolvedValue({ error: null });
+  mocks.insertSponsorshipRequest.mockReset();
+  mocks.insertSponsorshipRequest.mockResolvedValue({ error: null });
+  mocks.createReferralSponsorshipRequest.mockReset();
+  mocks.createReferralSponsorshipRequest.mockResolvedValue({
+    success: true,
+    message: "Demande de parrainage envoyee.",
+  });
   mocks.replace.mockReset();
   mocks.searchParams = "";
   mocks.signInWithOAuth.mockReset();
@@ -189,7 +268,7 @@ describe("RejoindrePage auth entry", () => {
     unmount();
   });
 
-  it("routes connected approved users without onboarding and skips X OAuth", async () => {
+  it("routes connected approved users without onboarding to chat and skips X OAuth", async () => {
     mocks.searchParams = "ref=@alice";
     mockSupabaseClient("user-1", {
       status: "approved",
@@ -201,7 +280,33 @@ describe("RejoindrePage auth entry", () => {
     await clickButton(button);
 
     expect(document.cookie).not.toContain("ml-referral=alice");
-    expect(mocks.replace).toHaveBeenCalledWith("/onboarding");
+    expect(mocks.replace).toHaveBeenCalledWith("/chat");
+    expect(mocks.signInWithOAuth).not.toHaveBeenCalled();
+
+    unmount();
+  });
+
+  it("creates a sponsorship request for connected pending users with a referral", async () => {
+    mocks.searchParams = "ref=@Alice";
+    mockSupabaseClient(
+      "user-1",
+      {
+        status: "pending",
+        onboarding_completed: false,
+      },
+      null,
+      {
+        requesterHandle: "candidate",
+        sponsor: { id: "sponsor-1", x_handle: "alice" },
+      },
+    );
+
+    const { button, unmount } = renderRejoindrePage();
+
+    await clickButton(button);
+
+    expect(mocks.createReferralSponsorshipRequest).toHaveBeenCalledWith("Alice");
+    expect(mocks.replace).toHaveBeenCalledWith("/en-attente");
     expect(mocks.signInWithOAuth).not.toHaveBeenCalled();
 
     unmount();
