@@ -1,29 +1,33 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type {
+  AdmissionActionState,
+  AdmissionFormValues,
+} from "@/lib/admission-profile-state";
 import { createClient } from "@/lib/supabase/server";
-
-type AdmissionActionState = {
-  success: boolean;
-  message: string;
-  errors: Record<string, string>;
-};
-
-export const initialAdmissionActionState: AdmissionActionState = {
-  success: false,
-  message: "",
-  errors: {},
-};
 
 function textField(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
 }
 
+function admissionFormValues(formData: FormData): AdmissionFormValues {
+  return {
+    displayName: textField(formData, "displayName"),
+    firstName: textField(formData, "firstName"),
+    lastName: textField(formData, "lastName"),
+    specialtyId: textField(formData, "specialtyId"),
+    location: textField(formData, "location"),
+    bio: textField(formData, "bio"),
+  };
+}
+
 export async function submitAdmissionProfile(
   _previousState: AdmissionActionState,
   formData: FormData,
 ): Promise<AdmissionActionState> {
+  const values = admissionFormValues(formData);
   const supabase = await createClient();
   const {
     data: { user },
@@ -34,6 +38,7 @@ export async function submitAdmissionProfile(
       success: false,
       message: "Connectez-vous avec X pour envoyer votre demande.",
       errors: {},
+      values,
     };
   }
 
@@ -48,15 +53,18 @@ export async function submitAdmissionProfile(
       success: false,
       message: "Cette demande ne peut etre modifiee que pendant l'attente de validation.",
       errors: {},
+      values,
     };
   }
 
-  const firstName = textField(formData, "firstName");
-  const lastName = textField(formData, "lastName");
-  const displayName = textField(formData, "displayName");
-  const specialtyId = textField(formData, "specialtyId");
-  const location = textField(formData, "location");
-  const bio = textField(formData, "bio");
+  const {
+    firstName,
+    lastName,
+    displayName,
+    specialtyId,
+    location,
+    bio,
+  } = values;
   const errors: Record<string, string> = {};
 
   if (!firstName && !lastName && !displayName) {
@@ -84,6 +92,7 @@ export async function submitAdmissionProfile(
       success: false,
       message: "Corrigez les champs indiques avant l'envoi.",
       errors,
+      values,
     };
   }
 
@@ -98,6 +107,7 @@ export async function submitAdmissionProfile(
         success: false,
         message: "Le contexte professionnel selectionne est introuvable.",
         errors: { specialtyId: "Selectionnez une option valide." },
+        values,
       };
     }
 
@@ -112,6 +122,7 @@ export async function submitAdmissionProfile(
         success: false,
         message: "Le contexte professionnel selectionne est introuvable.",
         errors: { specialtyId: "Selectionnez une option valide." },
+        values,
       };
     }
   } else {
@@ -126,6 +137,7 @@ export async function submitAdmissionProfile(
         success: false,
         message: "Le contexte professionnel selectionne est introuvable.",
         errors: { specialtyId: "Selectionnez une option valide." },
+        values,
       };
     }
 
@@ -152,6 +164,7 @@ export async function submitAdmissionProfile(
       success: false,
       message: "Impossible d'enregistrer la demande pour le moment. Reessayez dans quelques instants.",
       errors: {},
+      values,
     };
   }
 
@@ -161,5 +174,6 @@ export async function submitAdmissionProfile(
     success: true,
     message: "Demande envoyee. Un administrateur va l'examiner manuellement.",
     errors: {},
+    values,
   };
 }

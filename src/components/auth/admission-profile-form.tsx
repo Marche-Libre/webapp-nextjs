@@ -1,12 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  initialAdmissionActionState,
-  submitAdmissionProfile,
-} from "@/app/(auth)/en-attente/actions";
+import { submitAdmissionProfile } from "@/app/(auth)/en-attente/actions";
 import { Button } from "@/components/ui/button";
 import { XLogo } from "@/components/ui/x-logo";
+import { initialAdmissionActionState } from "@/lib/admission-profile-state";
 
 type AdmissionProfile = {
   first_name: string | null;
@@ -44,7 +42,30 @@ export function AdmissionProfileForm({
   const selectedCategoryId = profile.specialty_category_id
     ? `cat:${profile.specialty_category_id}`
     : "";
-  const defaultSpecialtyValue = selectedSpecialtyId || selectedCategoryId;
+  const profileSpecialtyValue = selectedSpecialtyId || selectedCategoryId;
+  const errors = state?.errors ?? {};
+  const message = state?.message ?? "";
+  const success = state?.success ?? false;
+  const submittedValues = state?.values;
+  const displayNameValue = submittedValues?.displayName ?? profile.full_name ?? "";
+  const firstNameValue = submittedValues?.firstName ?? profile.first_name ?? "";
+  const lastNameValue = submittedValues?.lastName ?? profile.last_name ?? "";
+  const specialtyValue = submittedValues?.specialtyId ?? profileSpecialtyValue;
+  const locationValue = submittedValues?.location ?? profile.location ?? "";
+  const bioValue = submittedValues?.bio ?? profile.bio ?? "";
+  const formKey = submittedValues
+    ? [
+        displayNameValue,
+        firstNameValue,
+        lastNameValue,
+        specialtyValue,
+        locationValue,
+        bioValue,
+      ].join("|")
+    : "profile";
+  const specialtyCategoryOptions = specialtyCategories.map(
+    renderSpecialtyCategoryOptions,
+  );
 
   return (
     <section className="space-y-5 rounded-2xl border border-base-content/[0.08] bg-base-100/60 p-4 text-left">
@@ -79,18 +100,18 @@ export function AdmissionProfileForm({
         </p>
       </div>
 
-      <form action={formAction} className="space-y-4">
+      <form key={formKey} action={formAction} className="space-y-4">
         <label className="space-y-1.5 text-sm font-medium text-base-content/70">
           Nom d&apos;usage
           <input
             name="displayName"
-            defaultValue={profile.full_name ?? ""}
+            defaultValue={displayNameValue}
             className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-3 py-2 text-sm text-base-content outline-none transition-colors focus:border-accent"
             placeholder="Votre nom affiche"
           />
         </label>
-        {state.errors.displayName ? (
-          <p className="text-xs text-error">{state.errors.displayName}</p>
+        {errors.displayName ? (
+          <p className="text-xs text-error">{errors.displayName}</p>
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -98,7 +119,7 @@ export function AdmissionProfileForm({
             Prenom
             <input
               name="firstName"
-              defaultValue={profile.first_name ?? ""}
+              defaultValue={firstNameValue}
               className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-3 py-2 text-sm text-base-content outline-none transition-colors focus:border-accent"
               placeholder="Votre prenom"
             />
@@ -107,7 +128,7 @@ export function AdmissionProfileForm({
             Nom
             <input
               name="lastName"
-              defaultValue={profile.last_name ?? ""}
+              defaultValue={lastNameValue}
               className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-3 py-2 text-sm text-base-content outline-none transition-colors focus:border-accent"
               placeholder="Votre nom"
             />
@@ -118,60 +139,51 @@ export function AdmissionProfileForm({
           Contexte professionnel
           <select
             name="specialtyId"
-            defaultValue={defaultSpecialtyValue}
+            defaultValue={specialtyValue}
             className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-3 py-2 text-sm text-base-content outline-none transition-colors focus:border-accent"
           >
             <option value="">Selectionner un metier ou domaine</option>
-            {specialtyCategories.map((category) => (
-              <optgroup key={category.id} label={category.name}>
-                <option value={`cat:${category.id}`}>{category.name}</option>
-                {(category.specialties ?? []).map((specialty) => (
-                  <option key={specialty.id} value={specialty.id}>
-                    {specialty.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
+            {specialtyCategoryOptions}
           </select>
         </label>
-        {state.errors.specialtyId ? (
-          <p className="text-xs text-error">{state.errors.specialtyId}</p>
+        {errors.specialtyId ? (
+          <p className="text-xs text-error">{errors.specialtyId}</p>
         ) : null}
 
         <label className="space-y-1.5 text-sm font-medium text-base-content/70">
           Pays ou ville
           <input
             name="location"
-            defaultValue={profile.location ?? ""}
+            defaultValue={locationValue}
             className="w-full rounded-lg border border-base-content/[0.08] bg-base-100 px-3 py-2 text-sm text-base-content outline-none transition-colors focus:border-accent"
             placeholder="Ex : Paris, France"
           />
         </label>
-        {state.errors.location ? (
-          <p className="text-xs text-error">{state.errors.location}</p>
+        {errors.location ? (
+          <p className="text-xs text-error">{errors.location}</p>
         ) : null}
 
         <label className="space-y-1.5 text-sm font-medium text-base-content/70">
           Pourquoi souhaitez-vous rejoindre MarchéLibre ?
           <textarea
             name="bio"
-            defaultValue={profile.bio ?? ""}
+            defaultValue={bioValue}
             rows={4}
             maxLength={500}
             className="w-full resize-none rounded-lg border border-base-content/[0.08] bg-base-100 px-3 py-2 text-sm leading-relaxed text-base-content outline-none transition-colors focus:border-accent"
             placeholder="Quelques mots sur votre activite, votre contexte, ou ce que l'equipe doit comprendre."
           />
         </label>
-        {state.errors.bio ? (
-          <p className="text-xs text-error">{state.errors.bio}</p>
+        {errors.bio ? (
+          <p className="text-xs text-error">{errors.bio}</p>
         ) : null}
 
-        {state.message ? (
+        {message ? (
           <p
-            className={`text-xs ${state.success ? "text-success" : "text-error"}`}
+            className={`text-xs ${success ? "text-success" : "text-error"}`}
             aria-live="polite"
           >
-            {state.message}
+            {message}
           </p>
         ) : null}
 
@@ -182,3 +194,26 @@ export function AdmissionProfileForm({
     </section>
   );
 }
+
+const renderSpecialtyCategoryOptions = (
+  category: SpecialtyCategoryWithSpecialties,
+) => {
+  const specialtyOptions = (category.specialties ?? []).map(
+    renderSpecialtyOption,
+  );
+
+  return (
+    <optgroup key={category.id} label={category.name}>
+      <option value={`cat:${category.id}`}>{category.name}</option>
+      {specialtyOptions}
+    </optgroup>
+  );
+};
+
+const renderSpecialtyOption = (specialty: { id: string; name: string }) => {
+  return (
+    <option key={specialty.id} value={specialty.id}>
+      {specialty.name}
+    </option>
+  );
+};

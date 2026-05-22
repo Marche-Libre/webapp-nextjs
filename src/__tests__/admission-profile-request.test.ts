@@ -1,10 +1,8 @@
 import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  initialAdmissionActionState,
-  submitAdmissionProfile,
-} from "@/app/(auth)/en-attente/actions";
+import { submitAdmissionProfile } from "@/app/(auth)/en-attente/actions";
+import { initialAdmissionActionState } from "@/lib/admission-profile-state";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -109,6 +107,7 @@ describe("pending admission profile request", () => {
     const onboardingPage = source("src/app/onboarding/page.tsx");
 
     expect(waitingPage).toContain("AdmissionProfileForm");
+    expect(waitingPage).toContain("PendingSignOutButton");
     expect(waitingPage).toContain("specialty_categories");
     expect(waitingPage).toContain("specialties(*)");
     expect(waitingPage).toContain("first_name, last_name, full_name, specialty_ids, specialty_category_id, location, bio");
@@ -225,6 +224,46 @@ describe("pending admission profile request", () => {
       bio: "Je souhaite rejoindre la beta privee.",
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/en-attente");
+  });
+
+  it("keeps submitted field values when validation fails", async () => {
+    const updates: Record<string, unknown>[] = [];
+    mockSupabase({
+      onUpdate: (payload) => updates.push(payload),
+    });
+
+    const result = await submitAdmissionProfile(
+      initialAdmissionActionState,
+      formData({
+        displayName: "Nom Public",
+        firstName: "The",
+        lastName: "Pause",
+        specialtyId: "",
+        location: "",
+        bio: "Court",
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors.specialtyId).toBe(
+      "Selectionnez le contexte professionnel le plus proche.",
+    );
+    expect(result.errors.location).toBe(
+      "Indiquez au moins un pays ou une ville.",
+    );
+    expect(result.errors.bio).toBe(
+      "Ajoutez quelques mots pour aider l'equipe a comprendre votre demande.",
+    );
+    expect(result.values).toEqual({
+      displayName: "Nom Public",
+      firstName: "The",
+      lastName: "Pause",
+      specialtyId: "",
+      location: "",
+      bio: "Court",
+    });
+    expect(updates).toHaveLength(0);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("rejects forged category-only specialty values before updating", async () => {
