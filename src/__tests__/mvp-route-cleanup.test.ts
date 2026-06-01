@@ -75,6 +75,17 @@ describe("MVP route cleanup", () => {
     expect(onboardingWizard).not.toContain("Demande en cours d&apos;examen");
   });
 
+  it("finishes onboarding from search without an invite step", () => {
+    const onboardingWizard = source("src/components/onboarding/onboarding-wizard.tsx");
+
+    expect(onboardingWizard).toContain("const TOTAL_STEPS = 7");
+    expect(onboardingWizard).toContain('label: "Recherche"');
+    expect(onboardingWizard).toContain("Accéder au réseau");
+    expect(onboardingWizard).not.toContain('label: "Inviter"');
+    expect(onboardingWizard).not.toContain("Invitez un professionnel");
+    expect(onboardingWizard).not.toContain("rejoindre?ref=");
+  });
+
   it("keeps Chat visible while hiding Forum and Annuaire from primary navigation", () => {
     const sidebar = source("src/components/layout/sidebar.tsx");
 
@@ -205,21 +216,18 @@ describe("MVP route cleanup", () => {
     expect(waitingPage).not.toContain('if (profile.status === "rejected") {\n    redirect("/connexion");\n  }');
   });
 
-  it("shows pending users an explicit manual-review boundary while access stays blocked", () => {
+  it("shows pending users an explicit sponsorship boundary while access stays blocked", () => {
     const waitingPage = source("src/app/(auth)/en-attente/page.tsx");
-    const invitationBranch = waitingPage.slice(
-      waitingPage.indexOf("Vous avez une invitation !"),
-      waitingPage.indexOf(") : ("),
-    );
 
-    expect(waitingPage).toContain("Demande en cours d&apos;examen");
-    expect(waitingPage).toContain("Validation manuelle");
-    expect(waitingPage).toContain("L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee");
-    expect(invitationBranch).toContain("Validation manuelle");
-    expect(invitationBranch).toContain("L&apos;acces aux espaces membres reste bloque tant que votre demande n&apos;est pas approuvee");
+    expect(waitingPage).toContain("En attente de parrainage");
+    expect(waitingPage).toContain("WaitingPageClient");
+    expect(waitingPage).toContain("sponsorship_requests");
+    expect(waitingPage).not.toContain("Demande en cours d&apos;examen");
+    expect(waitingPage).not.toContain("Validation manuelle");
+    expect(waitingPage).not.toContain("Vous avez une invitation !");
   });
 
-  it("keeps public legal pages outside auth and app-home redirects", () => {
+  it("keeps public legal and acquisition pages outside auth and app-home redirects", () => {
     const middleware = source("src/lib/supabase/middleware.ts");
     const approvedRedirect = middleware.slice(
       middleware.indexOf(
@@ -234,7 +242,14 @@ describe("MVP route cleanup", () => {
     }
 
     expect(middleware).toContain("const legalRoutes =");
-    expect(middleware).toContain("if (user && !isLegalRoute && !isPublicNonPrivateRouteHandler)");
+    expect(middleware).toContain("const acquisitionRoutes =");
+    expect(middleware).toContain('"/acces-prive"');
+    expect(middleware).toContain('"/landing1"');
+    expect(middleware).toContain('"/landing3"');
+    expect(middleware).toContain("!isAcquisitionRoute");
+    expect(approvedRedirect).not.toContain('"/acces-prive"');
+    expect(approvedRedirect).not.toContain('"/landing1"');
+    expect(approvedRedirect).not.toContain('"/landing3"');
   });
 
   it("keeps public non-private route handlers outside admission-state redirects", () => {

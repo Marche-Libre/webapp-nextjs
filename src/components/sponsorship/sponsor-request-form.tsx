@@ -40,12 +40,9 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
             Demande envoyée à @{req.sponsor_handle}
           </p>
           <p className="text-[11px] text-text-muted">
-            {formatDate(req.created_at)} — Tentative {req.attempt_number}/2
+            {formatDate(req.created_at)}
           </p>
         </div>
-        {req.status === "pending" && (
-          <Badge variant="warning">En attente</Badge>
-        )}
         {req.status === "approved" && (
           <Badge variant="success">Approuvée</Badge>
         )}
@@ -97,7 +94,7 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
       {hasApproved && (
         <div className="flex items-center gap-[10px] p-[12px] rounded-lg bg-success-bg/50 text-[13px] text-success">
           <CheckCircle className="h-[16px] w-[16px] shrink-0" />
-          Votre parrain a approuvé votre inscription. Un administrateur finalisera bientôt la validation.
+          Votre parrain a approuve votre inscription. Votre acces est en cours d&apos;activation.
         </div>
       )}
 
@@ -109,11 +106,11 @@ export function SponsorRequestForm({ existingRequests, requesterId }: SponsorReq
         </div>
       )}
 
-      {/* Maxed out — fallback to admin */}
+      {/* Maxed out */}
       {maxedOut && (
         <div className="flex items-center gap-[10px] p-[12px] rounded-lg bg-warning-bg/50 text-[13px] text-warning">
           <AlertTriangle className="h-[16px] w-[16px] shrink-0" />
-          Votre demande est en file d&apos;attente pour validation par un administrateur.
+          Vos deux demandes de parrainage ont ete refusees. L&apos;acces necessite un parrain valide.
         </div>
       )}
 

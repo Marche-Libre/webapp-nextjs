@@ -33,17 +33,25 @@ export async function updateSession(request: NextRequest) {
 
   const legalRoutes = ["/mentions-legales", "/confidentialite", "/cgu"];
   const authEntryRoutes = ["/", "/connexion", "/inscription", "/rejoindre"];
+  const acquisitionRoutes = [
+    "/acces-prive",
+    "/landing1",
+    "/landing2",
+    "/landing3",
+  ];
   const publicNonPrivateRouteHandlers = ["/api/geo/cities"];
 
   // Public routes that don't require auth
   const publicRoutes = [
     ...authEntryRoutes,
+    ...acquisitionRoutes,
     "/en-attente",
     ...legalRoutes,
   ];
   const isPublicRoute =
     publicRoutes.includes(pathname) || pathname.startsWith("/auth/");
   const isLegalRoute = legalRoutes.includes(pathname);
+  const isAcquisitionRoute = acquisitionRoutes.includes(pathname);
   const isPublicNonPrivateRouteHandler = publicNonPrivateRouteHandlers.includes(
     pathname,
   );
@@ -101,7 +109,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If authenticated, check profile status and redirect accordingly
-  if (user && !isLegalRoute && !isPublicNonPrivateRouteHandler) {
+  if (
+    user &&
+    !isLegalRoute &&
+    !isAcquisitionRoute &&
+    !isPublicNonPrivateRouteHandler
+  ) {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("status, onboarding_completed")

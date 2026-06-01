@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const SITE_NAME = "MarchéLibre";
 export const SITE_TITLE = "MarchéLibre | Club privé en bêta privée";
 export const SITE_DESCRIPTION =
-  "Un club privé en bêta privée pour professionnels libéraux. Chaque demande d'accès est revue manuellement.";
+  "Un club privé en bêta privée pour professionnels libéraux, avec admission manuelle. Chaque demande d'accès est revue manuellement.";
 
 const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://marchelibre.fr";
 const normalizedSiteUrl = rawSiteUrl.startsWith("http")

@@ -35,24 +35,6 @@ Use these rules for React code reviews and implementation work.
 
 <!-- END:react-code-rules -->
 
-<!-- BMAD START -->
-For project context, technology constraints, and brownfield operating rules,
-start with `_bmad-output/project-context.md`.
-
-Active planning artifacts live in `_bmad-output/planning-artifacts/`:
-`prd.md`, `ux-design-specification.md`, `architecture.md`, and `epics.md`.
-
-Implementation tracking lives in
-`_bmad-output/implementation-artifacts/sprint-status.yaml`.
-
-GitHub Project 1 and `Marche-Libre/le-marche-libre` are imported sources only.
-Do not use GitHub Project status as active task status after the BMad migration.
-
-For documentation-only, BMad migration, or project-management cleanup work, do
-not change app routes, UI, Supabase files, dependencies, package locks,
-generated types, tests, or runtime behavior.
-<!-- BMAD END -->
-
 <!-- BEGIN:versioning-rules -->
 
 # Versioning Rules
@@ -60,6 +42,7 @@ generated types, tests, or runtime behavior.
 Version source of truth: `package.json`.
 
 Keep aligned:
+
 - `package.json`
 - `package-lock.json`
 - `public/sw.js` cache name: `marchelibre-static-vX.Y.Z`
@@ -76,9 +59,11 @@ The product owner decides.
 # Commit Rules
 
 Commit title format:
+
 - `type(context) - short description`
 
 Commit body:
+
 - Use bullet points for implementation details.
 - Keep bullets concrete and scoped to the committed change.
 

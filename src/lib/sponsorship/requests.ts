@@ -158,7 +158,7 @@ export async function createSponsorshipRequestForHandle(
       ok: false,
       status: "max_attempts",
       message:
-        "Vous avez deja utilise vos deux tentatives de parrainage. Un administrateur examinera votre demande.",
+        "Vous avez deja utilise vos deux tentatives de parrainage. L'acces necessite un parrain valide.",
     };
   }
 
