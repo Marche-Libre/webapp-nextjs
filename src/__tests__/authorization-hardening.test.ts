@@ -77,10 +77,10 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
   });
 
-  it("confirms sponsorship without approving final admission", () => {
+  it("confirms sponsorship and approves final admission", () => {
     const sponsorshipApprovalMigration = migrationSources().find(
       ({ fileName }) =>
-        fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
+        fileName.includes("approve_profile_when_sponsorship_request_approved"),
     );
 
     const migrationText = sponsorshipApprovalMigration?.text ?? "";
@@ -88,9 +88,7 @@ describe("authorization hardening", () => {
       migrationText.indexOf(
         "CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()",
       ),
-      migrationText.indexOf(
-        "CREATE OR REPLACE FUNCTION private.prevent_profile_approval_without_confirmed_sponsor()",
-      ),
+      migrationText.indexOf("DO $$"),
     );
 
     expect(functionText).toContain(
@@ -101,8 +99,10 @@ describe("authorization hardening", () => {
     expect(functionText).toContain("sponsorship_request_sponsor_not_approved");
     expect(functionText).toContain("SET sponsored_by = OLD.sponsor_id");
     expect(functionText).toContain("sponsor_approved = TRUE");
-    expect(functionText).not.toMatch(/,\s*status\s*=\s*'approved'/i);
+    expect(functionText).toMatch(/,\s*status\s*=\s*'approved'/i);
     expect(functionText).toContain("WHERE id = OLD.requester_id");
+    expect(migrationText).toContain("p.status = 'pending'");
+    expect(migrationText).toContain("sr.status = 'approved'");
   });
 
   it("blocks profile approval without confirmed sponsorship in the database", () => {

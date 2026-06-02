@@ -81,23 +81,14 @@ describe("pending sponsorship gate", () => {
     expect(requestHelper).not.toContain("max_attempts");
   });
 
-  it("keeps confirmed sponsorship separate from final admission approval", () => {
+  it("approves profile admission when sponsorship is confirmed", () => {
     const migration = source(
-      "supabase/migrations/20260522152018_enforce_confirmed_sponsor_before_admin_approval.sql",
-    );
-    const functionText = migration.slice(
-      migration.indexOf(
-        "CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()",
-      ),
-      migration.indexOf(
-        "CREATE OR REPLACE FUNCTION private.prevent_profile_approval_without_confirmed_sponsor()",
-      ),
+      "supabase/migrations/20260602101024_approve_profile_when_sponsorship_request_approved.sql",
     );
 
-    expect(functionText).toContain("sponsor_approved = TRUE");
-    expect(functionText).not.toMatch(/,\s*status\s*=\s*'approved'/i);
-    expect(migration).toContain(
-      "profile_approval_requires_confirmed_sponsor",
-    );
+    expect(migration).toContain("sponsor_approved = TRUE");
+    expect(migration).toMatch(/,\s*status\s*=\s*'approved'/i);
+    expect(migration).toContain("p.status = 'pending'");
+    expect(migration).toContain("sr.status = 'approved'");
   });
 });
