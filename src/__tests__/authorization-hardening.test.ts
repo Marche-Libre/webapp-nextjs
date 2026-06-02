@@ -73,21 +73,47 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("private.confirm_invitation_acceptance");
   });
 
-  it("promotes sponsored requesters when sponsorship requests are approved", () => {
+  it("confirms sponsorship without approving final admission", () => {
     const sponsorshipApprovalMigration = migrationSources().find(({ fileName }) =>
-      fileName.includes("approve_profile_on_sponsorship_request_approval"),
+      fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
     );
 
     const migrationText = sponsorshipApprovalMigration?.text ?? "";
+    const functionText = migrationText.slice(
+      migrationText.indexOf("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()"),
+      migrationText.indexOf("CREATE OR REPLACE FUNCTION private.prevent_profile_approval_without_confirmed_sponsor()"),
+    );
 
-    expect(migrationText).toContain("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()");
+    expect(functionText).toContain("CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()");
+    expect(functionText).toContain("OLD.status IS DISTINCT FROM 'approved'");
+    expect(functionText).toContain("sponsorship_request_sponsor_only");
+    expect(functionText).toContain("sponsorship_request_sponsor_not_approved");
+    expect(functionText).toContain("SET sponsored_by = OLD.sponsor_id");
+    expect(functionText).toContain("sponsor_approved = TRUE");
+    expect(functionText).not.toMatch(/,\s*status\s*=\s*'approved'/i);
+    expect(functionText).toContain("WHERE id = OLD.requester_id");
+  });
+
+  it("blocks profile approval without confirmed sponsorship in the database", () => {
+    const admissionInvariantMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("enforce_confirmed_sponsor_before_admin_approval"),
+    );
+
+    const migrationText = admissionInvariantMigration?.text ?? "";
+
+    expect(migrationText).toContain(
+      "private.prevent_profile_approval_without_confirmed_sponsor",
+    );
+    expect(migrationText).toContain("NEW.status = 'approved'");
     expect(migrationText).toContain("OLD.status IS DISTINCT FROM 'approved'");
-    expect(migrationText).toContain("sponsorship_request_sponsor_only");
-    expect(migrationText).toContain("sponsorship_request_sponsor_not_approved");
-    expect(migrationText).toContain("SET sponsored_by = OLD.sponsor_id");
-    expect(migrationText).toContain("sponsor_approved = TRUE");
-    expect(migrationText).toContain("status = 'approved'");
-    expect(migrationText).toContain("WHERE id = OLD.requester_id");
+    expect(migrationText).toContain("NEW.sponsored_by IS NULL");
+    expect(migrationText).toContain("NEW.sponsor_approved IS NOT TRUE");
+    expect(migrationText).toContain(
+      "profile_approval_requires_confirmed_sponsor",
+    );
+    expect(migrationText).toContain(
+      "CREATE TRIGGER prevent_profile_approval_without_confirmed_sponsor",
+    );
   });
 
   it("routes sponsor requester profile visibility through a scoped RPC", () => {
@@ -191,6 +217,35 @@ describe("authorization hardening", () => {
     expect(migrationText).toContain("('recrutement', 'jobs')");
     expect(migrationText).toContain("('random', 'divers')");
     expect(migrationText).toContain("slug IN ('recrutement', 'aide', 'random')");
+  });
+
+  it("adds events and bug feature channels to the launch taxonomy", () => {
+    const channelsSource = source("src/lib/chat/channels.ts");
+    const channelSlugsStart = channelsSource.indexOf("export const LAUNCH_CHAT_CHANNEL_SLUGS");
+    const channelSlugsEnd = channelsSource.indexOf("] as const;", channelSlugsStart);
+    const channelSlugsBlock = channelsSource.slice(channelSlugsStart, channelSlugsEnd);
+    const channelMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("add_event_and_bug_feature_channels"),
+    );
+    const migrationText = channelMigration?.text ?? "";
+
+    expect(channelSlugsBlock).toContain('"evenements"');
+    expect(channelSlugsBlock).toContain('"bug-feature"');
+    expect(migrationText).toContain("'Événements'");
+    expect(migrationText).toContain("'evenements'");
+    expect(migrationText).toContain("'Annonces et événements de la communauté'");
+    expect(migrationText).toContain("'admin_only'");
+    expect(migrationText).toContain("'Bug / Feature'");
+    expect(migrationText).toContain("'bug-feature'");
+    expect(migrationText).toContain("'Bugs, retours et demandes de fonctionnalités'");
+    expect(normalizeSql(migrationText)).toContain(
+      "'événements', 'evenements', 'annonces et événements de la communauté', false, 'all', 'admin_only'",
+    );
+    expect(normalizeSql(migrationText)).toContain(
+      "'bug / feature', 'bug-feature', 'bugs, retours et demandes de fonctionnalités', false, 'all', 'all'",
+    );
+    expect(migrationText).toContain("read_permission = EXCLUDED.read_permission");
+    expect(migrationText).toContain("write_permission = EXCLUDED.write_permission");
   });
 
   it("adds local database guards for chat writes and private channel membership", () => {
@@ -425,6 +480,7 @@ describe("authorization hardening", () => {
     expect(chatLayout).toContain("const activeChannelCanWrite = useMemo(() => {");
     expect(chatLayout).toContain("activeChannel.write_permission === \"all\" || Boolean(isAdmin)");
     expect(chatLayout).toContain("Seuls les admins peuvent publier dans Jobs.");
+    expect(chatLayout).toContain("Seuls les admins peuvent publier dans Événements.");
     expect(chatLayout).toContain("canWrite={activeChannelCanWrite}");
     expect(messageArea).toContain("canWrite: boolean;");
     expect(messageInput).toContain("if (!canWrite) return;");
@@ -458,5 +514,50 @@ describe("authorization hardening", () => {
     expect(chatStore).toContain("newAuthorIds.get(r.message_id) === r.user_id");
     expect(migrationText).toContain('DROP POLICY IF EXISTS "Users can add reactions"');
     expect(migrationText).toContain("m.author_id <> (SELECT auth.uid())");
+  });
+
+  it("keeps destructive admin user actions behind server-side safeguards", () => {
+    const adminActions = source("src/app/(app)/admin/actions.ts");
+    const adminClient = source("src/lib/supabase/admin.ts");
+    const adminButtons = source("src/components/admin/approve-reject-buttons.tsx");
+
+    expect(adminClient).toContain("NEXT_PRIVATE_SUPABASE_PASWWORD");
+    expect(adminClient).not.toContain("NEXT_PUBLIC_SUPABASE_SECRET_KEY");
+    expect(adminClient).toContain("persistSession: false");
+    expect(adminClient).toContain("autoRefreshToken: false");
+
+    expect(adminActions).toContain("export async function toggleUserAdmin");
+    expect(adminActions).toContain("export async function resetUserAdmission");
+    expect(adminActions).toContain("export async function deleteUserPermanently");
+    expect(adminActions).toContain("userId === currentUserId");
+    expect(adminActions).toContain('targetProfile.status !== "rejected"');
+    expect(adminActions).toContain('sponsored_by: null');
+    expect(adminActions).toContain('sponsor_approved: false');
+    expect(adminActions).toContain('.in("status", ["pending", "approved"])');
+    expect(adminActions).toContain("ensureMoreThanOneAdmin");
+    expect(adminActions).toContain('.eq("status", "approved")');
+    expect(adminActions).toContain('.eq("onboarding_completed", true)');
+    expect(adminActions).toContain("removeUserChatMedia");
+    expect(adminActions).toContain("cleanupBlockingProfileReferences");
+    expect(adminActions).toContain("auth.admin.deleteUser(userId, false)");
+
+    expect(adminButtons).toContain("toggleUserAdmin");
+    expect(adminButtons).toContain("resetUserAdmission");
+    expect(adminButtons).toContain("deleteUserPermanently");
+    expect(adminButtons).toContain('currentStatus === "rejected"');
+    expect(adminButtons).toContain("Réinitialiser l'admission");
+    expect(adminButtons).toContain("deleteConfirmationValue");
+    expect(adminButtons).toContain("deleteConfirmation !== deleteConfirmationValue");
+    expect(adminButtons).toContain("<Modal");
+  });
+
+  it("shows admin onboarding as a percentage instead of binary text", () => {
+    const adminUsersPage = source("src/app/(app)/admin/users/page.tsx");
+
+    expect(adminUsersPage).toContain("getProfileCompleteness");
+    expect(adminUsersPage).toContain("onboardingPercent");
+    expect(adminUsersPage).toContain("{onboardingPercent}%");
+    expect(adminUsersPage).not.toContain('"Complet"');
+    expect(adminUsersPage).not.toContain('"Incomplet"');
   });
 });
