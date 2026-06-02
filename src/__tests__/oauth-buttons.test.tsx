@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   insertNotification: vi.fn(),
   insertSponsorshipRequest: vi.fn(),
+  createReferralSponsorshipRequest: vi.fn(),
   replace: vi.fn(),
   searchParams: "",
   signInWithOAuth: vi.fn(),
@@ -30,6 +31,10 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: mocks.createClient,
+}));
+
+vi.mock("@/app/rejoindre/actions", () => ({
+  createReferralSponsorshipRequest: mocks.createReferralSponsorshipRequest,
 }));
 
 function mockSupabaseClient(
@@ -175,6 +180,11 @@ beforeEach(() => {
   mocks.insertNotification.mockResolvedValue({ error: null });
   mocks.insertSponsorshipRequest.mockReset();
   mocks.insertSponsorshipRequest.mockResolvedValue({ error: null });
+  mocks.createReferralSponsorshipRequest.mockReset();
+  mocks.createReferralSponsorshipRequest.mockResolvedValue({
+    success: true,
+    message: "Demande de parrainage envoyee.",
+  });
   mocks.replace.mockReset();
   mocks.searchParams = "";
   mocks.signInWithOAuth.mockReset();
@@ -295,21 +305,7 @@ describe("RejoindrePage auth entry", () => {
 
     await clickButton(button);
 
-    expect(mocks.insertSponsorshipRequest).toHaveBeenCalledWith({
-      requester_id: "user-1",
-      sponsor_handle: "alice",
-      sponsor_id: "sponsor-1",
-      status: "pending",
-      attempt_number: 1,
-    });
-    expect(mocks.insertNotification).toHaveBeenCalledWith({
-      user_id: "sponsor-1",
-      actor_id: "user-1",
-      type: "sponsor_request",
-      title: "@candidate demande votre parrainage",
-      body: null,
-      link: "/parrainages",
-    });
+    expect(mocks.createReferralSponsorshipRequest).toHaveBeenCalledWith("Alice");
     expect(mocks.replace).toHaveBeenCalledWith("/en-attente");
     expect(mocks.signInWithOAuth).not.toHaveBeenCalled();
 

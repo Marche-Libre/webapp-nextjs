@@ -90,7 +90,7 @@ const COMPLETENESS_FIELDS: { key: string; label: string }[] = [
   { key: "avatar_url", label: "Photo de profil" },
 ];
 
-export function getProfileCompleteness(profile: Profile): { percent: number; missing: { key: string; label: string }[] } {
+export function getProfileCompleteness(profile: Partial<Profile>): { percent: number; missing: { key: string; label: string }[] } {
   const missing: { key: string; label: string }[] = [];
 
   for (const field of COMPLETENESS_FIELDS) {

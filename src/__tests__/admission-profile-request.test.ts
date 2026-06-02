@@ -40,11 +40,27 @@ describe("pending sponsorship gate", () => {
 
   it("removes the pending profile form implementation", () => {
     expect(
-      existsSync(path.join(root, "src/app/(auth)/en-attente/actions.ts")),
-    ).toBe(false);
-    expect(
       existsSync(path.join(root, "src/components/auth/admission-profile-form.tsx")),
     ).toBe(false);
+    expect(
+      existsSync(path.join(root, "src/lib/admission-profile-state.ts")),
+    ).toBe(false);
+  });
+
+  it("creates sponsorship requests through an authenticated server action", () => {
+    const action = source("src/app/(auth)/en-attente/actions.ts");
+    const sponsorForm = source("src/components/sponsorship/sponsor-request-form.tsx");
+
+    expect(action).toContain('"use server"');
+    expect(action).toContain("export async function submitSponsorshipRequest");
+    expect(action).toContain("createClient()");
+    expect(action).toContain("supabase.auth.getUser()");
+    expect(action).toContain('profile.status !== "pending"');
+    expect(action).toContain("createSponsorshipRequestForHandle");
+    expect(action).toContain('revalidatePath("/en-attente")');
+    expect(sponsorForm).toContain("submitSponsorshipRequest");
+    expect(sponsorForm).not.toContain("createSponsorshipRequestForHandle");
+    expect(sponsorForm).not.toContain("requesterId");
   });
 
   it("does not offer a no-sponsor admin-review branch", () => {
@@ -62,20 +78,26 @@ describe("pending sponsorship gate", () => {
     expect(sponsorForm).not.toContain("Tentative");
     expect(sponsorForm).not.toContain('Badge variant="warning"');
     expect(requestHelper).not.toContain("administrateur examinera");
+    expect(requestHelper).not.toContain("max_attempts");
   });
 
-  it("keeps sponsor approval as the approval boundary in the database trigger", () => {
-    const sponsorshipApprovalMigration = source(
-      "supabase/migrations/20260520192812_approve_profile_on_sponsorship_request_approval.sql",
+  it("keeps confirmed sponsorship separate from final admission approval", () => {
+    const migration = source(
+      "supabase/migrations/20260522152018_enforce_confirmed_sponsor_before_admin_approval.sql",
     );
-    const triggerMigration = source(
-      "supabase/migrations/20260503065247_harden_authorization_boundaries.sql",
+    const functionText = migration.slice(
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION private.confirm_sponsorship_request()",
+      ),
+      migration.indexOf(
+        "CREATE OR REPLACE FUNCTION private.prevent_profile_approval_without_confirmed_sponsor()",
+      ),
     );
 
-    expect(sponsorshipApprovalMigration).toContain("sponsor_approved = TRUE");
-    expect(sponsorshipApprovalMigration).toContain("status = 'approved'");
-    expect(triggerMigration).toContain(
-      "CREATE TRIGGER confirm_sponsorship_request",
+    expect(functionText).toContain("sponsor_approved = TRUE");
+    expect(functionText).not.toMatch(/,\s*status\s*=\s*'approved'/i);
+    expect(migration).toContain(
+      "profile_approval_requires_confirmed_sponsor",
     );
   });
 });

@@ -99,7 +99,6 @@ export default async function EnAttentePage() {
         <div className="space-y-5 px-8 py-6">
           <WaitingPageClient
             existingRequests={(sponsorshipRequests as SponsorshipRequest[]) || []}
-            requesterId={user.id}
           />
         </div>
 

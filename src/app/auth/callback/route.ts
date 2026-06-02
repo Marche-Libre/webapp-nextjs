@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     // New/pending user — handle referral
     const referralHandle = request.cookies.get("ml-referral")?.value;
 
-    if (referralHandle) {
+    if (referralHandle && profile?.status === "pending") {
       const sponsorshipResult = await createSponsorshipRequestForHandle(
         supabase,
         {
