@@ -14,13 +14,22 @@ describe("public access positioning", () => {
     const floatingHeader = source("src/components/home/floating-header.tsx");
     const hero = source("src/components/home/animated-hero.tsx");
     const cta = source("src/components/home/animated-cta.tsx");
+    const privateAccess = source("src/app/landing1/page.tsx");
     const footer = source("src/app/page.tsx");
 
-    const publicCopy = [landingHeader, floatingHeader, hero, cta, footer].join(
-      "\n",
-    );
+    const publicCopy = [
+      landingHeader,
+      floatingHeader,
+      hero,
+      cta,
+      privateAccess,
+      footer,
+    ].join("\n");
 
     expect(publicCopy).toContain("Demander l’accès");
+    expect(privateAccess).toContain("Demander l&apos;accès");
+    expect(privateAccess).toContain('const ACCESS_ROUTE = "/rejoindre"');
+    expect(privateAccess).toContain("handle X d&apos;un supporter ou sponsor");
     expect(publicCopy).toContain("bêta privée");
     expect(publicCopy).toContain("revue manuellement");
     expect(publicCopy).not.toContain("S&apos;inscrire gratuitement");
@@ -58,7 +67,7 @@ describe("public access positioning", () => {
     const hero = source("src/components/home/animated-hero.tsx");
     const features = source("src/components/home/animated-features.tsx");
     const professions = source("src/components/home/animated-professions.tsx");
-    const metadata = source("src/app/layout.tsx");
+    const metadata = `${source("src/app/layout.tsx")}\n${source("src/lib/site-metadata.ts")}`;
 
     expect(hero).not.toContain("Inscrivez-vous pour voir les profils complets");
     expect(hero).not.toContain("Créez un compte pour y accéder");

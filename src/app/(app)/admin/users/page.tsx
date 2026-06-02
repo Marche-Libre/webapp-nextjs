@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ApproveRejectButtons } from "@/components/admin/approve-reject-buttons";
+import { getProfileCompleteness } from "@/lib/profile-utils";
 import { formatDate } from "@/lib/utils";
 
 type AdmissionFilter =
@@ -23,8 +24,18 @@ type AdminProfile = {
   id: string;
   email: string | null;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   x_handle: string | null;
   avatar_url: string | null;
+  specialty_ids: string[] | null;
+  location: string | null;
+  bio: string | null;
+  years_experience: number | null;
+  country_code: string | null;
+  skills: string[] | null;
+  website: string | null;
+  daily_rate: string | null;
   status: "pending" | "approved" | "rejected";
   onboarding_completed: boolean | null;
   is_admin: boolean | null;
@@ -179,6 +190,23 @@ function getLatestRequestLabel(request: SponsorshipRequestSummary | null) {
   return `@${request.sponsor_handle} - tentative ${request.attempt_number} - ${formatDate(request.created_at)}`;
 }
 
+function getOnboardingPercent(profile: AdminProfile) {
+  if (profile.onboarding_completed) return 100;
+  return getProfileCompleteness({
+    first_name: profile.first_name,
+    last_name: profile.last_name,
+    specialty_ids: profile.specialty_ids ?? [],
+    location: profile.location,
+    bio: profile.bio,
+    years_experience: profile.years_experience,
+    country_code: profile.country_code,
+    skills: profile.skills ?? [],
+    website: profile.website,
+    daily_rate: profile.daily_rate,
+    avatar_url: profile.avatar_url,
+  }).percent;
+}
+
 type AdminUserRowProps = {
   profile: AdminProfile;
   latestRequest: SponsorshipRequestSummary | null;
@@ -193,13 +221,15 @@ function AdminUserRow({ profile, latestRequest }: AdminUserRowProps) {
   const sponsorLabel = getSponsorLabel(profile, latestRequest);
   const latestRequestLabel = getLatestRequestLabel(latestRequest);
   const avatarName = profile.x_handle ?? profile.full_name ?? profile.email ?? "Utilisateur";
+  const onboardingPercent = getOnboardingPercent(profile);
+  const onboardingVariant = onboardingPercent >= 100 ? "success" : "default";
 
   return (
-    <tr className="border-b border-border-default align-top last:border-0">
-      <td className="py-[14px] pr-[16px]">
-        <div className="flex min-w-[220px] items-center gap-[12px]">
+    <tr className="border-b border-border-default align-middle last:border-0">
+      <td className="px-[16px] py-[14px]">
+        <div className="flex min-w-0 items-center gap-[12px]">
           <Avatar src={profile.avatar_url} name={avatarName} size="sm" />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-text-primary">
               @{profile.x_handle ?? "handle-manquant"}
             </p>
@@ -212,35 +242,44 @@ function AdminUserRow({ profile, latestRequest }: AdminUserRowProps) {
           </div>
         </div>
       </td>
-      <td className="py-[14px] pr-[16px]">
+      <td className="px-[12px] py-[14px]">
         <Badge variant={getStatusBadgeVariant(profile.status)}>
           {getStatusLabel(profile.status)}
         </Badge>
       </td>
-      <td className="py-[14px] pr-[16px] text-xs text-text-muted">
-        {profile.onboarding_completed ? "Complet" : "Incomplet"}
+      <td className="px-[12px] py-[14px]">
+        <Badge variant={onboardingVariant}>{onboardingPercent}%</Badge>
       </td>
-      <td className="py-[14px] pr-[16px] text-xs text-text-muted">
-        {profile.is_admin ? "Oui" : "Non"}
+      <td className="px-[12px] py-[14px]">
+        <Badge variant={profile.is_admin ? "primary" : "default"}>
+          {profile.is_admin ? "Oui" : "Non"}
+        </Badge>
       </td>
-      <td className="py-[14px] pr-[16px] text-xs text-text-muted">
-        {sponsorLabel}
+      <td className="px-[12px] py-[14px] text-xs text-text-muted">
+        <span className="break-words [overflow-wrap:anywhere]">
+          {sponsorLabel}
+        </span>
       </td>
-      <td className="py-[14px] pr-[16px]">
+      <td className="px-[12px] py-[14px]">
         <Badge variant={sponsorshipState.variant}>
           {sponsorshipState.label}
         </Badge>
       </td>
-      <td className="max-w-[260px] py-[14px] pr-[16px] text-xs text-text-muted">
-        {latestRequestLabel}
+      <td className="px-[12px] py-[14px] text-xs text-text-muted">
+        <span className="line-clamp-2 break-words [overflow-wrap:anywhere]">
+          {latestRequestLabel}
+        </span>
       </td>
-      <td className="py-[14px]">
+      <td className="px-[12px] py-[14px]">
         <ApproveRejectButtons
           userId={profile.id}
           currentStatus={profile.status}
           compact
           canApprove={canApprove}
           blockedReason={blockedReason}
+          isAdmin={profile.is_admin === true}
+          userHandle={profile.x_handle}
+          userEmail={profile.email}
         />
       </td>
     </tr>
@@ -319,17 +358,27 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
       <div className="flex flex-wrap gap-2">{filterLinks}</div>
 
       <div className="overflow-x-auto rounded-lg border border-border-default bg-bg-elevated/50">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
+          <colgroup>
+            <col className="w-[260px]" />
+            <col className="w-[104px]" />
+            <col className="w-[96px]" />
+            <col className="w-[76px]" />
+            <col className="w-[120px]" />
+            <col className="w-[116px]" />
+            <col className="w-[220px]" />
+            <col className="w-[210px]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-border-default text-xs text-text-muted">
               <th className="px-[16px] py-[12px] font-medium">Utilisateur</th>
-              <th className="py-[12px] pr-[16px] font-medium">Admission</th>
-              <th className="py-[12px] pr-[16px] font-medium">Onboarding</th>
-              <th className="py-[12px] pr-[16px] font-medium">Admin</th>
-              <th className="py-[12px] pr-[16px] font-medium">Parrain</th>
-              <th className="py-[12px] pr-[16px] font-medium">Parrainage</th>
-              <th className="py-[12px] pr-[16px] font-medium">Dernière demande</th>
-              <th className="py-[12px] pr-[16px] font-medium">Action</th>
+              <th className="px-[12px] py-[12px] font-medium">Admission</th>
+              <th className="px-[12px] py-[12px] font-medium">Onboarding</th>
+              <th className="px-[12px] py-[12px] font-medium">Admin</th>
+              <th className="px-[12px] py-[12px] font-medium">Parrain</th>
+              <th className="px-[12px] py-[12px] font-medium">Parrainage</th>
+              <th className="px-[12px] py-[12px] font-medium">Dernière demande</th>
+              <th className="px-[12px] py-[12px] font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>{rows}</tbody>

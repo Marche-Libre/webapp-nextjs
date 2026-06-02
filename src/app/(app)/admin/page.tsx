@@ -30,21 +30,21 @@ export default async function AdminPage() {
   return (
     <div className="space-y-[24px]">
       <div>
-        <h1 className="font-display text-2xl font-bold text-text-primary tracking-[-0.02em]">
+        <h1 className="break-words font-display text-2xl font-bold text-text-primary tracking-[-0.02em]">
           Administration
         </h1>
-        <p className="text-sm text-text-secondary mt-[4px]">
+        <p className="mt-[4px] break-words text-sm text-text-secondary">
           Gestion des utilisateurs et de la plateforme
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-[16px]">
         <StatCard
           icon={<Users className="h-5 w-5 text-primary-500" />}
           label="Total"
           value={totalCount ?? 0}
         />
-        <Link href="/admin/users">
+        <Link href="/admin/users" className="min-w-0">
           <StatCard
             icon={<Clock className="h-5 w-5 text-warning" />}
             label="En attente"
@@ -71,14 +71,14 @@ export default async function AdminPage() {
         <div className="space-y-[4px]">
           <Link
             href="/admin/users"
-            className="flex items-center gap-[12px] p-[12px] rounded-lg hover:bg-bg-surface transition-colors duration-150 text-sm"
+            className="flex min-w-0 items-center gap-[12px] rounded-lg p-[12px] text-sm transition-colors duration-150 hover:bg-bg-surface"
           >
-            <Clock className="h-5 w-5 text-warning" />
-            <span className="font-medium text-text-primary">
+            <Clock className="h-5 w-5 shrink-0 text-warning" />
+            <span className="min-w-0 flex-1 break-words font-medium text-text-primary">
               Gérer les inscriptions en attente
             </span>
             {!!pendingCount && pendingCount > 0 && (
-              <span className="ml-auto bg-warning-bg text-warning text-xs font-medium px-2.5 py-[4px] rounded-md">
+              <span className="shrink-0 rounded-md bg-warning-bg px-2.5 py-[4px] text-xs font-medium text-warning">
                 {pendingCount}
               </span>
             )}
@@ -108,15 +108,15 @@ function StatCard({
           : "shadow-card"
       }
     >
-      <div className="flex items-center gap-[16px]">
-        <div className="h-12 w-12 rounded-lg bg-bg-elevated border border-border-default flex items-center justify-center shrink-0">
+      <div className="flex min-w-0 items-center gap-[12px]">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-default bg-bg-elevated sm:h-12 sm:w-12">
           {icon}
         </div>
-        <div>
-          <p className="text-2xl font-bold text-text-primary tracking-[-0.02em]">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-2xl font-bold text-text-primary tracking-[-0.02em]">
             {value}
           </p>
-          <p className="text-[13px] text-text-secondary">{label}</p>
+          <p className="truncate text-[13px] text-text-secondary">{label}</p>
         </div>
       </div>
     </Card>

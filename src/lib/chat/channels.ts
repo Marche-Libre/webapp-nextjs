@@ -4,6 +4,8 @@ export const LAUNCH_CHAT_CHANNEL_SLUGS = [
   "politique",
   "divers",
   "jobs",
+  "evenements",
+  "bug-feature",
 ] as const;
 
 type LaunchChatChannelSlug = (typeof LAUNCH_CHAT_CHANNEL_SLUGS)[number];

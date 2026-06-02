@@ -206,6 +206,9 @@ function ChatArea({
     if (activeChannel.slug === "jobs") {
       return "Seuls les admins peuvent publier dans Jobs.";
     }
+    if (activeChannel.slug === "evenements") {
+      return "Seuls les admins peuvent publier dans Événements.";
+    }
     return "Vous n'avez pas la permission de publier dans ce salon.";
   }, [activeChannel, activeChannelCanWrite]);
 

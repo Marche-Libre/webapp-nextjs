@@ -1,0 +1,139 @@
+.pageAtmosphere {
+  background:
+    radial-gradient(circle at 14% 18%, rgb(29 155 240 / 0.16), transparent 28rem),
+    radial-gradient(circle at 82% 12%, rgb(255 255 255 / 0.05), transparent 20rem),
+    linear-gradient(180deg, rgb(12 17 24 / 0.98), rgb(8 12 18 / 1));
+}
+
+.pageAtmosphere::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.82), transparent 88%);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.pageAtmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgb(255 255 255 / 0.025), transparent 60%),
+    linear-gradient(180deg, transparent, rgb(0 0 0 / 0.07));
+  pointer-events: none;
+}
+
+:global([data-mode="light"]) .pageAtmosphere {
+  background:
+    radial-gradient(circle at 14% 18%, rgb(29 155 240 / 0.12), transparent 24rem),
+    radial-gradient(circle at 82% 12%, rgb(15 20 25 / 0.05), transparent 18rem),
+    linear-gradient(180deg, rgb(250 252 255 / 1), rgb(241 246 249 / 1));
+}
+
+:global([data-mode="light"]) .pageAtmosphere::before {
+  background-image:
+    linear-gradient(rgb(15 20 25 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 20 25 / 0.045) 1px, transparent 1px);
+  opacity: 0.08;
+}
+
+:global([data-mode="light"]) .pageAtmosphere::after {
+  background:
+    radial-gradient(circle at center, rgb(29 155 240 / 0.035), transparent 60%),
+    linear-gradient(180deg, transparent, rgb(15 20 25 / 0.03));
+}
+
+.reveal {
+  animation: fadeUp 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.revealSlow {
+  animation: fadeUp 920ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.driftCard {
+  animation: driftIn 900ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@supports (animation-timeline: view()) {
+  .reveal,
+  .revealSlow,
+  .driftCard {
+    opacity: 0;
+    transform: translateY(32px) scale(0.985);
+    animation-duration: 1ms;
+    animation-fill-mode: both;
+    animation-timing-function: linear;
+    animation-timeline: view();
+  }
+
+  .reveal {
+    animation-name: revealIn;
+    animation-range: entry 12% cover 36%;
+  }
+
+  .revealSlow {
+    animation-name: revealIn;
+    animation-range: entry 6% cover 42%;
+  }
+
+  .driftCard {
+    animation-name: driftIn;
+    animation-range: entry 10% cover 40%;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealIn {
+  from {
+    opacity: 0;
+    transform: translateY(36px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes driftIn {
+  from {
+    opacity: 0;
+    transform: translateY(44px) scale(0.97);
+  }
+
+  55% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .revealSlow,
+  .driftCard {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

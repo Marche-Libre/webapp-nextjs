@@ -20,7 +20,6 @@ import {
   Briefcase,
   Search,
   User,
-  UserPlus,
   MapPin,
   SkipForward,
   Check,
@@ -60,7 +59,7 @@ interface OnboardingWizardProps {
   countries: { id: string; name: string; flag: string; code: string; is_francophone: boolean }[];
 }
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 7;
 
 const STEP_META: { icon: LucideIcon; label: string }[] = [
   { icon: Sparkles, label: "Bienvenue" },
@@ -70,7 +69,6 @@ const STEP_META: { icon: LucideIcon; label: string }[] = [
   { icon: FileText, label: "Bio" },
   { icon: Check, label: "Récap" },
   { icon: Search, label: "Recherche" },
-  { icon: UserPlus, label: "Inviter" },
 ];
 
 export function OnboardingWizard({
@@ -230,9 +228,6 @@ export function OnboardingWizard({
   const selectedCatIds = [...new Set(specialtyIds.map((id) => specToCat.get(id)).filter(Boolean))];
   const specialtyLabel = specialtyIds.map((id) => specNameMap.get(id)).filter(Boolean).join(", ");
 
-  // Invite
-  const [inviteSuccess, setInviteSuccess] = useState("");
-
   const supabase = createClient();
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const prev = () => setStep((s) => Math.max(s - 1, 1));
@@ -291,8 +286,7 @@ export function OnboardingWizard({
     const citiesStr = lookingForCities.map((c) => c.startsWith("__") ? c.replace("__", "") : c).join(", ");
     const lookingFor = [tags, citiesStr].filter(Boolean).join(" · ");
     await supabase.from("profiles").update({ looking_for: lookingFor || null }).eq("id", profile.id);
-    setLoading(false);
-    next();
+    await finish();
   };
 
   // Finish
@@ -859,67 +853,13 @@ export function OnboardingWizard({
               <ArrowLeft className="h-4 w-4" /> Retour
             </Button>
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={next}>
+              <Button variant="ghost" onClick={finish} disabled={loading}>
                 Passer <SkipForward className="h-3.5 w-3.5" />
               </Button>
               <Button onClick={saveLookingFor} disabled={loading || (lookingForTags.length === 0 && lookingForCities.length === 0)}>
-                {loading ? "…" : "Continuer"} <ArrowRight className="h-4 w-4" />
+                {loading ? "Finalisation…" : "Accéder au réseau"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========= STEP 8: INVITER (lien de parrainage) ========= */}
-      {step === 8 && (
-        <div className="flex-1 flex flex-col space-y-8 animate-[slide-up_0.2s_ease-out]">
-          <div>
-            <h2 className="text-2xl font-bold text-base-content tracking-tight">
-              Invitez un professionnel
-            </h2>
-            <p className="text-base text-base-content/45 mt-2">
-              Partagez votre lien de parrainage — par DM, SMS, email ou WhatsApp.
-            </p>
-          </div>
-
-          {/* Referral link */}
-          <div className="space-y-4">
-            <div className="rounded-xl border border-base-content/[0.08] bg-base-100 p-4">
-              <p className="text-xs font-medium text-base-content/40 mb-2">Votre lien personnel</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm text-accent bg-accent/[0.06] rounded-lg px-3 py-2.5 truncate select-all">
-                  {typeof window !== "undefined" ? window.location.origin : "https://marchelibre.com"}/rejoindre?ref={profile.x_handle}
-                </code>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const url = `${window.location.origin}/rejoindre?ref=${profile.x_handle}`;
-                    navigator.clipboard.writeText(url);
-                    setInviteSuccess("copied");
-                    setTimeout(() => setInviteSuccess(""), 2000);
-                  }}
-                >
-                  {inviteSuccess === "copied" ? (
-                    <><Check className="h-4 w-4" /> Copié</>
-                  ) : (
-                    "Copier"
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <p className="text-xs text-base-content/30 text-center">
-              Quand quelqu&apos;un s&apos;inscrit via votre lien, vous devenez automatiquement son parrain.
-            </p>
-          </div>
-
-          <div className="flex justify-between pt-4 mt-auto">
-            <Button variant="ghost" onClick={prev}>
-              <ArrowLeft className="h-4 w-4" /> Retour
-            </Button>
-            <Button onClick={finish} disabled={loading} size="lg">
-              {loading ? "Finalisation…" : "Accéder au réseau"} <ArrowRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       )}
@@ -937,7 +877,7 @@ export function OnboardingWizard({
     );
   }
 
-  // Steps 2-8 — split layout with vertical stepper
+  // Steps 2-7 — split layout with vertical stepper
   return (
     <div className="flex gap-0 sm:gap-10 items-center">
       {/* Vertical stepper sidebar */}

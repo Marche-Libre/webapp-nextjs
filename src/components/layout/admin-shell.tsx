@@ -11,7 +11,7 @@ const adminNav = [
   { label: "Gestion des utilisateurs", href: "/admin/users", icon: Users },
 ];
 
-const WIDE_CONTENT_ROUTES = ["/admin/users"];
+const WIDE_CONTENT_ROUTES = ["/admin"];
 
 interface AdminShellProps {
   children: React.ReactNode;
@@ -119,7 +119,7 @@ export function AdminShell({ children }: AdminShellProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-[16px] sm:p-[32px] lg:p-[48px]">
-          <div className={cn("mx-auto", isWideContentRoute ? "max-w-5xl" : "max-w-2xl")}>
+          <div className={cn("mx-auto", isWideContentRoute ? "max-w-7xl" : "max-w-2xl")}>
             {children}
           </div>
         </div>
