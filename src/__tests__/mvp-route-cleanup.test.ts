@@ -10,7 +10,9 @@ function source(filePath: string) {
 
 describe("MVP route cleanup", () => {
   it("routes approved defaults to chat", () => {
-    expect(source("src/lib/supabase/middleware.ts")).toContain('url.pathname = "/chat"');
+    expect(source("src/lib/supabase/middleware.ts")).toContain(
+      'redirectToPath(request, "/chat")',
+    );
     expect(source("src/app/auth/callback/route.ts")).toContain('let redirectPath = "/chat"');
     expect(source("src/app/auth/callback/route.ts")).not.toContain('"/onboarding"');
   });
@@ -229,11 +231,16 @@ describe("MVP route cleanup", () => {
 
   it("keeps public legal and acquisition pages outside auth and app-home redirects", () => {
     const middleware = source("src/lib/supabase/middleware.ts");
+    const approvedRedirectStart = middleware.indexOf(
+      "Approved members can access the app even when onboarding is incomplete.",
+    );
+    const approvedRedirectEnd = middleware.indexOf(
+      "return withSecurityHeaders(supabaseResponse);",
+      approvedRedirectStart,
+    );
     const approvedRedirect = middleware.slice(
-      middleware.indexOf(
-        "Approved members can access the app even when onboarding is incomplete.",
-      ),
-      middleware.indexOf("return withSecurityHeaders(supabaseResponse);"),
+      approvedRedirectStart,
+      approvedRedirectEnd,
     );
 
     for (const route of ["/mentions-legales", "/confidentialite", "/cgu"]) {
@@ -245,10 +252,15 @@ describe("MVP route cleanup", () => {
     expect(middleware).toContain("const acquisitionRoutes =");
     expect(middleware).toContain('"/acces-prive"');
     expect(middleware).toContain('"/landing1"');
+    expect(middleware).toContain('"/landing2"');
     expect(middleware).toContain('"/landing3"');
+    expect(middleware).toContain("const isAccessModalEntry =");
+    expect(middleware).toContain("const isPlainLandingRoute =");
     expect(middleware).toContain("!isAcquisitionRoute");
+    expect(approvedRedirect).toContain("!isPlainLandingRoute");
     expect(approvedRedirect).not.toContain('"/acces-prive"');
     expect(approvedRedirect).not.toContain('"/landing1"');
+    expect(approvedRedirect).not.toContain('"/landing2"');
     expect(approvedRedirect).not.toContain('"/landing3"');
   });
 

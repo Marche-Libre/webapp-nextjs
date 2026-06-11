@@ -81,8 +81,10 @@ describe("auth session middleware routing matrix", () => {
 
     const publicRoutes = [
       "/",
+      "/?auth=access",
       "/acces-prive",
       "/landing1",
+      "/landing2",
       "/landing3",
       "/connexion",
       "/inscription",
@@ -107,8 +109,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = null;
 
     await expectAllowed("/");
+    await expectAllowed("/?auth=access");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
     await expectAllowed("/connexion");
     await expectAllowed("/inscription");
@@ -131,8 +135,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfileError = { message: "boom" };
 
     await expectAllowed("/");
+    await expectAllowed("/?auth=access");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
     await expectAllowed("/connexion");
     await expectAllowed("/inscription");
@@ -148,8 +154,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = { status: "mystery", onboarding_completed: false };
 
     await expectAllowed("/");
+    await expectRedirect("/?auth=access", "/en-attente");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
     await expectAllowed("/en-attente");
     await expectAllowed("/api/geo/cities?q=par");
@@ -172,8 +180,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = { status: "pending", onboarding_completed: false };
 
     await expectAllowed("/");
+    await expectRedirect("/?auth=access", "/en-attente");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
     await expectAllowed("/en-attente");
     await expectAllowed("/api/geo/cities?q=par");
@@ -196,8 +206,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = { status: "rejected", onboarding_completed: false };
 
     await expectAllowed("/");
+    await expectRedirect("/?auth=access", "/en-attente");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
     await expectAllowed("/connexion");
     await expectAllowed("/en-attente");
@@ -220,8 +232,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = { status: "approved", onboarding_completed: false };
 
     await expectAllowed("/");
+    await expectRedirect("/?auth=access", "/chat");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
     await expectAllowed("/onboarding");
     await expectAllowed("/api/geo/cities?q=par");
@@ -245,8 +259,10 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = { status: "approved", onboarding_completed: true };
 
     await expectAllowed("/");
+    await expectRedirect("/?auth=access", "/chat");
     await expectAllowed("/acces-prive");
     await expectAllowed("/landing1");
+    await expectAllowed("/landing2");
     await expectAllowed("/landing3");
   });
 
@@ -254,6 +270,7 @@ describe("auth session middleware routing matrix", () => {
     mockProfile = { status: "approved", onboarding_completed: true };
 
     const chatEntryRedirectRoutes = [
+      "/?auth=access",
       "/connexion",
       "/inscription",
       "/rejoindre",
