@@ -9,6 +9,13 @@ function redirectToAccessModal(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
+function redirectToPath(request: NextRequest, pathname: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = "";
+  return NextResponse.redirect(url);
+}
+
 function withSecurityHeaders(response: NextResponse) {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -30,6 +37,9 @@ export async function updateSession(request: NextRequest) {
   });
 
   const pathname = request.nextUrl.pathname;
+  const isAccessModalEntry =
+    pathname === "/" && request.nextUrl.searchParams.get("auth") === "access";
+  const isPlainLandingRoute = pathname === "/" && !isAccessModalEntry;
 
   const legalRoutes = ["/mentions-legales", "/confidentialite", "/cgu"];
   const authEntryRoutes = ["/", "/connexion", "/inscription", "/rejoindre"];
@@ -133,29 +143,27 @@ export async function updateSession(request: NextRequest) {
     const isPending = profile?.status === "pending";
     const hasKnownStatus = isApproved || isRejected || isPending;
 
-    if (!hasKnownStatus && pathname !== "/" && pathname !== "/en-attente") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/en-attente";
-      return NextResponse.redirect(url);
+    if (
+      !hasKnownStatus &&
+      !isPlainLandingRoute &&
+      pathname !== "/en-attente"
+    ) {
+      return redirectToPath(request, "/en-attente");
     }
 
     // Rejected users stay on the status boundary so the app can show a clear refusal state.
     if (
       isRejected &&
-      pathname !== "/" &&
+      !isPlainLandingRoute &&
       pathname !== "/en-attente" &&
       pathname !== "/connexion"
     ) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/en-attente";
-      return NextResponse.redirect(url);
+      return redirectToPath(request, "/en-attente");
     }
 
     // Pending users can only see /en-attente
-    if (isPending && pathname !== "/" && pathname !== "/en-attente") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/en-attente";
-      return NextResponse.redirect(url);
+    if (isPending && !isPlainLandingRoute && pathname !== "/en-attente") {
+      return redirectToPath(request, "/en-attente");
     }
 
     // Approved members can access the app even when onboarding is incomplete.
@@ -163,12 +171,10 @@ export async function updateSession(request: NextRequest) {
     // Keep the marketing landing page visible even when a member is signed in.
     if (
       isApproved &&
-      ((authEntryRoutes.includes(pathname) && pathname !== "/") ||
+      ((authEntryRoutes.includes(pathname) && !isPlainLandingRoute) ||
         pathname === "/en-attente")
     ) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/chat";
-      return NextResponse.redirect(url);
+      return redirectToPath(request, "/chat");
     }
   }
 
