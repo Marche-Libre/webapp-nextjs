@@ -1,6 +1,7 @@
 export const LAUNCH_CHAT_CHANNEL_SLUGS = [
   "general",
   "business",
+  "tech",
   "politique",
   "divers",
   "jobs",
