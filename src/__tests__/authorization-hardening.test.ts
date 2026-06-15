@@ -308,6 +308,47 @@ describe("authorization hardening", () => {
     );
   });
 
+  it("adds a tech channel to the launch taxonomy", () => {
+    const channelsSource = source("src/lib/chat/channels.ts");
+    const channelSlugsStart = channelsSource.indexOf(
+      "export const LAUNCH_CHAT_CHANNEL_SLUGS",
+    );
+    const channelSlugsEnd = channelsSource.indexOf(
+      "] as const;",
+      channelSlugsStart,
+    );
+    const channelSlugsBlock = channelsSource.slice(
+      channelSlugsStart,
+      channelSlugsEnd,
+    );
+    const channelMigration = migrationSources().find(({ fileName }) =>
+      fileName.includes("add_tech_chat_channel"),
+    );
+    const migrationText = channelMigration?.text ?? "";
+
+    expect(channelSlugsBlock).toContain('"tech"');
+    expect(channelSlugsBlock.indexOf('"business"')).toBeLessThan(
+      channelSlugsBlock.indexOf('"tech"'),
+    );
+    expect(channelSlugsBlock.indexOf('"tech"')).toBeLessThan(
+      channelSlugsBlock.indexOf('"politique"'),
+    );
+    expect(migrationText).toContain("'Tech'");
+    expect(migrationText).toContain("'tech'");
+    expect(migrationText).toContain(
+      "'Discussions tech, outils et sujets techniques'",
+    );
+    expect(normalizeSql(migrationText)).toContain(
+      "'tech', 'tech', 'discussions tech, outils et sujets techniques', false, 'all', 'all'",
+    );
+    expect(migrationText).toContain(
+      "read_permission = EXCLUDED.read_permission",
+    );
+    expect(migrationText).toContain(
+      "write_permission = EXCLUDED.write_permission",
+    );
+  });
+
   it("adds local database guards for chat writes and private channel membership", () => {
     const hardeningMigration = migrationSources().find(({ text }) =>
       text.includes("prevent_sensitive_profile_update"),
