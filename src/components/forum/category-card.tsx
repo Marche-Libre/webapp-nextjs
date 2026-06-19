@@ -3,7 +3,6 @@
  * Forum feature marked as "parked" (DEC-003 open)
  */
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { FavoriteButton } from "@/components/favorites/favorite-button";
 import type { ForumCategory } from "@/lib/types/database";
 
@@ -66,6 +65,7 @@ function getCategoryEmoji(icon: string | null): string {
     users: "👥",
     calendar: "📅",
     "heart-handshake": "🤝",
+    code: "💻",
     coffee: "☕",
   };
   return icon ? map[icon] || "📌" : "📌";
