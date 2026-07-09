@@ -11,6 +11,11 @@ import {
   getAuthEntryDestination,
 } from "@/lib/auth-entry";
 import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
+import {
+  addAuthBreadcrumb,
+  captureAuthException,
+  setObservedUser,
+} from "@/lib/observability/auth";
 
 const ERROR_LOADING_OAUTH_MESSAGE =
   "La connexion X a échoué. Veuillez réessayer dans quelques secondes.";
@@ -31,6 +36,10 @@ export function OAuthButtons() {
   const handleOAuth = useCallback(async () => {
     setLoading(true);
     setError(null);
+    addAuthBreadcrumb("X login started", {
+      source: "access_modal",
+      step: "start",
+    });
     const supabase = createClient();
 
     try {
@@ -41,13 +50,21 @@ export function OAuthButtons() {
       }
 
       if (data.user) {
+        setObservedUser(data.user.id);
         const { data: profile } = await supabase
           .from("profiles")
           .select(AUTH_ENTRY_PROFILE_SELECT)
           .eq("id", data.user.id)
           .single();
 
-        router.replace(getAuthEntryDestination(profile));
+        const destination = getAuthEntryDestination(profile);
+        addAuthBreadcrumb("Existing session detected", {
+          source: "access_modal",
+          step: "existing_session",
+          status: profile?.status,
+          destination,
+        });
+        router.replace(destination);
         return;
       }
 
@@ -66,8 +83,16 @@ export function OAuthButtons() {
       }
 
       window.sessionStorage.setItem(X_OAUTH_URL_SESSION_KEY, signInData.url);
+      addAuthBreadcrumb("X OAuth URL generated", {
+        source: "access_modal",
+        step: "oauth_url_created",
+      });
       router.replace("/auth/x/continue");
     } catch (requestError) {
+      captureAuthException(requestError, {
+        source: "access_modal",
+        step: "start_failed",
+      });
       setError(getOAuthErrorMessage(requestError));
     } finally {
       setLoading(false);

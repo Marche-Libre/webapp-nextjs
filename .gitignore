@@ -49,3 +49,6 @@ Thumbs.db
 .idea/
 *.tmp
 *.swp
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { XLogo } from "@/components/ui/x-logo";
 import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
+import {
+  addAuthBreadcrumb,
+  captureAuthException,
+  captureAuthMessage,
+} from "@/lib/observability/auth";
 
 const COPY_SUCCESS_MESSAGE = "Lien copié";
 const COPY_RESET_DELAY_MS = 2200;
@@ -22,39 +27,97 @@ export default function AuthXContinuePage() {
     [hasOauthUrl],
   );
 
+  const resetCopyMessage = useCallback(() => {
+    setCopyMessage("");
+  }, []);
+
   const handleProceed = useCallback(() => {
     if (!oauthUrl) {
+      captureAuthMessage(
+        "Missing X OAuth URL on proceed",
+        {
+          source: "x_continue",
+          step: "missing_oauth_url",
+        },
+        "warning",
+      );
       setErrorMessage("Le lien d’authentification X n’est pas disponible.");
       return;
     }
 
     window.sessionStorage.removeItem(X_OAUTH_URL_SESSION_KEY);
+    addAuthBreadcrumb("Navigating to X OAuth URL", {
+      source: "x_continue",
+      step: "handoff_to_provider",
+    });
     window.location.href = oauthUrl;
   }, [oauthUrl]);
 
   const handleCopy = useCallback(async () => {
     if (!oauthUrl) {
+      captureAuthMessage(
+        "Missing X OAuth URL on copy",
+        {
+          source: "x_continue",
+          step: "missing_oauth_url",
+        },
+        "warning",
+      );
       setErrorMessage("Le lien d’authentification X n’est pas disponible.");
       return;
     }
 
     try {
       await navigator.clipboard.writeText(oauthUrl);
+      addAuthBreadcrumb("X OAuth URL copied", {
+        source: "x_continue",
+        step: "copy_fallback_used",
+      });
       setCopyMessage(COPY_SUCCESS_MESSAGE);
-    } catch {
+    } catch (copyError) {
+      captureAuthException(copyError, {
+        source: "x_continue",
+        step: "copy_failed",
+      });
       setCopyMessage("Impossible de copier le lien.");
     }
   }, [oauthUrl]);
 
   useEffect(() => {
-    const storedOauthUrl = window.sessionStorage.getItem(X_OAUTH_URL_SESSION_KEY);
+    let canceled = false;
 
-    if (!storedOauthUrl) {
-      setErrorMessage("Veuillez relancer la connexion depuis la page précédente.");
-      return;
-    }
+    const loadStoredOauthUrl = () => {
+      if (canceled) {
+        return;
+      }
 
-    setOauthUrl(storedOauthUrl);
+      const storedOauthUrl = window.sessionStorage.getItem(X_OAUTH_URL_SESSION_KEY);
+
+      if (!storedOauthUrl) {
+        captureAuthMessage(
+          "X OAuth URL missing from session storage",
+          {
+            source: "x_continue",
+            step: "session_storage_missing",
+          },
+          "warning",
+        );
+        setErrorMessage("Veuillez relancer la connexion depuis la page précédente.");
+        return;
+      }
+
+      addAuthBreadcrumb("X OAuth URL restored from session storage", {
+        source: "x_continue",
+        step: "session_storage_restored",
+      });
+      setOauthUrl(storedOauthUrl);
+    };
+
+    window.queueMicrotask(loadStoredOauthUrl);
+
+    return () => {
+      canceled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -62,12 +125,10 @@ export default function AuthXContinuePage() {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setCopyMessage("");
-    }, COPY_RESET_DELAY_MS);
+    const timeoutId = window.setTimeout(resetCopyMessage, COPY_RESET_DELAY_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [copyMessage]);
+  }, [copyMessage, resetCopyMessage]);
 
   return (
     <div className="min-h-dvh bg-base-200 flex items-center justify-center px-4 py-6">
