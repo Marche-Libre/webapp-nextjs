@@ -12,6 +12,13 @@ import {
   getAuthEntryDestination,
 } from "@/lib/auth-entry";
 import { X_OAUTH_URL_SESSION_KEY } from "@/lib/auth/x-oauth";
+import {
+  addAuthBreadcrumb,
+  captureAuthException,
+  captureAuthMessage,
+  setObservedUser,
+  startAuthReplay,
+} from "@/lib/observability/auth";
 import { createReferralSponsorshipRequest } from "./actions";
 
 const ERROR_MESSAGE_DEFAULT =
@@ -54,6 +61,12 @@ function RejoindreContent() {
   const handleSignUp = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
+    startAuthReplay();
+    addAuthBreadcrumb("Referral login started", {
+      source: "referral_page",
+      step: "start",
+      hasReferral: Boolean(referralHandle),
+    });
     const supabase = createClient();
 
     try {
@@ -64,6 +77,7 @@ function RejoindreContent() {
       }
 
       if (userData.user) {
+        setObservedUser(userData.user.id);
         const { data: profile } = await supabase
           .from("profiles")
           .select(AUTH_ENTRY_PROFILE_SELECT)
@@ -75,12 +89,26 @@ function RejoindreContent() {
             await createReferralSponsorshipRequest(referralHandle);
 
           if (!sponsorshipResult.success) {
+            captureAuthMessage("Referral sponsorship request rejected", {
+              source: "referral_page",
+              step: "existing_session_referral_rejected",
+              hasReferral: true,
+              status: profile?.status,
+            }, "warning");
             setErrorMessage(sponsorshipResult.message);
             return;
           }
         }
 
-        router.replace(getAuthEntryDestination(profile));
+        const destination = getAuthEntryDestination(profile);
+        addAuthBreadcrumb("Existing referral session detected", {
+          source: "referral_page",
+          step: "existing_session",
+          hasReferral: Boolean(referralHandle),
+          status: profile?.status,
+          destination,
+        });
+        router.replace(destination);
         return;
       }
 
@@ -103,8 +131,18 @@ function RejoindreContent() {
       }
 
       window.sessionStorage.setItem(X_OAUTH_URL_SESSION_KEY, signInData.url);
+      addAuthBreadcrumb("Referral X OAuth URL generated", {
+        source: "referral_page",
+        step: "oauth_url_created",
+        hasReferral: Boolean(referralHandle),
+      });
       router.replace("/auth/x/continue");
     } catch (requestError) {
+      captureAuthException(requestError, {
+        source: "referral_page",
+        step: "start_failed",
+        hasReferral: Boolean(referralHandle),
+      });
       setErrorMessage(getSignInErrorMessage(requestError));
     } finally {
       setLoading(false);
