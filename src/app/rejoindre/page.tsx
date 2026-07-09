@@ -17,6 +17,7 @@ import {
   captureAuthException,
   captureAuthMessage,
   setObservedUser,
+  startAuthReplay,
 } from "@/lib/observability/auth";
 import { createReferralSponsorshipRequest } from "./actions";
 
@@ -60,6 +61,7 @@ function RejoindreContent() {
   const handleSignUp = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
+    startAuthReplay();
     addAuthBreadcrumb("Referral login started", {
       source: "referral_page",
       step: "start",

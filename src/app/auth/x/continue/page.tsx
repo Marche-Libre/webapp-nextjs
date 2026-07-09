@@ -8,6 +8,7 @@ import {
   addAuthBreadcrumb,
   captureAuthException,
   captureAuthMessage,
+  startAuthReplay,
 } from "@/lib/observability/auth";
 
 const COPY_SUCCESS_MESSAGE = "Lien copié";
@@ -110,6 +111,7 @@ export default function AuthXContinuePage() {
         source: "x_continue",
         step: "session_storage_restored",
       });
+      startAuthReplay();
       setOauthUrl(storedOauthUrl);
     };
 

@@ -15,6 +15,7 @@ import {
   addAuthBreadcrumb,
   captureAuthException,
   setObservedUser,
+  startAuthReplay,
 } from "@/lib/observability/auth";
 
 const ERROR_LOADING_OAUTH_MESSAGE =
@@ -36,6 +37,7 @@ export function OAuthButtons() {
   const handleOAuth = useCallback(async () => {
     setLoading(true);
     setError(null);
+    startAuthReplay();
     addAuthBreadcrumb("X login started", {
       source: "access_modal",
       step: "start",

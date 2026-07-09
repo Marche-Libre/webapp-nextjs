@@ -14,6 +14,10 @@ export function setObservedUser(userId: string | null) {
   Sentry.setUser(userId ? { id: userId } : null);
 }
 
+export function startAuthReplay() {
+  Sentry.getReplay()?.start();
+}
+
 export function addAuthBreadcrumb(message: string, context: AuthContext) {
   Sentry.addBreadcrumb({
     category: "auth.login",

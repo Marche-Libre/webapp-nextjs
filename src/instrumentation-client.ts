@@ -20,8 +20,9 @@ Sentry.init({
   // Capture every traced browser session for now; lower this once traffic grows.
   tracesSampleRate: 1.0,
 
-  // Capture every browser session so first visits and login clicks are replayable.
-  replaysSessionSampleRate: 1.0,
+  // Do not upload full replays for every visitor. Auth entry points start Replay
+  // manually so we can observe the login workflow without recording all browsing.
+  replaysSessionSampleRate: 0,
 
   replaysOnErrorSampleRate: 1.0,
 
